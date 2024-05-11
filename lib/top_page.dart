@@ -99,14 +99,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchImage("practice");
+                              _searchDictionary("practice");
                             },
                             child: Text('辞書'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchImage("practice");
+                              _searchEnglishDictionary("practice");
                             },
                             child: Text('英英辞典'),
                           ),
@@ -164,7 +164,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _searchImage(String keyword) async {
     final _url = Uri.parse('https://www.google.com/search?tbm=isch&q=$keyword');
-    if (!await launchUrl(_url)) {
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchDictionary(String keyword) async {
+    final _url = Uri.parse('https://eow.alc.co.jp/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchEnglishDictionary(String keyword) async {
+    final _url =
+        Uri.parse('https://www.ldoceonline.com/jp/dictionary/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $_url');
     }
   }
