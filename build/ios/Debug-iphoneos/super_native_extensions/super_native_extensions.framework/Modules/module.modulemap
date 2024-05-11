@@ -1,6 +1,0 @@
-framework module super_native_extensions {
-  umbrella header "super_native_extensions-umbrella.h"
-
-  export *
-  module * { export * }
-}
