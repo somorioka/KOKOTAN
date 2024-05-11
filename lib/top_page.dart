@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +11,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
+  Uint8List? _imageData;
 
   @override
   Widget build(BuildContext context) {
@@ -85,30 +88,70 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _searchImage("practice");
-                        },
-                        child: Text('画像検索'),
+                      child: Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchImage("practice");
+                            },
+                            child: Text('画像検索'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchImage("practice");
+                            },
+                            child: Text('辞書'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchImage("practice");
+                            },
+                            child: Text('英英辞典'),
+                          ),
+                        ],
                       ),
                     ),
+                    SizedBox(height: 60),
                     DropRegion(
-                      onDropOver: (event) {
-                        // ドロップが可能な操作を指定
-                        return DropOperation.copy; // 例としてコピー操作を許可
-                      },
+                      onDropOver: (event) => DropOperation.move,
                       formats: Formats.standardFormats,
                       onPerformDrop: (event) async {
                         final item = event.session.items.first;
                         final reader = item.dataReader!;
-                        if (reader.canProvide(Formats.plainText)) {
-                          reader.getValue<String>(Formats.plainText, (value) {
-                            print('Dropped text: $value');
+                        if (reader.canProvide(Formats.jpeg)) {
+                          reader.getFile(Formats.jpeg, (file) {
+                            file.readAll().then((data) {
+                              setState(() {
+                                _imageData = data;
+                              });
+                            });
+                          }, onError: (error) {
+                            print('Error reading image: $error');
                           });
                         }
                       },
-                      child: const Text('ここにアイテムをドロップしてください'),
-                    )
+                      child: _imageData == null
+                          ? Container(
+                              padding: EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: Colors.blue, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  Icon(Icons.add_photo_alternate,
+                                      size: 50, color: Colors.blue),
+                                  Text('ここに画像をドロップ！',
+                                      style: TextStyle(fontSize: 16)),
+                                ],
+                              ),
+                            )
+                          : Image.memory(_imageData!),
+                    ),
                   ],
                 ),
               ),
