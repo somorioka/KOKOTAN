@@ -143,8 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: <Widget>[
-                                  Icon(Icons.add_photo_alternate,
-                                      size: 50, color: Colors.blue),
+                                  Image.asset('assets/images/add-picture.png',
+                                      width: 50, height: 50),
                                   Text('ここに画像をドロップ！',
                                       style: TextStyle(fontSize: 16)),
                                 ],
