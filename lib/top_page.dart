@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -14,6 +15,20 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
   Uint8List? _imageData;
+  TextEditingController field = TextEditingController();
+  bool haspasted = false;
+
+  void pasteFromClipboard() {
+    FlutterClipboard.paste().then((value) {
+      setState(() {
+        field.text = value;
+        haspasted = true;
+      });
+    }).catchError((e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error pasting from Clipboard')));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 60),
+                      SizedBox(height: 10),
                       DropRegion(
                         onDropOver: (event) => DropOperation.move,
                         formats: Formats.standardFormats,
@@ -154,6 +169,41 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               )
                             : Image.memory(_imageData!),
+                      ),
+                      SizedBox(height: 20),
+                      if (haspasted)
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: Color.fromARGB(255, 254, 254, 244), // 背景色
+                            border: Border.all(
+                                color: Color.fromARGB(255, 248, 210, 154),
+                                width: 2), // 枠線
+                            borderRadius: BorderRadius.circular(8), // 角丸
+                          ),
+                          child: Text(
+                            '${field.text}',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.paste, color: Colors.white),
+                        onPressed: pasteFromClipboard,
+                        label: Text(
+                          'ペースト',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color.fromARGB(255, 127, 127, 127),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                        ),
                       ),
                     ],
                   ),
