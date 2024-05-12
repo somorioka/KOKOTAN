@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
         print('$label pressed');
       },
       style: ElevatedButton.styleFrom(
-        foregroundColor: Colors.white, backgroundColor: color, 
+        foregroundColor: Colors.white, backgroundColor: color,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8), // 角丸の設定
         ),
