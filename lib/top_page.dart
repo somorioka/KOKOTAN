@@ -104,33 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Play sound logic here
                         },
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                _searchImage("practice");
-                              },
-                              child: Text('画像検索'),
-                            ),
-                            SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                _searchDictionary("practice");
-                              },
-                              child: Text('辞書'),
-                            ),
-                            SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                _searchEnglishDictionary("practice");
-                              },
-                              child: Text('英英辞典'),
-                            ),
-                          ],
-                        ),
-                      ),
                       SizedBox(height: 10),
                       DropRegion(
                         onDropOver: (event) => DropOperation.move,
@@ -212,6 +185,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => showHalfModal(context),
+          child: Icon(Icons.search),
+        ),
         bottomNavigationBar: showDetails
             ? BottomAppBar(
                 color: Colors.blueGrey[50], // 背景色を設定
@@ -228,6 +205,138 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : null,
       ),
+    );
+  }
+
+  void showHalfModal(BuildContext context) {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height / 2, // 画面の半分の高さ
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('画像検索',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchImage("practice");
+                            },
+                            child: Text('Google'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchImage("practice");
+                            },
+                            child: Text('Getty'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchImage("practice");
+                            },
+                            child: Text('iStock'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Text('辞書を引く',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchDictionary("practice");
+                            },
+                            child: Text('英次郎'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchEnglishDictionary("practice");
+                            },
+                            child: Text('Cambridge'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchEnglishDictionary("practice");
+                            },
+                            child: Text('Oxford'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Text('類義語を検索',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchDictionary("practice");
+                            },
+                            child: Text('WordNet'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchEnglishDictionary("practice");
+                            },
+                            child: Text('SKELL'),
+                          ),
+                          SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              _searchEnglishDictionary("practice");
+                            },
+                            child: Text('Tensai'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
