@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kokotan/pages/top_page.dart';
+import 'package:kokotan/pages/flashcard_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
       ),
-      home: HomeScreen(),
+      home: FlashCardScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

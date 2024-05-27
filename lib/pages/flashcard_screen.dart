@@ -7,12 +7,12 @@ import 'package:flutter/widgets.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class HomeScreen extends StatefulWidget {
+class FlashCardScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  _FlashCardScreenState createState() => _FlashCardScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _FlashCardScreenState extends State<FlashCardScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
   Uint8List? _imageData;
   TextEditingController field = TextEditingController();
