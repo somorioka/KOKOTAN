@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kokotan/top_page.dart';
+import 'package:kokotan/pages/top_page.dart';
 
 void main() {
   runApp(MyApp());
