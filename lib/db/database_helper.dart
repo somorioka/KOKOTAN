@@ -2,17 +2,17 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static final _databaseName = "myDatabase.db";
-  static final _databaseVersion = 1;
+  static const _databaseName = "myDatabase.db";
+  static const _databaseVersion = 1;
 
-  static final table = 'cards';
+  static const table = 'cards';
 
-  static final columnId = 'id';
-  static final columnWord = 'word';
-  static final columnMainMeaning = 'main_meaning';
-  static final columnSubMeaning = 'sub_meaning';
-  static final columnSentence = 'sentence';
-  static final columnSentenceJp = 'sentence_jp';
+  static const columnId = 'id';
+  static const columnWord = 'word';
+  static const columnMainMeaning = 'main_meaning';
+  static const columnSubMeaning = 'sub_meaning';
+  static const columnSentence = 'sentence';
+  static const columnSentenceJp = 'sentence_jp';
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -50,7 +50,9 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> queryAllRows() async {
     Database db = await instance.database;
-    return await db.query(table);
+    final rows = await db.query(table);
+    print('Queried ${rows.length} rows'); // デバッグメッセージ追加
+    return rows;
   }
 
   // New search method
