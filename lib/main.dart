@@ -5,7 +5,7 @@ import 'package:kokotan/pages/flashcard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await importExcelToDatabase();
+  // await importExcelToDatabase();
   runApp(MyApp());
 }
 
