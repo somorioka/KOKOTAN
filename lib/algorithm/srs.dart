@@ -143,7 +143,7 @@ class Word {
 /// カードクラス
 class Card {
   int id;
-  int wordId;
+  Word word;
   int due;
   int crt;
   int type;
@@ -154,9 +154,9 @@ class Card {
   int lapses;
   int left;
 
-  Card(this.wordId, {int? id})
+  Card(this.word, {int? id})
       : id = id ?? _generateUniqueId(),
-        due = wordId,
+        due = word.id,
         crt = _intTime(),
         type = 0,
         queue = 0,
@@ -177,7 +177,7 @@ class Card {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'wordId': wordId,
+      'word': word,
       'due': due,
       'crt': crt,
       'type': type,
@@ -192,7 +192,7 @@ class Card {
 
   static Card fromMap(Map<String, dynamic> map, Word word) {
     return Card(
-      word.id,
+      word,
       id: map['id'],
     )
       ..due = map['due']
@@ -722,8 +722,8 @@ void main() {
       sentenceJp: 'これはテスト文です。',
     );
 
-    Card card1 = Card(word1.id);
-    Card card2 = Card(word2.id);
+    Card card1 = Card(word1);
+    Card card2 = Card(word2);
 
     collection.addCardToDeck('Japanese Vocabulary', card1);
     collection.addCardToDeck('Japanese Vocabulary', card2);
@@ -755,7 +755,7 @@ void main() {
       sentence: 'I study every day.',
       sentenceJp: '私は毎日勉強します。',
     );
-    Card card3 = Card(word3.id);
+    Card card3 = Card(word3);
     collection.addCardToDeck('Japanese Vocabulary', card3);
 
     card = scheduler.getCard();

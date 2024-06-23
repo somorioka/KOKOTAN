@@ -23,11 +23,11 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchCards();
+    _fetchWords();
   }
 
-  Future<void> _fetchCards() async {
-    print('Fetching cards...');
+  Future<void> _fetchWords() async {
+    print('Fetching words...');
     final dbHelper = DatabaseHelper.instance;
     final wordRows = await dbHelper.queryAllWords();
     final cardRows = await dbHelper.queryAllCards();
@@ -70,7 +70,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
         _isLoading = false;
       });
 
-      _fetchCards(); // Fetch the newly imported cards from the database
+      _fetchWords(); // Fetch the newly imported cards from the database
       print("Excel downloaded and imported successfully！");
     } else {
       setState(() {
@@ -104,7 +104,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
             sentenceJp: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
           );
 
-          if (word.id == null ||
+          if (word.id == 0 ||
               word.word.isEmpty ||
               word.mainMeaning.isEmpty ||
               word.sentence.isEmpty ||
@@ -114,7 +114,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
 
           await dbHelper.insertWord(word);
 
-          srs.Card card = srs.Card(word.id); // カスタムのCardクラスを使用
+          srs.Card card = srs.Card(word); // カスタムのCardクラスを使用
           await dbHelper.insertCard(card);
 
           print('Inserted word: ${word.word}, card ID: ${card.id}');
@@ -185,9 +185,41 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                     itemCount: _searchResults.length,
                     itemBuilder: (context, index) {
                       final word = _searchResults[index];
+                      final card = _cards.firstWhere(
+                        (c) => c.word.id == word.id,
+                        orElse: () => srs.Card(srs.Word(
+                          id: 0,
+                          word: '',
+                          mainMeaning: '',
+                          subMeaning: '',
+                          sentence: '',
+                          sentenceJp: '',
+                        )),
+                      );
+
                       return ListTile(
                         title: Text(word.word),
-                        subtitle: Text(word.mainMeaning),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Main Meaning: ${word.mainMeaning}'),
+                            Text('Sub Meaning: ${word.subMeaning}'),
+                            Text('Sentence: ${word.sentence}'),
+                            Text('Sentence JP: ${word.sentenceJp}'),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Card ID: ${card.id}'),
+                                Text(
+                                    'Due: ${DateTime.fromMillisecondsSinceEpoch(card.due)}'),
+                                Text('Interval: ${card.ivl}'),
+                                Text('Factor: ${card.factor}'),
+                                Text('Repetitions: ${card.reps}'),
+                                Text('Lapses: ${card.lapses}'),
+                              ],
+                            ),
+                          ],
+                        ),
                         onTap: () {
                           // Implement navigation to card details if needed
                         },
