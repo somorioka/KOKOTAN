@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:kokotan/Algorithm/srs.dart' as srs;
 import 'package:kokotan/db/database_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
@@ -11,27 +12,33 @@ class FlashcardListScreen extends StatefulWidget {
 }
 
 class _FlashcardListScreenState extends State<FlashcardListScreen> {
-  List<Map<String, dynamic>> _cards = [];
+  List<srs.Word> _words = [];
+  List<srs.Card> _cards = [];
   bool _isLoading = false;
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _searchResults = [];
+  List<srs.Word> _searchResults = [];
   double _downloadProgress = 0.0;
-  bool _dataFetched = false; // データが最初にフェッチされたかどうかを示すフラグ
+  bool _dataFetched = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchCards();
-  }
-
-  Future<void> _fetchCards() async {
-    print('Fetching cards...');
+  Future<void> _fetchWords() async {
+    print('Fetching words...');
     final dbHelper = DatabaseHelper.instance;
-    final cards = await dbHelper.queryAllRows();
+    final wordRows = await dbHelper.queryAllWords();
+    final cardRows = await dbHelper.queryAllCards();
+
+    List<srs.Word> words =
+        wordRows.map((row) => srs.Word.fromMap(row)).toList();
+    List<srs.Card> cards = cardRows.map((row) {
+      int wordId = row['word_id'];
+      srs.Word word = words.firstWhere((w) => w.id == wordId);
+      return srs.Card.fromMap(row, word);
+    }).toList();
+
     setState(() {
+      _words = words;
       _cards = cards;
-      _searchResults = cards;
-      _dataFetched = cards.isNotEmpty;
+      _searchResults = words;
+      _dataFetched = words.isNotEmpty;
       _isLoading = false;
     });
   }
@@ -43,7 +50,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     });
 
     const url =
-        'https://kokomirai.jp/wp-content/uploads/2024/06/dev_kokotan_list.xlsx'; // インターネット上のExcelファイルのURL
+        'https://kokomirai.jp/wp-content/uploads/2024/06/dev_kokotan_list.xlsx';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final bytes = response.bodyBytes;
@@ -57,7 +64,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
         _isLoading = false;
       });
 
-      _fetchCards(); // Fetch the newly imported cards from the database
+      _fetchWords();
       print("Excel downloaded and imported successfully！");
     } else {
       setState(() {
@@ -79,27 +86,32 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
         for (var row in sheet!.rows) {
           if (row[0] == 'id') continue; // Skip the header row
 
-          Map<String, dynamic> card = {
-            'id': row.length > 0
-                ? int.tryParse(row[0]?.value.toString() ?? '')
-                : null,
-            'word': row.length > 1 ? row[1]?.value.toString() : '',
-            'main_meaning': row.length > 2 ? row[2]?.value.toString() : '',
-            'sub_meaning': row.length > 3 ? row[3]?.value.toString() : '',
-            'sentence': row.length > 4 ? row[4]?.value.toString() : '',
-            'sentence_jp': row.length > 5 ? row[5]?.value.toString() : ''
-          };
+          srs.Word word = srs.Word(
+            id: row.length > 0
+                ? (int.tryParse(row[0]?.value.toString() ?? '') ?? 0)
+                : 0,
+            word: row.length > 1 ? (row[1]?.value?.toString() ?? '') : '',
+            mainMeaning:
+                row.length > 2 ? (row[2]?.value?.toString() ?? '') : '',
+            subMeaning: row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
+            sentence: row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
+            sentenceJp: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
+          );
 
-          if (card['id'] == null ||
-              card['word'] == '' ||
-              card['main_meaning'] == '' ||
-              card['sentence'] == '' ||
-              card['sentence_jp'] == '') {
+          if (word.id == 0 ||
+              word.word.isEmpty ||
+              word.mainMeaning.isEmpty ||
+              word.sentence.isEmpty ||
+              word.sentenceJp.isEmpty) {
             continue;
           }
 
-          await dbHelper.insert(card);
-          print('Inserted card: $card'); // デバッグメッセージ追加
+          await dbHelper.insertWord(word);
+
+          srs.Card card = srs.Card(word); // カスタムのCardクラスを使用
+          await dbHelper.insertCard(card);
+
+          print('Inserted word: ${word.word}, card ID: ${card.id}');
         }
       }
       print('Excel data imported successfully');
@@ -109,10 +121,10 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   }
 
   void _search(String query) {
-    final results = _cards.where((card) {
-      final word = card['word'].toString().toLowerCase();
+    final results = _words.where((word) {
+      final wordStr = word.word.toLowerCase();
       final input = query.toLowerCase();
-      return word.contains(input);
+      return wordStr.contains(input);
     }).toList();
 
     setState(() {
@@ -166,10 +178,42 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                   child: ListView.builder(
                     itemCount: _searchResults.length,
                     itemBuilder: (context, index) {
-                      final card = _searchResults[index];
+                      final word = _searchResults[index];
+                      final card = _cards.firstWhere(
+                        (c) => c.word.id == word.id,
+                        orElse: () => srs.Card(srs.Word(
+                          id: 0,
+                          word: '',
+                          mainMeaning: '',
+                          subMeaning: '',
+                          sentence: '',
+                          sentenceJp: '',
+                        )),
+                      );
+
                       return ListTile(
-                        title: Text(card['word']),
-                        subtitle: Text(card['main_meaning']),
+                        title: Text(word.word),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Main Meaning: ${word.mainMeaning}'),
+                            Text('Sub Meaning: ${word.subMeaning}'),
+                            Text('Sentence: ${word.sentence}'),
+                            Text('Sentence JP: ${word.sentenceJp}'),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Card ID: ${card.id}'),
+                                Text(
+                                    'Due: ${DateTime.fromMillisecondsSinceEpoch(card.due)}'),
+                                Text('Interval: ${card.ivl}'),
+                                Text('Factor: ${card.factor}'),
+                                Text('Repetitions: ${card.reps}'),
+                                Text('Lapses: ${card.lapses}'),
+                              ],
+                            ),
+                          ],
+                        ),
                         onTap: () {
                           // Implement navigation to card details if needed
                         },
