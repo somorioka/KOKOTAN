@@ -1,6 +1,6 @@
-import 'package:kokotan/Algorithm/srs.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:kokotan/Algorithm/srs.dart';
 
 class DatabaseHelper {
   static const _databaseName = "myDatabase.db";

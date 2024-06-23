@@ -121,10 +121,10 @@ class Word {
     return {
       'id': id,
       'word': word,
-      'mainMeaning': mainMeaning,
-      'subMeaning': subMeaning,
+      'main_meaning': mainMeaning,
+      'sub_meaning': subMeaning,
       'sentence': sentence,
-      'sentenceJp': sentenceJp,
+      'sentence_jp': sentenceJp,
     };
   }
 
@@ -177,7 +177,7 @@ class Card {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'word': word,
+      'word_id': word.id,
       'due': due,
       'crt': crt,
       'type': type,

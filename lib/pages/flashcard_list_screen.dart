@@ -18,7 +18,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<srs.Word> _searchResults = [];
   double _downloadProgress = 0.0;
-  bool _dataFetched = false; // データが最初にフェッチされたかどうかを示すフラグ
+  bool _dataFetched = false;
 
   @override
   void initState() {
@@ -35,7 +35,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     List<srs.Word> words =
         wordRows.map((row) => srs.Word.fromMap(row)).toList();
     List<srs.Card> cards = cardRows.map((row) {
-      int wordId = row['wordId'];
+      int wordId = row['word_id'];
       srs.Word word = words.firstWhere((w) => w.id == wordId);
       return srs.Card.fromMap(row, word);
     }).toList();
@@ -56,7 +56,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     });
 
     const url =
-        'https://kokomirai.jp/wp-content/uploads/2024/06/dev_kokotan_list.xlsx'; // インターネット上のExcelファイルのURL
+        'https://kokomirai.jp/wp-content/uploads/2024/06/dev_kokotan_list.xlsx';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final bytes = response.bodyBytes;
@@ -70,7 +70,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
         _isLoading = false;
       });
 
-      _fetchWords(); // Fetch the newly imported cards from the database
+      _fetchWords();
       print("Excel downloaded and imported successfully！");
     } else {
       setState(() {
