@@ -18,6 +18,19 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   TextEditingController field = TextEditingController();
   bool haspasted = false;
 
+  String getCardQueueLabel(int queue) {
+    switch (queue) {
+      case 0:
+        return "新規";
+      case 1:
+        return "学習中";
+      case 2:
+        return "復習中";
+      default:
+        return "Unknown";
+    }
+  }
+
   void pasteFromClipboard() {
     FlutterClipboard.paste().then((value) {
       setState(() {
@@ -36,6 +49,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       builder: (context, viewModel, child) {
         final card = viewModel.currentCard;
         final word = card?.word;
+        final currentWord = viewModel.currentWord;
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -67,6 +81,13 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                             onPressed: () {
                               // Play sound logic here
                             },
+                          ),
+                          Text(
+                            '${getCardQueueLabel(card?.queue ?? -1)}',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Color.fromARGB(221, 97, 160, 255)),
                           ),
                         ],
                       ),
@@ -200,7 +221,8 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
               ),
             ),
             floatingActionButton: FloatingActionButton(
-              onPressed: () => showHalfModal(context),
+              onPressed: () =>
+                  showHalfModal(context, currentWord?.word ?? 'practice'),
               child: Icon(Icons.search),
             ),
             bottomNavigationBar: showDetails
@@ -224,7 +246,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     );
   }
 
-  void showHalfModal(BuildContext context) {
+  void showHalfModal(BuildContext context, String keyword) {
     showModalBottomSheet(
       isScrollControlled: true,
       context: context,
@@ -267,21 +289,21 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              _searchImage("practice");
+                              _searchImage(keyword);
                             },
                             child: Text('Google'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchImage("practice");
+                              _searchImage(keyword);
                             },
                             child: Text('Getty'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchImage("practice");
+                              _searchImage(keyword);
                             },
                             child: Text('iStock'),
                           ),
@@ -296,21 +318,21 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              _searchDictionary("practice");
+                              _searchDictionary(keyword);
                             },
                             child: Text('英次郎'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchEnglishDictionary("practice");
+                              _searchEnglishDictionary(keyword);
                             },
                             child: Text('Cambridge'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchEnglishDictionary("practice");
+                              _searchEnglishDictionary(keyword);
                             },
                             child: Text('Oxford'),
                           ),
@@ -325,21 +347,21 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              _searchDictionary("practice");
+                              _searchDictionary(keyword);
                             },
                             child: Text('WordNet'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchEnglishDictionary("practice");
+                              _searchEnglishDictionary(keyword);
                             },
                             child: Text('SKELL'),
                           ),
                           SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
-                              _searchEnglishDictionary("practice");
+                              _searchEnglishDictionary(keyword);
                             },
                             child: Text('Tensai'),
                           ),
