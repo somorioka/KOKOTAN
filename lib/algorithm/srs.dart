@@ -476,9 +476,7 @@ class Scheduler {
 
   void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
     // 現在のステップの通常の遅延？
-    if (delay == null) {
-      delay = _delayForGrade(conf, card.left);
-    }
+    delay ??= _delayForGrade(conf, card.left);
 
     card.due = DateTime.now().millisecondsSinceEpoch + delay;
     card.queue = 1;
@@ -486,7 +484,13 @@ class Scheduler {
 
   int _delayForGrade(Map<String, dynamic> conf, int left) {
     left = left % 1000;
-    int delay = conf['delays'][-left];
+    int index = conf['delays'].length - left;
+    if (index < 0) {
+      index = 0; // インデックスが負の場合、0に設定
+    } else if (index >= conf['delays'].length) {
+      index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
+    }
+    int delay = conf['delays'][index];
     return delay * 60;
   }
 
@@ -648,52 +652,114 @@ class Scheduler {
 }
 
 void main() {
-  // コレクションの作成とデッキの追加
-  Collection collection = Collection();
-  collection.addDeck('Japanese Vocabulary');
+  try {
+    // コレクションの作成とデッキの追加
+    Collection collection = Collection();
+    collection.addDeck('Japanese Vocabulary');
 
-  // ノートの作成とデッキへの追加
-  Note note1 = Note();
-  note1.addTag('N5');
-  collection.addNoteToDeck('Japanese Vocabulary', note1);
+    // ノートの作成とデッキへの追加
+    Note note1 = Note();
+    note1.addTag('N5');
+    collection.addNoteToDeck('Japanese Vocabulary', note1);
 
-  Note note2 = Note();
-  note2.addTag('N4');
-  collection.addNoteToDeck('Japanese Vocabulary', note2);
+    Note note2 = Note();
+    note2.addTag('N4');
+    collection.addNoteToDeck('Japanese Vocabulary', note2);
 
-  print('Collection created at: ${collection.crt}');
-  print('Decks: ${collection.decks.keys}');
-  print(
-      'Notes in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
+    print('Collection created at: ${collection.crt}');
+    print('Decks: ${collection.decks.keys}');
+    print(
+        'Notes in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
 
-  // Schedulerのインスタンスを取得
-  Scheduler scheduler = collection.sched;
+    // Schedulerのインスタンスを取得
+    Scheduler scheduler = collection.sched;
 
-  // カードを取得して確認
-  Card? card = scheduler.getCard();
-  if (card != null) {
-    print('Retrieved card ID: ${card.id}');
-    // カードに応答
-    scheduler.answerCard(card, 3);
-  } else {
-    print('No card to review.');
+    // カードを取得して確認
+    Card? card = scheduler.getCard();
+    if (card != null) {
+      print('Retrieved card ID: ${card.id}');
+      // カードに応答
+      scheduler.answerCard(card, 3);
+    } else {
+      print('No card to review.');
+    }
+
+    // カードの追加と再度の取得確認
+    Note note3 = Note();
+    note3.addTag('N3');
+    collection.addNoteToDeck('Japanese Vocabulary', note3);
+
+    card = scheduler.getCard();
+    if (card != null) {
+      print('Retrieved card ID: ${card.id}');
+      // カードに応答
+      scheduler.answerCard(card, 2);
+    } else {
+      print('No card to review.');
+    }
+
+    // デイリーリセットの確認
+    scheduler.reset();
+    print('Scheduler reset. Reps: ${scheduler.reps}');
+
+    // カードの取得と応答のテスト
+    void testCardRetrievalAndAnswer() {
+      Card? card = collection.sched.getCard();
+      if (card != null) {
+        print('Retrieved card ID: ${card.id}');
+        collection.sched.answerCard(card, 3); // ease 3 for the first card
+      }
+
+      card = collection.sched.getCard();
+      if (card != null) {
+        print('Retrieved card ID: ${card.id}');
+        collection.sched.answerCard(card, 4); // ease 4 for the second card
+      }
+
+      card = collection.sched.getCard();
+      if (card != null) {
+        print('Retrieved card ID: ${card.id}');
+        collection.sched.answerCard(card, 2); // ease 2 for the third card
+      }
+
+      print('Scheduler reps: ${collection.sched.reps}');
+    }
+
+    // 日付をまたいでのリセットのテスト
+    void testDayRollover() {
+      // 今日の終わりの時間を設定してテスト
+      collection.sched._dayCutoff =
+          DateTime.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
+      Future.delayed(Duration(seconds: 2), () {
+        collection.sched.getCard(); // リセットをトリガー
+        print('Day rollover check. Reps after reset: ${collection.sched.reps}');
+      });
+    }
+
+    // 学習カードと復習カードの動作確認
+    void testLearningAndReviewCards() {
+      // 学習カードの取得と確認
+      Card? card = collection.sched.getCard();
+      if (card != null) {
+        print('Learning card ID: ${card.id}');
+        collection.sched.answerCard(card, 3); // ease 3 for learning card
+      }
+
+      // 復習カードの取得と確認
+      card = collection.sched.getCard();
+      if (card != null) {
+        print('Review card ID: ${card.id}');
+        collection.sched.answerCard(card, 2); // ease 2 for review card
+      }
+    }
+
+    // テスト実行
+    print('Starting new tests...');
+    testCardRetrievalAndAnswer();
+    testDayRollover();
+    testLearningAndReviewCards();
+  } catch (e, stackTrace) {
+    print('Error: $e');
+    print('StackTrace: $stackTrace');
   }
-
-  // カードの追加と再度の取得確認
-  Note note3 = Note();
-  note3.addTag('N3');
-  collection.addNoteToDeck('Japanese Vocabulary', note3);
-
-  card = scheduler.getCard();
-  if (card != null) {
-    print('Retrieved card ID: ${card.id}');
-    // カードに応答
-    scheduler.answerCard(card, 2);
-  } else {
-    print('No card to review.');
-  }
-
-  // デイリーリセットの確認
-  scheduler.reset();
-  print('Scheduler reset. Reps: ${scheduler.reps}');
 }
