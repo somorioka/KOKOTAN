@@ -20,12 +20,6 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   double _downloadProgress = 0.0;
   bool _dataFetched = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchWords();
-  }
-
   Future<void> _fetchWords() async {
     print('Fetching words...');
     final dbHelper = DatabaseHelper.instance;
