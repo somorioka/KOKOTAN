@@ -21,6 +21,7 @@ class DataViewModel extends ChangeNotifier {
   List<srs.Word> get searchResults => _searchResults;
   bool get dataFetched => _dataFetched;
   srs.Card? get card => currentCard;
+  srs.Word? get currentWord => currentCard?.word;
 
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
