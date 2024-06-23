@@ -72,9 +72,9 @@ class Collection {
     decks[deckName] = Deck(deckName);
   }
 
-  void addNoteToDeck(String deckName, Note note) {
+  void addCardToDeck(String deckName, Card card) {
     if (decks.containsKey(deckName)) {
-      decks[deckName]!.addNote(note);
+      decks[deckName]!.addCard(card);
     } else {
       throw ArgumentError('デッキ $deckName が存在しません');
     }
@@ -94,39 +94,45 @@ class Deck {
 
   Deck(this.name) : cards = [];
 
-  void addNote(Note note) {
-    cards.add(_newCard(note));
-  }
-
-  Card _newCard(Note note) {
-    return Card(note);
+  void addCard(Card card) {
+    cards.add(card);
   }
 }
 
-/// ノートクラス
-class Note {
+/// 単語クラス
+class Word {
   int id;
-  List<String> tags;
+  String word;
+  String mainMeaning;
+  String subMeaning;
+  String sentence;
+  String sentenceJp;
 
-  Note({int? id})
-      : id = id ?? _generateUniqueId(),
-        tags = [];
+  Word({
+    required this.id,
+    required this.word,
+    required this.mainMeaning,
+    required this.subMeaning,
+    required this.sentence,
+    required this.sentenceJp,
+  });
 
-  void addTag(String tag) {
-    if (!tags.contains(tag)) {
-      tags.add(tag);
-    }
-  }
-
-  static int _generateUniqueId() {
-    return DateTime.now().millisecondsSinceEpoch + Random().nextInt(1000);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'word': word,
+      'mainMeaning': mainMeaning,
+      'subMeaning': subMeaning,
+      'sentence': sentence,
+      'sentenceJp': sentenceJp,
+    };
   }
 }
 
 /// カードクラス
 class Card {
   int id;
-  Note note;
+  int wordId;
   int due;
   int crt;
   int type;
@@ -137,9 +143,9 @@ class Card {
   int lapses;
   int left;
 
-  Card(this.note, {int? id})
+  Card(this.wordId, {int? id})
       : id = id ?? _generateUniqueId(),
-        due = note.id,
+        due = wordId,
         crt = _intTime(),
         type = 0,
         queue = 0,
@@ -637,8 +643,6 @@ class Scheduler {
     if (lf == null) return false;
 
     if (card.lapses >= lf) {
-      var note = card.note;
-      note.addTag("leech");
       card.queue = -1;
       return true;
     }
@@ -657,19 +661,34 @@ void main() {
     Collection collection = Collection();
     collection.addDeck('Japanese Vocabulary');
 
-    // ノートの作成とデッキへの追加
-    Note note1 = Note();
-    note1.addTag('N5');
-    collection.addNoteToDeck('Japanese Vocabulary', note1);
+    // 単語の作成とデッキへの追加
+    Word word1 = Word(
+      id: intId(),
+      word: 'example',
+      mainMeaning: '例',
+      subMeaning: '例え',
+      sentence: 'This is an example sentence.',
+      sentenceJp: 'これは例文です。',
+    );
+    Word word2 = Word(
+      id: intId(),
+      word: 'test',
+      mainMeaning: 'テスト',
+      subMeaning: '試験',
+      sentence: 'This is a test sentence.',
+      sentenceJp: 'これはテスト文です。',
+    );
 
-    Note note2 = Note();
-    note2.addTag('N4');
-    collection.addNoteToDeck('Japanese Vocabulary', note2);
+    Card card1 = Card(word1.id);
+    Card card2 = Card(word2.id);
+
+    collection.addCardToDeck('Japanese Vocabulary', card1);
+    collection.addCardToDeck('Japanese Vocabulary', card2);
 
     print('Collection created at: ${collection.crt}');
     print('Decks: ${collection.decks.keys}');
     print(
-        'Notes in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
+        'Cards in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
 
     // Schedulerのインスタンスを取得
     Scheduler scheduler = collection.sched;
@@ -685,9 +704,16 @@ void main() {
     }
 
     // カードの追加と再度の取得確認
-    Note note3 = Note();
-    note3.addTag('N3');
-    collection.addNoteToDeck('Japanese Vocabulary', note3);
+    Word word3 = Word(
+      id: intId(),
+      word: 'study',
+      mainMeaning: '勉強',
+      subMeaning: '学習',
+      sentence: 'I study every day.',
+      sentenceJp: '私は毎日勉強します。',
+    );
+    Card card3 = Card(word3.id);
+    collection.addCardToDeck('Japanese Vocabulary', card3);
 
     card = scheduler.getCard();
     if (card != null) {
