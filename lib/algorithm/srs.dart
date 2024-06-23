@@ -484,11 +484,13 @@ class Scheduler {
 
   int _delayForGrade(Map<String, dynamic> conf, int left) {
     left = left % 1000;
-    // インデックスが負の値になるのを防ぐ
-    if (left < 0) {
-      left = 0;
+    int index = conf['delays'].length - left;
+    if (index < 0) {
+      index = 0; // インデックスが負の場合、0に設定
+    } else if (index >= conf['delays'].length) {
+      index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
     }
-    int delay = conf['delays'][left];
+    int delay = conf['delays'][index];
     return delay * 60;
   }
 
@@ -699,6 +701,63 @@ void main() {
     // デイリーリセットの確認
     scheduler.reset();
     print('Scheduler reset. Reps: ${scheduler.reps}');
+
+    // カードの取得と応答のテスト
+    void testCardRetrievalAndAnswer() {
+      Card? card = collection.sched.getCard();
+      if (card != null) {
+        print('Retrieved card ID: ${card.id}');
+        collection.sched.answerCard(card, 3); // ease 3 for the first card
+      }
+
+      card = collection.sched.getCard();
+      if (card != null) {
+        print('Retrieved card ID: ${card.id}');
+        collection.sched.answerCard(card, 4); // ease 4 for the second card
+      }
+
+      card = collection.sched.getCard();
+      if (card != null) {
+        print('Retrieved card ID: ${card.id}');
+        collection.sched.answerCard(card, 2); // ease 2 for the third card
+      }
+
+      print('Scheduler reps: ${collection.sched.reps}');
+    }
+
+    // 日付をまたいでのリセットのテスト
+    void testDayRollover() {
+      // 今日の終わりの時間を設定してテスト
+      collection.sched._dayCutoff =
+          DateTime.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
+      Future.delayed(Duration(seconds: 2), () {
+        collection.sched.getCard(); // リセットをトリガー
+        print('Day rollover check. Reps after reset: ${collection.sched.reps}');
+      });
+    }
+
+    // 学習カードと復習カードの動作確認
+    void testLearningAndReviewCards() {
+      // 学習カードの取得と確認
+      Card? card = collection.sched.getCard();
+      if (card != null) {
+        print('Learning card ID: ${card.id}');
+        collection.sched.answerCard(card, 3); // ease 3 for learning card
+      }
+
+      // 復習カードの取得と確認
+      card = collection.sched.getCard();
+      if (card != null) {
+        print('Review card ID: ${card.id}');
+        collection.sched.answerCard(card, 2); // ease 2 for review card
+      }
+    }
+
+    // テスト実行
+    print('Starting new tests...');
+    testCardRetrievalAndAnswer();
+    testDayRollover();
+    testLearningAndReviewCards();
   } catch (e, stackTrace) {
     print('Error: $e');
     print('StackTrace: $stackTrace');
