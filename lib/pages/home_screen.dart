@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/view_models/data_view_model.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -21,32 +23,45 @@ class HomeScreen extends StatelessWidget {
       },
     ];
 
-    return Column(
-      children: [
-        Container(
-            height: 200,
-            width: 200,
-            child: Image.asset('assets/images/humor_top.png')),
-        Expanded(
-          child: ListView.builder(
-            padding: EdgeInsets.all(8.0),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return Card(
-                child: ListTile(
-                  trailing: Icon(item['icon'] as IconData?),
-                  title: Text(item['title'] as String),
-                  subtitle: Text(item['subtitle'] as String),
-                  onTap: () {
-                    // Implement navigation to item details if needed
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('ココタン'),
+      ),
+      body: Column(
+        children: [
+          Container(
+              height: 200,
+              width: 200,
+              child: Image.asset('assets/images/humor_top.png')),
+          Expanded(
+            child: Consumer<DataViewModel>(
+              builder: (context, viewModel, child) {
+                return ListView.builder(
+                  padding: EdgeInsets.all(8.0),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return Card(
+                      child: ListTile(
+                        trailing: viewModel.isLoading
+                            ? Icon(Icons.hourglass_empty)
+                            : (viewModel.dataFetched
+                                ? Icon(Icons.check_circle)
+                                : Icon(Icons.cloud_download)),
+                        title: Text(item['title'] as String),
+                        subtitle: Text(item['subtitle'] as String),
+                        onTap: () {
+                          viewModel.downloadAndImportExcel();
+                        },
+                      ),
+                    );
                   },
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
