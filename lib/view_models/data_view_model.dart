@@ -12,31 +12,16 @@ class DataViewModel extends ChangeNotifier {
   bool _isLoading = false;
   List<srs.Word> _searchResults = [];
   bool _dataFetched = false;
+  srs.Scheduler? scheduler;
+  srs.Card? currentCard;
 
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
   bool get isLoading => _isLoading;
   List<srs.Word> get searchResults => _searchResults;
   bool get dataFetched => _dataFetched;
-
-  Future<void> fetchWords() async {
-    print('Fetching words...');
-    final dbHelper = DatabaseHelper.instance;
-    final wordRows = await dbHelper.queryAllWords();
-    final cardRows = await dbHelper.queryAllCards();
-
-    _words = wordRows.map((row) => srs.Word.fromMap(row)).toList();
-    _cards = cardRows.map((row) {
-      int wordId = row['word_id'];
-      srs.Word word = _words.firstWhere((w) => w.id == wordId);
-      return srs.Card.fromMap(row, word);
-    }).toList();
-
-    _searchResults = _words;
-    _dataFetched = _words.isNotEmpty;
-    _isLoading = false;
-    notifyListeners();
-  }
+  srs.Card? get card => currentCard;
+  srs.Word? get currentWord => currentCard?.word;
 
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
@@ -53,7 +38,7 @@ class DataViewModel extends ChangeNotifier {
 
       await _importExcelToDatabase(file);
 
-      fetchWords();
+      await fetchWordsAndInitializeScheduler();
       print("Excel downloaded and imported successfully！");
     } else {
       _isLoading = false;
@@ -106,6 +91,56 @@ class DataViewModel extends ChangeNotifier {
     } catch (e) {
       print('Error importing Excel data: $e');
     }
+  }
+
+  Future<void> fetchWordsAndInitializeScheduler() async {
+    print('Fetching words and initializing scheduler...');
+    _isLoading = true;
+    notifyListeners();
+
+    final dbHelper = DatabaseHelper.instance;
+    final wordRows = await dbHelper.queryAllWords();
+    final cardRows = await dbHelper.queryAllCards();
+
+    List<srs.Word> words =
+        wordRows.map((row) => srs.Word.fromMap(row)).toList();
+    List<srs.Card> cards = cardRows.map((row) {
+      int wordId = row['word_id'];
+      srs.Word word = words.firstWhere((w) => w.id == wordId);
+      return srs.Card.fromMap(row, word);
+    }).toList();
+
+    _words = words;
+    _cards = cards;
+    _searchResults = words;
+    _dataFetched = _words.isNotEmpty;
+
+    // コレクションとデッキを初期化
+    var collection = srs.Collection();
+    var deckName = 'Default Deck';
+    collection.addDeck(deckName);
+
+    for (var card in cards) {
+      collection.addCardToDeck(deckName, card);
+    }
+
+    scheduler = srs.Scheduler(collection);
+    currentCard = scheduler!.getCard();
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  void answerCard(int ease) {
+    if (scheduler != null && currentCard != null) {
+      scheduler!.answerCard(currentCard!, ease);
+      currentCard = scheduler!.getCard();
+      notifyListeners();
+    }
+  }
+
+  srs.Card? getCard() {
+    return scheduler?.getCard();
   }
 
   void search(String query) {

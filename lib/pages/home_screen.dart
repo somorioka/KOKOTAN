@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/pages/flashcard_screen.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -51,7 +52,16 @@ class HomeScreen extends StatelessWidget {
                         title: Text(item['title'] as String),
                         subtitle: Text(item['subtitle'] as String),
                         onTap: () {
-                          viewModel.downloadAndImportExcel();
+                          if (viewModel.dataFetched) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FlashCardScreen(),
+                              ),
+                            );
+                          } else {
+                            viewModel.downloadAndImportExcel();
+                          }
                         },
                       ),
                     );
