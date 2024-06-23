@@ -127,6 +127,17 @@ class Word {
       'sentenceJp': sentenceJp,
     };
   }
+
+  static Word fromMap(Map<String, dynamic> map) {
+    return Word(
+      id: map['id'],
+      word: map['word'],
+      mainMeaning: map['main_meaning'],
+      subMeaning: map['sub_meaning'],
+      sentence: map['sentence'],
+      sentenceJp: map['sentence_jp'],
+    );
+  }
 }
 
 /// カードクラス
@@ -161,6 +172,38 @@ class Card {
 
   static int _intTime() {
     return DateTime.now().millisecondsSinceEpoch ~/ 1000;
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'wordId': wordId,
+      'due': due,
+      'crt': crt,
+      'type': type,
+      'queue': queue,
+      'ivl': ivl,
+      'factor': factor,
+      'reps': reps,
+      'lapses': lapses,
+      'left': left,
+    };
+  }
+
+  static Card fromMap(Map<String, dynamic> map, Word word) {
+    return Card(
+      word.id,
+      id: map['id'],
+    )
+      ..due = map['due']
+      ..crt = map['crt']
+      ..type = map['type']
+      ..queue = map['queue']
+      ..ivl = map['ivl']
+      ..factor = map['factor']
+      ..reps = map['reps']
+      ..lapses = map['lapses']
+      ..left = map['left'];
   }
 }
 
