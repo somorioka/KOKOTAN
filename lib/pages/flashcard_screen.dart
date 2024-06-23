@@ -227,15 +227,15 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
             ),
             bottomNavigationBar: showDetails
                 ? BottomAppBar(
-                    color: Colors.blueGrey[50],
+                    color: Colors.blueGrey[50], // 背景色を設定
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
-                        _buildButton(context, 'Again', Colors.red),
-                        _buildButton(context, 'Hard', Colors.orange),
-                        _buildButton(context, 'Good', Colors.green),
-                        _buildButton(context, 'Easy', Colors.blue),
+                        _buildButton(context, 'Again', Colors.red, viewModel),
+                        _buildButton(context, 'Hard', Colors.orange, viewModel),
+                        _buildButton(context, 'Good', Colors.green, viewModel),
+                        _buildButton(context, 'Easy', Colors.blue, viewModel),
                       ],
                     ),
                   )
@@ -400,10 +400,12 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
-  Widget _buildButton(BuildContext context, String label, Color color) {
+  Widget _buildButton(BuildContext context, String label, Color color,
+      DataViewModel viewModel) {
     return ElevatedButton(
       onPressed: () {
-        print('$label pressed');
+        int ease = _getEaseValue(label);
+        viewModel.answerCard(ease);
       },
       style: ElevatedButton.styleFrom(
         foregroundColor: Colors.white,
@@ -416,5 +418,20 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       ),
       child: Text(label),
     );
+  }
+
+  int _getEaseValue(String label) {
+    switch (label) {
+      case 'Again':
+        return 1;
+      case 'Hard':
+        return 2;
+      case 'Good':
+        return 3;
+      case 'Easy':
+        return 4;
+      default:
+        return 1;
+    }
   }
 }
