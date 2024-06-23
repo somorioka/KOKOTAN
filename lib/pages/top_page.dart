@@ -31,9 +31,6 @@ class _TopPageState extends State<TopPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('ココタン'),
-      ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
