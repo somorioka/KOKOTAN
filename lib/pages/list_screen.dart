@@ -3,7 +3,14 @@ import 'package:kokotan/Algorithm/srs.dart' as srs;
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 
-class ListScreen extends StatelessWidget {
+class ListScreen extends StatefulWidget {
+  @override
+  State<ListScreen> createState() => _ListScreenState();
+}
+
+class _ListScreenState extends State<ListScreen> {
+  TextEditingController _searchController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +36,7 @@ class ListScreen extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: TextField(
-                          controller: TextEditingController(),
+                          controller: _searchController,
                           decoration: InputDecoration(
                             labelText: 'Search',
                             suffixIcon: IconButton(
