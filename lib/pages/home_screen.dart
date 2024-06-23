@@ -7,12 +7,12 @@ class HomeScreen extends StatelessWidget {
       {
         'title': 'ベーシック',
         'subtitle': 'ターゲット1400, システム英単語basicレベル',
-        'icon': Icons.check_circle,
+        'icon': Icons.cloud_download,
       },
       {
         'title': 'スタンダードA',
         'subtitle': 'ターゲット1900, システム英単語 前半レベル',
-        'icon': Icons.check_circle,
+        'icon': Icons.cloud_download,
       },
       {
         'title': 'スタンダードB',
@@ -35,7 +35,7 @@ class HomeScreen extends StatelessWidget {
               final item = items[index];
               return Card(
                 child: ListTile(
-                  leading: Icon(item['icon'] as IconData?),
+                  trailing: Icon(item['icon'] as IconData?),
                   title: Text(item['title'] as String),
                   subtitle: Text(item['subtitle'] as String),
                   onTap: () {
