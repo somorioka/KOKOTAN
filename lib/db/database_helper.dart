@@ -1,3 +1,4 @@
+import 'package:kokotan/Algorithm/srs.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -5,14 +6,8 @@ class DatabaseHelper {
   static const _databaseName = "myDatabase.db";
   static const _databaseVersion = 1;
 
-  static const table = 'cards';
-
-  static const columnId = 'id';
-  static const columnWord = 'word';
-  static const columnMainMeaning = 'main_meaning';
-  static const columnSubMeaning = 'sub_meaning';
-  static const columnSentence = 'sentence';
-  static const columnSentenceJp = 'sentence_jp';
+  static const wordTable = 'words';
+  static const cardTable = 'cards';
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -32,35 +27,68 @@ class DatabaseHelper {
 
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-          CREATE TABLE $table (
-            $columnId INTEGER PRIMARY KEY,
-            $columnWord TEXT NOT NULL,
-            $columnMainMeaning TEXT,
-            $columnSubMeaning TEXT,
-            $columnSentence TEXT,
-            $columnSentenceJp TEXT
+          CREATE TABLE $wordTable (
+            id INTEGER PRIMARY KEY,
+            word TEXT NOT NULL,
+            mainMeaning TEXT,
+            subMeaning TEXT,
+            sentence TEXT,
+            sentenceJp TEXT
+          )
+          ''');
+    await db.execute('''
+          CREATE TABLE $cardTable (
+            id INTEGER PRIMARY KEY,
+            wordId INTEGER NOT NULL,
+            due INTEGER,
+            crt INTEGER,
+            type INTEGER,
+            queue INTEGER,
+            ivl INTEGER,
+            factor INTEGER,
+            reps INTEGER,
+            lapses INTEGER,
+            left INTEGER,
+            FOREIGN KEY (wordId) REFERENCES $wordTable (id)
           )
           ''');
   }
 
-  Future<int> insert(Map<String, dynamic> row) async {
+  Future<int> insertWord(Word word) async {
     Database db = await instance.database;
-    return await db.insert(table, row);
+    return await db.insert(wordTable, word.toMap());
   }
 
-  Future<List<Map<String, dynamic>>> queryAllRows() async {
+  Future<int> insertCard(Card card) async {
     Database db = await instance.database;
-    final rows = await db.query(table);
-    print('Queried ${rows.length} rows'); // デバッグメッセージ追加
-    return rows;
+    return await db.insert(cardTable, card.toMap());
   }
 
-  // New search method
+  Future<int> updateCard(Card card) async {
+    Database db = await instance.database;
+    return await db.update(
+      cardTable,
+      card.toMap(),
+      where: 'id = ?',
+      whereArgs: [card.id],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> queryAllWords() async {
+    Database db = await instance.database;
+    return await db.query(wordTable);
+  }
+
+  Future<List<Map<String, dynamic>>> queryAllCards() async {
+    Database db = await instance.database;
+    return await db.query(cardTable);
+  }
+
   Future<List<Map<String, dynamic>>> searchWord(String keyword) async {
     Database db = await instance.database;
     List<Map<String, dynamic>> result = await db.query(
-      table,
-      where: '$columnWord LIKE ?',
+      wordTable,
+      where: 'word LIKE ?',
       whereArgs: ['%$keyword%'],
     );
     return result;
