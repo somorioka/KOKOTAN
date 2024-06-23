@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 // 新規カードの表示順設定
@@ -167,7 +168,15 @@ class Card {
         left = 0;
 
   static int _generateUniqueId() {
-    return DateTime.now().millisecondsSinceEpoch + Random().nextInt(1000);
+    int t = _intTimeMs();
+    while (_intTimeMs() == t) {
+      sleep(const Duration(milliseconds: 1));
+    }
+    return t;
+  }
+
+  static int _intTimeMs() {
+    return DateTime.now().millisecondsSinceEpoch;
   }
 
   static int _intTime() {
