@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:kokotan/excel_importer.dart';
-import 'package:kokotan/pages/flashcard_list_screen.dart';
-import 'package:kokotan/pages/flashcard_screen.dart';
+import 'package:kokotan/pages/top_page.dart';
+import 'package:provider/provider.dart';
+
+import 'view_models/data_view_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // await importExcelToDatabase();
-  runApp(MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => DataViewModel(),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -16,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
       ),
-      home: FlashcardListScreen(),
+      home: TopPage(),
       debugShowCheckedModeBanner: false,
     );
   }
