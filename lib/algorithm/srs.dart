@@ -429,7 +429,7 @@ class Scheduler {
         .expand((deck) =>
             deck.cards.where((card) => card.queue == 1 && card.due < cutoff))
         .toList();
-    _lrnQueue.sort((a, b) => a.id.compareTo(b.id));
+    _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
     _lrnQueue = _lrnQueue.take(reportLimit).toList();
     return _lrnQueue.isNotEmpty;
   }
@@ -549,7 +549,7 @@ class Scheduler {
       index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
     }
     int delay = conf['delays'][index];
-    return delay * 60;
+    return delay * 60 * 1000;
   }
 
   int _delayForRepeatingGrade(Map<String, dynamic> conf, int left) {
