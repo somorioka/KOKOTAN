@@ -23,6 +23,10 @@ class DataViewModel extends ChangeNotifier {
   srs.Card? get card => currentCard;
   srs.Word? get currentWord => currentCard?.word;
 
+  int get newCardCount => _cards.where((card) => card.queue == 0).length;
+  int get learningCardCount => _cards.where((card) => card.queue == 1).length;
+  int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
+
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
     notifyListeners();
