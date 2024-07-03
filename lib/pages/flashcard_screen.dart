@@ -239,7 +239,42 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       ],
                     ),
                   )
-                : null,
+                : BottomAppBar(
+                    color: Colors.blueGrey[50], // 背景色を設定
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            Text('新規'),
+                            Text(
+                              viewModel.newCardCount.toString(),
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Text('学習中'),
+                            Text(
+                              viewModel.learningCardCount.toString(),
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Text('復習中'),
+                            Text(
+                              viewModel.reviewCardCount.toString(),
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         );
       },
@@ -406,6 +441,9 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       onPressed: () {
         int ease = _getEaseValue(label);
         viewModel.answerCard(ease);
+        setState(() {
+          showDetails = false;
+        });
       },
       style: ElevatedButton.styleFrom(
         foregroundColor: Colors.white,
