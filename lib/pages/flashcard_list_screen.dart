@@ -20,6 +20,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   double _downloadProgress = 0.0;
   bool _dataFetched = false;
 
+  // TODO: この辺の処理はDataViewModelに移動する
   Future<void> _fetchWords() async {
     print('Fetching words...');
     final dbHelper = DatabaseHelper.instance;
