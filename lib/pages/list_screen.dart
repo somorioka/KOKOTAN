@@ -81,10 +81,13 @@ class _ListScreenState extends State<ListScreen> {
                                     Text('Card ID: ${card.id}'),
                                     Text(
                                         'Due: ${DateTime.fromMillisecondsSinceEpoch(card.due)}'),
+                                    Text('type: ${card.type}'),
+                                    Text('Queue: ${card.queue}'),
                                     Text('Interval: ${card.ivl}'),
                                     Text('Factor: ${card.factor}'),
                                     Text('Repetitions: ${card.reps}'),
                                     Text('Lapses: ${card.lapses}'),
+                                    Text('left: ${card.left}')
                                   ],
                                 ),
                               ],
