@@ -135,9 +135,14 @@ class DataViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void answerCard(int ease) {
+  void answerCard(int ease) async {
     if (scheduler != null && currentCard != null) {
       scheduler!.answerCard(currentCard!, ease);
+
+      // カード情報を更新
+      final dbHelper = DatabaseHelper.instance;
+      await dbHelper.updateCard(currentCard!);
+
       currentCard = scheduler!.getCard();
       notifyListeners();
     }
