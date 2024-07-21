@@ -9,7 +9,7 @@ void main() async {
   // await importExcelToDatabase();
   runApp(
     ChangeNotifierProvider(
-      create: (context) => DataViewModel(),
+      create: (context) => DataViewModel()..initializeData(),
       child: MyApp(),
     ),
   );

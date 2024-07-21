@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DataViewModel extends ChangeNotifier {
   List<srs.Word> _words = [];
@@ -14,6 +15,14 @@ class DataViewModel extends ChangeNotifier {
   bool _dataFetched = false;
   srs.Scheduler? scheduler;
   srs.Card? currentCard;
+
+  DataViewModel() {
+    _loadDataFetchedFlag();
+  }
+
+  Future<void> initializeData() async {
+    await fetchWordsAndInitializeScheduler();
+  }
 
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
@@ -26,6 +35,17 @@ class DataViewModel extends ChangeNotifier {
   int get newCardCount => _cards.where((card) => card.queue == 0).length;
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
   int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
+
+  Future<void> _loadDataFetchedFlag() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _dataFetched = prefs.getBool('dataFetched') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> _saveDataFetchedFlag(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dataFetched', value);
+  }
 
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
@@ -41,9 +61,11 @@ class DataViewModel extends ChangeNotifier {
       await file.writeAsBytes(bytes);
 
       await _importExcelToDatabase(file);
-
       await fetchWordsAndInitializeScheduler();
       print("Excel downloaded and imported successfully！");
+
+      _dataFetched = true;
+      await _saveDataFetchedFlag(true);
     } else {
       _isLoading = false;
       notifyListeners();
