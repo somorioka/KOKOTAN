@@ -20,13 +20,13 @@ class _ListScreenState extends State<ListScreen> {
       body: Consumer<DataViewModel>(
         builder: (context, viewModel, child) {
           return viewModel.isLoading
-              ? Center(
+              ? const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(),
-                      const SizedBox(height: 20),
-                      const Text('Downloading...'),
+                      SizedBox(height: 20),
+                      Text('Downloading...'),
                     ],
                   ),
                 )
