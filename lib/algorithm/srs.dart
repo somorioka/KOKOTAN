@@ -236,6 +236,10 @@ class Scheduler {
     reset();
   }
 
+  int get newQueueCount => _newQueue.length;
+  int get learningQueueCount => _lrnQueue.length;
+  int get reviewQueueCount => _revQueue.length;
+
   // カードの取得
   Card? getCard() {
     _checkDay();
@@ -429,6 +433,7 @@ class Scheduler {
         .expand((deck) =>
             deck.cards.where((card) => card.queue == 1 && card.due < cutoff))
         .toList();
+    print('学習キューのカード枚数 : ${_lrnQueue.length}');
     _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
     _lrnQueue = _lrnQueue.take(reportLimit).toList();
     return _lrnQueue.isNotEmpty;
@@ -467,8 +472,9 @@ class Scheduler {
     }
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
     _revQueue = col.decks.values
-        .expand((deck) =>
-            deck.cards.where((card) => card.queue == 2 && card.due <= today!))
+        .expand((deck) => deck.cards.where((card) =>
+            card.queue == 2 &&
+            card.due <= DateTime.now().millisecondsSinceEpoch)) //ここ間違いの可能性あり
         .toList();
     _revQueue.sort((a, b) => a.due.compareTo(b.due));
     _revQueue = _revQueue.take(limit).toList();
@@ -578,7 +584,8 @@ class Scheduler {
   }
 
   void _rescheduleGraduatingLapse(Card card) {
-    card.due = today! + card.ivl;
+    card.due = DateTime.now().millisecondsSinceEpoch +
+        card.ivl * 24 * 60 * 60 * 1000; //ここも単位が間違いの可能性あり
     card.queue = 2;
     card.type = 2;
   }
@@ -619,9 +626,10 @@ class Scheduler {
   }
 
   void _rescheduleNew(Card card, Map<String, dynamic> conf, bool early) {
-    // 新規カードを初めて卒業するために再スケジュール
+    // カードが初めて卒業するときの復習感覚スケジュール
     card.ivl = _graduatingIvl(card, conf, early);
-    card.due = today! + card.ivl;
+    card.due =
+        DateTime.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -654,7 +662,8 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = today! + card.ivl;
+    card.due = DateTime.now().millisecondsSinceEpoch +
+        card.ivl * 24 * 60 * 60 * 1000; //ここ間違いの可能性あり
   }
 
   int _nextRevIvl(Card card, int ease) {
