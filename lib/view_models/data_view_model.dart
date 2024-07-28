@@ -33,8 +33,9 @@ class DataViewModel extends ChangeNotifier {
   srs.Word? get currentWord => currentCard?.word;
 
   int get newCardCount => scheduler?.newQueueCount ?? 20;
-  // learningCardCountだけは学習queueタイプの総数で数える
-  int get learningCardCount => _cards.where((card) => card.queue == 1).length;
+  // // learningCardCountだけは学習queueタイプの総数で数える
+  // int get learningCardCount => _cards.where((card) => card.queue == 1).length;
+  int get learningCardCount => scheduler?.learningQueueCount ?? 0;
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
 
   Future<void> _loadDataFetchedFlag() async {

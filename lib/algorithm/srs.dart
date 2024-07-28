@@ -26,7 +26,7 @@ int intId() {
 /// デフォルトのコレクション設定
 final Map<String, dynamic> colDefaultConf = {
   'newSpread': NEW_CARDS_DISTRIBUTE,
-  'collapseTime': 1200,
+  'collapseTime': 1200000,
 };
 
 /// デフォルトのデッキ設定
