@@ -32,7 +32,8 @@ final Map<String, dynamic> colDefaultConf = {
 /// デフォルトのデッキ設定
 final Map<String, dynamic> deckDefaultConf = {
   'new': {
-    'delays': [1, 10], // 学習カードのステップ
+    'delays': [1, 10], // 学習カードのステップ // 本番用
+    // 'delays': [1, 1], // 学習カードのステップ // テスト用
     'ints': [1, 4], // 学習カードの間隔
     'initialFactor': STARTING_FACTOR, // EasyFactorの初期値
     'perDay': 20, // 1日の新規カードの最大枚数
@@ -223,7 +224,8 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  late int _dayCutoff;
+  late int _dayCutoff = _calculateDayCutoff();
+  int todayNewCards = 0; // 新規カードのカウント
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
   List<Card> _newQueue = [];
@@ -252,7 +254,8 @@ class Scheduler {
 
   // 1日1回のキューリセット
   void reset() {
-    _updateCutoff();
+    // _updateCutoff();
+    todayNewCards = 0; // 新規カードのカウントをリセット
     _resetLrn();
     _resetRev();
     _resetNew();
@@ -285,29 +288,30 @@ class Scheduler {
   // 日付が変わったかどうかを確認し、リセットする
   void _checkDay() {
     final now = DateTime.now();
-    final cutoff = DateTime(now.year, now.month, now.day)
-        .add(Duration(days: 1))
-        .millisecondsSinceEpoch;
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
 
-    if (today == null || DateTime.now().millisecondsSinceEpoch > cutoff) {
+    if (today == null || today != todayStart) {
+      today = todayStart;
       reset();
     }
   }
 
-  // 日付のカットオフを更新する
-  void _updateCutoff() {
-    // コレクションが作成されてからの経過日数を計算
-    today = _daysSinceCreation();
-    // 日の終了時間を設定
-    _dayCutoff = _calculateDayCutoff();
-  }
+  // TODO: よくわからないのでコメントアウトしてる
+  // // 日付のカットオフを更新する
+  // void _updateCutoff() {
+  //   // コレクションが作成されてからの経過日数を計算
+  //   today = _daysSinceCreation();
+  //   // 日の終了時間を設定
+  //   _dayCutoff = _calculateDayCutoff();
+  // }
 
-  int _daysSinceCreation() {
-    // コレクションが作成されてからの経過日数を返す
-    final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt);
-    final currentDate = DateTime.now();
-    return currentDate.difference(startDate).inDays;
-  }
+  // int _daysSinceCreation() {
+  //   // コレクションが作成されてからの経過日数を返す
+  //   final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt);
+  //   final currentDate = DateTime.now();
+  //   return currentDate.difference(startDate).inDays;
+  // }
 
   int _calculateDayCutoff() {
     // 日の終了時間を返す
@@ -450,13 +454,27 @@ class Scheduler {
     if (_newQueue.isNotEmpty) {
       return true;
     }
-    final limit = min(queueLimit, col.deckConf['new']['perDay'] as int);
+
+    // 今日の新規カードのカウントが制限を超えていないかチェック
+    final perDayLimit = col.deckConf['new']['perDay'] as int;
+    final remainingNewCards = perDayLimit - todayNewCards;
+
+    if (remainingNewCards <= 0) {
+      return false; // 制限を超えた場合、新規カードを追加しない
+    }
+
+    final limit = min(queueLimit, remainingNewCards);
     _newQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) => card.queue == 0))
         .toList();
     _newQueue.sort((a, b) => a.due.compareTo(b.due));
     _newQueue = _newQueue.take(limit).toList();
-    return _newQueue.isNotEmpty;
+
+    if (_newQueue.isNotEmpty) {
+      todayNewCards += _newQueue.length; // 新規カードのカウントを更新
+      return true;
+    }
+    return false;
   }
 
   Card? _getRevCard() {
@@ -546,6 +564,7 @@ class Scheduler {
     card.queue = 1;
   }
 
+  // このメソッドがlrncardのdelayを設定している
   int _delayForGrade(Map<String, dynamic> conf, int left) {
     left = left % 1000;
     int index = conf['delays'].length - left;
@@ -584,8 +603,8 @@ class Scheduler {
   }
 
   void _rescheduleGraduatingLapse(Card card) {
-    card.due = DateTime.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000; //ここも単位が間違いの可能性あり
+    card.due =
+        DateTime.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
     card.queue = 2;
     card.type = 2;
   }
@@ -628,8 +647,10 @@ class Scheduler {
   void _rescheduleNew(Card card, Map<String, dynamic> conf, bool early) {
     // カードが初めて卒業するときの復習感覚スケジュール
     card.ivl = _graduatingIvl(card, conf, early);
-    card.due =
-        DateTime.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
+    card.due = DateTime.now().millisecondsSinceEpoch +
+        card.ivl * 24 * 60 * 60 * 1000; //本番用
+    // card.due =
+    //     DateTime.now().millisecondsSinceEpoch + card.ivl * 60 * 1000; //テスト用
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -667,7 +688,7 @@ class Scheduler {
   }
 
   int _nextRevIvl(Card card, int ease) {
-    int delay = _daysLate(card);
+    int delay = _daysLate(card); //この値が間違っている場合がある
     var conf = col.deckConf["rev"];
     double fct = card.factor / 1000;
     double hardFactor = conf["hardFactor"];
@@ -684,6 +705,7 @@ class Scheduler {
     return ivl4;
   }
 
+  // このメソッドでバカでかいivlが返ってくるときがある
   int _constrainedIvl(int ivl, Map<String, dynamic> conf, int prev) {
     ivl = (ivl * conf["ivlFct"]).toInt();
     ivl = max(ivl, max(prev + 1, 1));
@@ -691,8 +713,9 @@ class Scheduler {
     return ivl;
   }
 
+  // ここでの設定がどうかしている
   int _daysLate(Card card) {
-    return max(0, today! - card.due);
+    return max(0, today! - card.due); //dueの値がおかしいときがある
   }
 
   void _updateRevIvl(Card card, int ease) {
