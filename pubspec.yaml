@@ -43,6 +43,7 @@ dependencies:
   excel: ^4.0.3
   http: ^1.2.1
   provider: ^6.1.2
+  shared_preferences:
 
 dev_dependencies:
   flutter_test:

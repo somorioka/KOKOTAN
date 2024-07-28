@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DataViewModel extends ChangeNotifier {
   List<srs.Word> _words = [];
@@ -15,6 +16,14 @@ class DataViewModel extends ChangeNotifier {
   srs.Scheduler? scheduler;
   srs.Card? currentCard;
 
+  DataViewModel() {
+    _loadDataFetchedFlag();
+  }
+
+  Future<void> initializeData() async {
+    await fetchWordsAndInitializeScheduler();
+  }
+
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
   bool get isLoading => _isLoading;
@@ -23,9 +32,23 @@ class DataViewModel extends ChangeNotifier {
   srs.Card? get card => currentCard;
   srs.Word? get currentWord => currentCard?.word;
 
-  int get newCardCount => _cards.where((card) => card.queue == 0).length;
+  // FIXME: newCardCountが最初19にになる
+  int get newCardCount => scheduler?.newQueueCount ?? 20;
+  // learningCardCountだけは学習queueタイプの総数で数える
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
-  int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
+  int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
+  // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
+
+  Future<void> _loadDataFetchedFlag() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _dataFetched = prefs.getBool('dataFetched') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> _saveDataFetchedFlag(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dataFetched', value);
+  }
 
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
@@ -41,9 +64,11 @@ class DataViewModel extends ChangeNotifier {
       await file.writeAsBytes(bytes);
 
       await _importExcelToDatabase(file);
-
       await fetchWordsAndInitializeScheduler();
       print("Excel downloaded and imported successfully！");
+
+      _dataFetched = true;
+      await _saveDataFetchedFlag(true);
     } else {
       _isLoading = false;
       notifyListeners();
@@ -135,9 +160,14 @@ class DataViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void answerCard(int ease) {
+  void answerCard(int ease) async {
     if (scheduler != null && currentCard != null) {
       scheduler!.answerCard(currentCard!, ease);
+
+      // カード情報を更新
+      final dbHelper = DatabaseHelper.instance;
+      await dbHelper.updateCard(currentCard!);
+
       currentCard = scheduler!.getCard();
       notifyListeners();
     }
