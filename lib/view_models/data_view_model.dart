@@ -32,12 +32,10 @@ class DataViewModel extends ChangeNotifier {
   srs.Card? get card => currentCard;
   srs.Word? get currentWord => currentCard?.word;
 
-  // FIXME: newCardCountが最初19にになる
   int get newCardCount => scheduler?.newQueueCount ?? 20;
   // learningCardCountだけは学習queueタイプの総数で数える
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
-  // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
 
   Future<void> _loadDataFetchedFlag() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

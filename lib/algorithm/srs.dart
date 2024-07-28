@@ -267,6 +267,7 @@ class Scheduler {
     assert(card.queue >= 0 && card.queue <= 4);
 
     card.reps += 1;
+    _removeCardFromQueue(card);
 
     if (card.queue == 0) {
       // 新規キューから来た場合、学習キューへ移動
@@ -282,6 +283,16 @@ class Scheduler {
       _answerRevCard(card, ease);
     } else {
       assert(false);
+    }
+  }
+
+  void _removeCardFromQueue(Card card) {
+    if (card.queue == 0) {
+      _newQueue.remove(card);
+    } else if (card.queue == 1) {
+      _lrnQueue.remove(card);
+    } else if (card.queue == 2) {
+      _revQueue.remove(card);
     }
   }
 
@@ -416,7 +427,7 @@ class Scheduler {
   Card? _getLrnCard({bool collapse = false}) {
     _maybeResetLrn(force: collapse);
     if (_fillLrn()) {
-      return _lrnQueue.removeLast();
+      return _lrnQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
@@ -445,7 +456,7 @@ class Scheduler {
 
   Card? _getNewCard() {
     if (_fillNew()) {
-      return _newQueue.removeLast();
+      return _newQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
@@ -479,7 +490,7 @@ class Scheduler {
 
   Card? _getRevCard() {
     if (_fillRev()) {
-      return _revQueue.removeLast();
+      return _revQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
