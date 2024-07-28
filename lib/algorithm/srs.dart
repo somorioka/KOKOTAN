@@ -425,8 +425,14 @@ class Scheduler {
   }
 
   Card? _getLrnCard({bool collapse = false}) {
-    _maybeResetLrn(force: collapse);
-    if (_fillLrn()) {
+    if (collapse) {
+      // collapseがtrueの場合のみ、collapseTime以内のカードを考慮
+      _maybeResetLrn(force: true);
+    } else {
+      // collapseがfalseの場合、現在の時間よりdueが早いカードのみ取得
+      _maybeResetLrn(force: false);
+    }
+    if (_fillLrn(collapse: collapse)) {
       return _lrnQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
@@ -438,15 +444,16 @@ class Scheduler {
     }
   }
 
-  bool _fillLrn() {
+  bool _fillLrn({bool collapse = false}) {
     if (_lrnQueue.isNotEmpty) {
       return true;
     }
-    final cutoff = DateTime.now().millisecondsSinceEpoch +
-        col.colConf['collapseTime'] as int;
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
-        .expand((deck) =>
-            deck.cards.where((card) => card.queue == 1 && card.due < cutoff))
+        .expand((deck) => deck.cards.where((card) =>
+            card.queue == 1 &&
+            (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
     _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
