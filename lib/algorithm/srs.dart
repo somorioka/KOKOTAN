@@ -224,7 +224,7 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  late int _dayCutoff = _calculateDayCutoff();
+  late int _dayCutoff;
   int todayNewCards = 0; // 新規カードのカウント
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
@@ -255,6 +255,7 @@ class Scheduler {
   // 1日1回のキューリセット
   void reset() {
     // _updateCutoff();
+    _dayCutoff = _calculateDayCutoff();
     todayNewCards = 0; // 新規カードのカウントをリセット
     _resetLrn();
     _resetRev();
@@ -308,7 +309,7 @@ class Scheduler {
     }
   }
 
-  // TODO: よくわからないのでコメントアウトしてる
+  // FIXME: よくわからないのでコメントアウトしてる
   // // 日付のカットオフを更新する
   // void _updateCutoff() {
   //   // コレクションが作成されてからの経過日数を計算
@@ -328,7 +329,7 @@ class Scheduler {
     // 日の終了時間を返す
     final date = DateTime.now();
     final nextDay =
-        DateTime(date.year, date.month, date.day).add(Duration(days: 1));
+        DateTime(date.year, date.month, date.day).add(const Duration(days: 1));
     return nextDay.millisecondsSinceEpoch;
   }
 
@@ -507,10 +508,16 @@ class Scheduler {
       return true;
     }
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
+
+    // 今日の終了時刻を取得
+    final now = DateTime.now();
+    final todayEnd = DateTime(now.year, now.month, now.day)
+        .add(const Duration(days: 1))
+        .millisecondsSinceEpoch;
+
     _revQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
-            card.queue == 2 &&
-            card.due <= DateTime.now().millisecondsSinceEpoch)) //ここ間違いの可能性あり
+            card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
         .toList();
     _revQueue.sort((a, b) => a.due.compareTo(b.due));
     _revQueue = _revQueue.take(limit).toList();
@@ -668,7 +675,7 @@ class Scheduler {
     card.due = DateTime.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //本番用
     // card.due =
-    //     DateTime.now().millisecondsSinceEpoch + card.ivl * 60 * 1000; //テスト用
+    //     DateTime.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
