@@ -59,6 +59,17 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
             });
           },
           child: Scaffold(
+            appBar: AppBar(
+              title: Text('Flash Card'),
+              actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.settings),
+                  onPressed: () {
+                    showSettingsModal(context);
+                  },
+                ),
+              ],
+            ),
             body: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +77,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                   if (word != null) ...[
                     Padding(
                       padding:
-                          EdgeInsets.only(top: 64.0, left: 25.0, bottom: 20.0),
+                          EdgeInsets.only(top: 8.0, left: 25.0, bottom: 20.0),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -408,6 +419,60 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void showSettingsModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Consumer<DataViewModel>(
+          builder: (context, viewModel, child) {
+            // モーダル内で新規カードの上限を保持する変数
+            return AlertDialog(
+              title: Text('新規カード枚数上限'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: '今日だけ',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      // 入力を一時変数に保存
+                    },
+                  ),
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'ずっと',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      // 入力を一時変数に保存
+                    },
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('保存'),
+                  onPressed: () {
+                    // 保存時に viewModel に値を設定し、UI を更新
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
