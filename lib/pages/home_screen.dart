@@ -31,9 +31,9 @@ class HomeScreen extends StatelessWidget {
       body: Column(
         children: [
           Container(
-              height: 200,
-              width: 200,
-              child: Image.asset('assets/images/humor_top.png')),
+              height: 241,
+              width: 361,
+              child: Image.asset('assets/images/home_humor1.png')),
           Expanded(
             child: Consumer<DataViewModel>(
               builder: (context, viewModel, child) {
