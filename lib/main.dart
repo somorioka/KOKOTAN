@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kokotan/pages/top_page.dart';
 import 'package:provider/provider.dart';
 
+import 'pages/onboarding_screen.dart';
 import 'view_models/data_view_model.dart';
 
 void main() async {
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
       ),
-      home: TopPage(),
+      home: OnboardingPage(),
       debugShowCheckedModeBanner: false,
     );
   }

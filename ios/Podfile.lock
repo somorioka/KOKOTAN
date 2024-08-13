@@ -2,6 +2,8 @@ PODS:
   - device_info_plus (0.0.1):
     - Flutter
   - Flutter (1.0.0)
+  - flutter_keyboard_visibility (0.0.1):
+    - Flutter
   - FMDB (2.7.10):
     - FMDB/standard (= 2.7.10)
   - FMDB/standard (2.7.10)
@@ -24,6 +26,7 @@ PODS:
 DEPENDENCIES:
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - Flutter (from `Flutter`)
+  - flutter_keyboard_visibility (from `.symlinks/plugins/flutter_keyboard_visibility/ios`)
   - irondash_engine_context (from `.symlinks/plugins/irondash_engine_context/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -40,6 +43,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/device_info_plus/ios"
   Flutter:
     :path: Flutter
+  flutter_keyboard_visibility:
+    :path: ".symlinks/plugins/flutter_keyboard_visibility/ios"
   irondash_engine_context:
     :path: ".symlinks/plugins/irondash_engine_context/ios"
   path_provider_foundation:
@@ -56,6 +61,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   device_info_plus: 97af1d7e84681a90d0693e63169a5d50e0839a0d
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  flutter_keyboard_visibility: 0339d06371254c3eb25eeb90ba8d17dca8f9c069
   FMDB: eae540775bf7d0c87a5af926ae37af69effe5a19
   irondash_engine_context: 3458bf979b90d616ffb8ae03a150bafe2e860cc9
   path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
