@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'top_page.dart'; // TopPageをインポート
 
 class OnboardingPage extends StatelessWidget {
@@ -85,14 +86,17 @@ class OnboardingPage extends StatelessWidget {
           // ),
         ),
       ],
-      onDone: () {
+      onDone: () async {
+        // TopPageへ遷移する前に、オンボーディング完了を保存
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('hasSeenOnboarding', true);
         // TopPageへ遷移する
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => TopPage()),
         );
       },
-      showSkipButton: true,
+      showSkipButton: false,
       skip: const Text("Skip"),
       next: const Icon(Icons.arrow_forward),
       done: const Text("Done", style: TextStyle(fontWeight: FontWeight.w600)),
