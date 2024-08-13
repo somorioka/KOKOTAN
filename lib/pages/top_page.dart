@@ -35,6 +35,7 @@ class _TopPageState extends State<TopPage> {
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         unselectedItemColor: Colors.grey,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -43,14 +44,14 @@ class _TopPageState extends State<TopPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list),
-            label: 'リスト',
+            label: '単語リスト',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.book),
+            icon: Icon(Icons.query_stats),
             label: '記録',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.article),
+            icon: Icon(Icons.menu_book),
             label: 'コラム',
           ),
           BottomNavigationBarItem(

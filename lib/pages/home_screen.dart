@@ -8,28 +8,24 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       {
-        'title': 'ベーシック (準備中)',
-        'subtitle': 'ターゲット1400, システム英単語basicレベル',
-        'icon': Icons.chevron_right,
-        'color': const Color.fromARGB(255, 236, 236, 236),
-      },
-      {
         'title': 'スタンダードA',
         'subtitle': 'ターゲット1900, システム英単語 前半レベル',
         'icon': Icons.chevron_right,
-        'color': Colors.white,
-      },
-      {
-        'title': 'スタンダードB (準備中)',
-        'subtitle': 'ターゲット1900, システム英単語 後半レベル',
-        'icon': Icons.chevron_right,
-        'color': const Color.fromARGB(255, 236, 236, 236),
+        'color': Color.fromARGB(255, 251, 251, 251),
       },
     ];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('ホーム'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              // Navigator.pushNamed(context, '/list');
+            },
+          ),
+        ],
       ),
       body: Consumer<DataViewModel>(
         builder: (context, viewModel, child) {
@@ -79,6 +75,8 @@ class HomeScreen extends StatelessWidget {
                     },
                   ),
                 ),
+                const ElevatedButton(onPressed: null, child: Text("単語帳を追加")),
+                const SizedBox(height: 16),
               ],
             );
           }
