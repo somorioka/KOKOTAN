@@ -125,4 +125,14 @@ class DatabaseHelper {
       whereArgs: [card.id],
     );
   }
+
+  Future<bool> doesWordExist(int wordId) async {
+    Database db = await instance.database;
+    var result = await db.query(
+      wordTable,
+      where: 'id = ?',
+      whereArgs: [wordId],
+    );
+    return result.isNotEmpty;
+  }
 }
