@@ -51,11 +51,6 @@ class DataViewModel extends ChangeNotifier {
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
 
-  Future<void> _saveDataFetchedFlag(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('dataFetched', value);
-  }
-
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
     notifyListeners();
@@ -73,8 +68,6 @@ class DataViewModel extends ChangeNotifier {
         await _importExcelToDatabase(file);
         await fetchWordsAndInitializeScheduler();
         print("Excel downloaded and imported successfully！");
-
-        await _saveDataFetchedFlag(true);
       } else {
         print('Error downloading file: ${response.statusCode}');
       }
