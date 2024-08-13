@@ -20,26 +20,30 @@ class HomeScreen extends StatelessWidget {
         title: const Text('ホーム'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              Provider.of<DataViewModel>(context, listen: false)
-                  .downloadAndImportExcel();
-            },
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {},
           ),
         ],
       ),
       body: Consumer<DataViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
-            // isLoadingがtrueの場合、ダウンロード中メッセージを表示
-            return Center(
-              child: Text(
-                '単語帳データをダウンロードしています',
-                style: TextStyle(fontSize: 18),
-              ),
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '単語帳データをダウンロードしています',
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 20),
+                LinearProgressIndicator(
+                  value: viewModel.downloadProgress, // プログレスバーを表示
+                ),
+                SizedBox(height: 20),
+                Text("${(viewModel.downloadProgress * 100).toInt()}%"),
+              ],
             );
           } else {
-            // isLoadingがfalseの場合、リストを表示
             return Column(
               children: [
                 Container(
