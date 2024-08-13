@@ -32,23 +32,22 @@ class _ListScreenState extends State<ListScreen> {
                 )
               : Column(
                   children: [
-                    if (viewModel.dataFetched)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            labelText: 'Search',
-                            suffixIcon: IconButton(
-                              icon: Icon(Icons.search),
-                              onPressed: () {},
-                            ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          labelText: 'Search',
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.search),
+                            onPressed: () {},
                           ),
-                          onChanged: (query) {
-                            viewModel.search(query);
-                          },
                         ),
+                        onChanged: (query) {
+                          viewModel.search(query);
+                        },
                       ),
+                    ),
                     Expanded(
                       child: ListView.builder(
                         itemCount: viewModel.searchResults.length,
