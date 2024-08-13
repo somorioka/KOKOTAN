@@ -11,6 +11,16 @@ void main() async {
 
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool? hasSeenOnboarding = prefs.getBool('hasSeenOnboarding');
+  bool? hasImportedData = prefs.getBool('hasImportedData');
+
+  // DataViewModelのインスタンスを作成
+  DataViewModel dataViewModel = DataViewModel();
+
+  if (hasImportedData == null || !hasImportedData) {
+    // 初回起動時のみデータをダウンロード・インポート
+    await dataViewModel.downloadAndImportExcel();
+    await prefs.setBool('hasImportedData', true); // 実行済みとして記録
+  }
 
   runApp(
     ChangeNotifierProvider(
