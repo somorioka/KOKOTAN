@@ -20,9 +20,10 @@ class HomeScreen extends StatelessWidget {
         title: const Text('ホーム'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline),
+            icon: const Icon(Icons.refresh),
             onPressed: () {
-              // Navigator.pushNamed(context, '/list');
+              Provider.of<DataViewModel>(context, listen: false)
+                  .downloadAndImportExcel();
             },
           ),
         ],
@@ -59,16 +60,12 @@ class HomeScreen extends StatelessWidget {
                           title: Text(item['title'] as String),
                           subtitle: Text(item['subtitle'] as String),
                           onTap: () {
-                            if (viewModel.dataFetched) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => FlashCardScreen(),
-                                ),
-                              );
-                            } else {
-                              viewModel.downloadAndImportExcel();
-                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FlashCardScreen(),
+                              ),
+                            );
                           },
                         ),
                       );

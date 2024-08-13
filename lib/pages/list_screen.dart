@@ -59,10 +59,13 @@ class _ListScreenState extends State<ListScreen> {
                             orElse: () => srs.Card(srs.Word(
                               id: 0,
                               word: '',
+                              pronunciation: '',
                               mainMeaning: '',
                               subMeaning: '',
                               sentence: '',
                               sentenceJp: '',
+                              wordVoice: '',
+                              sentenceVoice: '',
                             )),
                           );
 

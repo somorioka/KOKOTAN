@@ -53,13 +53,12 @@ class DataViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    const url =
-        'https://kokomirai.jp/wp-content/uploads/2024/06/dev_kokotan_list.xlsx';
+    const url = 'https://kokomirai.jp/wp-content/uploads/2024/08/sa_ver01.xlsx';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final bytes = response.bodyBytes;
       final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/dev_kokotan_list.xlsx');
+      final file = File('${directory.path}/sa_ver01.xlsx');
       await file.writeAsBytes(bytes);
 
       await _importExcelToDatabase(file);
@@ -77,6 +76,7 @@ class DataViewModel extends ChangeNotifier {
 
   Future<void> _importExcelToDatabase(File file) async {
     final dbHelper = DatabaseHelper.instance;
+    final directory = await getApplicationDocumentsDirectory();
 
     try {
       var bytes = file.readAsBytesSync();
@@ -85,18 +85,44 @@ class DataViewModel extends ChangeNotifier {
       for (var table in excel.tables.keys) {
         var sheet = excel.tables[table];
         for (var row in sheet!.rows) {
-          if (row[0] == 'id') continue; // Skip the header row
+          if (row[0]?.value.toString() == 'wordid') {
+            continue; // Skip the header row
+          }
+
+          // 音声ファイルのダウンロードと保存
+          String wordVoiceUrl =
+              row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
+          String sentenceVoiceUrl =
+              row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
+          String wordVoicePath = '';
+          String sentenceVoicePath = '';
+
+          if (wordVoiceUrl.isNotEmpty) {
+            wordVoicePath = await _downloadAndSaveFile(
+                wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
+            print('Downloaded word voice: $wordVoicePath');
+          }
+
+          if (sentenceVoiceUrl.isNotEmpty) {
+            sentenceVoicePath = await _downloadAndSaveFile(sentenceVoiceUrl,
+                '${row[0]?.value}_sentence.mp3', directory.path);
+            print('Downloaded sentence voice: $sentenceVoicePath');
+          }
 
           srs.Word word = srs.Word(
             id: row.length > 0
                 ? (int.tryParse(row[0]?.value.toString() ?? '') ?? 0)
                 : 0,
             word: row.length > 1 ? (row[1]?.value?.toString() ?? '') : '',
+            pronunciation:
+                row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
             mainMeaning:
-                row.length > 2 ? (row[2]?.value?.toString() ?? '') : '',
-            subMeaning: row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
-            sentence: row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
-            sentenceJp: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
+                row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
+            subMeaning: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
+            sentence: row.length > 6 ? (row[6]?.value?.toString() ?? '') : '',
+            sentenceJp: row.length > 8 ? (row[8]?.value?.toString() ?? '') : '',
+            wordVoice: wordVoicePath, // ローカルの音声ファイルパスを保存
+            sentenceVoice: sentenceVoicePath, // ローカルの音声ファイルパスを保存
           );
 
           if (word.id == 0 ||
@@ -118,6 +144,19 @@ class DataViewModel extends ChangeNotifier {
       print('Excel data imported successfully');
     } catch (e) {
       print('Error importing Excel data: $e');
+    }
+  }
+
+  Future<String> _downloadAndSaveFile(
+      String url, String fileName, String dir) async {
+    print('Downloading file: $url');
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final file = File('$dir/$fileName');
+      await file.writeAsBytes(response.bodyBytes);
+      return file.path;
+    } else {
+      throw Exception('Failed to download file');
     }
   }
 

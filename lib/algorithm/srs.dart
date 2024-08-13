@@ -105,28 +105,37 @@ class Deck {
 class Word {
   int id;
   String word;
+  String? pronunciation; // オプショナルなプロパティ
   String mainMeaning;
-  String subMeaning;
+  String? subMeaning; // オプショナルなプロパティ
   String sentence;
   String sentenceJp;
+  String wordVoice; // 音声ファイルのURL
+  String sentenceVoice; // 音声ファイルのURL
 
   Word({
     required this.id,
     required this.word,
+    this.pronunciation, // オプショナル
     required this.mainMeaning,
-    required this.subMeaning,
+    this.subMeaning, // オプショナル
     required this.sentence,
     required this.sentenceJp,
+    required this.wordVoice,
+    required this.sentenceVoice,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'word': word,
+      'pronunciation': pronunciation,
       'main_meaning': mainMeaning,
       'sub_meaning': subMeaning,
       'sentence': sentence,
       'sentence_jp': sentenceJp,
+      'word_voice': wordVoice,
+      'sentence_voice': sentenceVoice,
     };
   }
 
@@ -134,10 +143,13 @@ class Word {
     return Word(
       id: map['id'],
       word: map['word'],
+      pronunciation: map['pronunciation'],
       mainMeaning: map['main_meaning'],
       subMeaning: map['sub_meaning'],
       sentence: map['sentence'],
       sentenceJp: map['sentence_jp'],
+      wordVoice: map['word_voice'],
+      sentenceVoice: map['sentence_voice'],
     );
   }
 }
@@ -764,137 +776,137 @@ class Scheduler {
   }
 }
 
-void main() {
-  try {
-    // コレクションの作成とデッキの追加
-    Collection collection = Collection();
-    collection.addDeck('Japanese Vocabulary');
+// void main() {
+//   try {
+//     // コレクションの作成とデッキの追加
+//     Collection collection = Collection();
+//     collection.addDeck('Japanese Vocabulary');
 
-    // 単語の作成とデッキへの追加
-    Word word1 = Word(
-      id: intId(),
-      word: 'example',
-      mainMeaning: '例',
-      subMeaning: '例え',
-      sentence: 'This is an example sentence.',
-      sentenceJp: 'これは例文です。',
-    );
-    Word word2 = Word(
-      id: intId(),
-      word: 'test',
-      mainMeaning: 'テスト',
-      subMeaning: '試験',
-      sentence: 'This is a test sentence.',
-      sentenceJp: 'これはテスト文です。',
-    );
+//     // 単語の作成とデッキへの追加
+//     Word word1 = Word(
+//       id: intId(),
+//       word: 'example',
+//       mainMeaning: '例',
+//       subMeaning: '例え',
+//       sentence: 'This is an example sentence.',
+//       sentenceJp: 'これは例文です。',
+//     );
+//     Word word2 = Word(
+//       id: intId(),
+//       word: 'test',
+//       mainMeaning: 'テスト',
+//       subMeaning: '試験',
+//       sentence: 'This is a test sentence.',
+//       sentenceJp: 'これはテスト文です。',
+//     );
 
-    Card card1 = Card(word1);
-    Card card2 = Card(word2);
+//     Card card1 = Card(word1);
+//     Card card2 = Card(word2);
 
-    collection.addCardToDeck('Japanese Vocabulary', card1);
-    collection.addCardToDeck('Japanese Vocabulary', card2);
+//     collection.addCardToDeck('Japanese Vocabulary', card1);
+//     collection.addCardToDeck('Japanese Vocabulary', card2);
 
-    print('Collection created at: ${collection.crt}');
-    print('Decks: ${collection.decks.keys}');
-    print(
-        'Cards in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
+//     print('Collection created at: ${collection.crt}');
+//     print('Decks: ${collection.decks.keys}');
+//     print(
+//         'Cards in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
 
-    // Schedulerのインスタンスを取得
-    Scheduler scheduler = collection.sched;
+//     // Schedulerのインスタンスを取得
+//     Scheduler scheduler = collection.sched;
 
-    // カードを取得して確認
-    Card? card = scheduler.getCard();
-    if (card != null) {
-      print('Retrieved card ID: ${card.id}');
-      // カードに応答
-      scheduler.answerCard(card, 3);
-    } else {
-      print('No card to review.');
-    }
+//     // カードを取得して確認
+//     Card? card = scheduler.getCard();
+//     if (card != null) {
+//       print('Retrieved card ID: ${card.id}');
+//       // カードに応答
+//       scheduler.answerCard(card, 3);
+//     } else {
+//       print('No card to review.');
+//     }
 
-    // カードの追加と再度の取得確認
-    Word word3 = Word(
-      id: intId(),
-      word: 'study',
-      mainMeaning: '勉強',
-      subMeaning: '学習',
-      sentence: 'I study every day.',
-      sentenceJp: '私は毎日勉強します。',
-    );
-    Card card3 = Card(word3);
-    collection.addCardToDeck('Japanese Vocabulary', card3);
+//     // カードの追加と再度の取得確認
+//     Word word3 = Word(
+//       id: intId(),
+//       word: 'study',
+//       mainMeaning: '勉強',
+//       subMeaning: '学習',
+//       sentence: 'I study every day.',
+//       sentenceJp: '私は毎日勉強します。',
+//     );
+//     Card card3 = Card(word3);
+//     collection.addCardToDeck('Japanese Vocabulary', card3);
 
-    card = scheduler.getCard();
-    if (card != null) {
-      print('Retrieved card ID: ${card.id}');
-      // カードに応答
-      scheduler.answerCard(card, 2);
-    } else {
-      print('No card to review.');
-    }
+//     card = scheduler.getCard();
+//     if (card != null) {
+//       print('Retrieved card ID: ${card.id}');
+//       // カードに応答
+//       scheduler.answerCard(card, 2);
+//     } else {
+//       print('No card to review.');
+//     }
 
-    // デイリーリセットの確認
-    scheduler.reset();
-    print('Scheduler reset. Reps: ${scheduler.reps}');
+//     // デイリーリセットの確認
+//     scheduler.reset();
+//     print('Scheduler reset. Reps: ${scheduler.reps}');
 
-    // カードの取得と応答のテスト
-    void testCardRetrievalAndAnswer() {
-      Card? card = collection.sched.getCard();
-      if (card != null) {
-        print('Retrieved card ID: ${card.id}');
-        collection.sched.answerCard(card, 3); // ease 3 for the first card
-      }
+//     // カードの取得と応答のテスト
+//     void testCardRetrievalAndAnswer() {
+//       Card? card = collection.sched.getCard();
+//       if (card != null) {
+//         print('Retrieved card ID: ${card.id}');
+//         collection.sched.answerCard(card, 3); // ease 3 for the first card
+//       }
 
-      card = collection.sched.getCard();
-      if (card != null) {
-        print('Retrieved card ID: ${card.id}');
-        collection.sched.answerCard(card, 4); // ease 4 for the second card
-      }
+//       card = collection.sched.getCard();
+//       if (card != null) {
+//         print('Retrieved card ID: ${card.id}');
+//         collection.sched.answerCard(card, 4); // ease 4 for the second card
+//       }
 
-      card = collection.sched.getCard();
-      if (card != null) {
-        print('Retrieved card ID: ${card.id}');
-        collection.sched.answerCard(card, 2); // ease 2 for the third card
-      }
+//       card = collection.sched.getCard();
+//       if (card != null) {
+//         print('Retrieved card ID: ${card.id}');
+//         collection.sched.answerCard(card, 2); // ease 2 for the third card
+//       }
 
-      print('Scheduler reps: ${collection.sched.reps}');
-    }
+//       print('Scheduler reps: ${collection.sched.reps}');
+//     }
 
-    // 日付をまたいでのリセットのテスト
-    void testDayRollover() {
-      // 今日の終わりの時間を設定してテスト
-      collection.sched._dayCutoff =
-          DateTime.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
-      Future.delayed(Duration(seconds: 2), () {
-        collection.sched.getCard(); // リセットをトリガー
-        print('Day rollover check. Reps after reset: ${collection.sched.reps}');
-      });
-    }
+//     // 日付をまたいでのリセットのテスト
+//     void testDayRollover() {
+//       // 今日の終わりの時間を設定してテスト
+//       collection.sched._dayCutoff =
+//           DateTime.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
+//       Future.delayed(Duration(seconds: 2), () {
+//         collection.sched.getCard(); // リセットをトリガー
+//         print('Day rollover check. Reps after reset: ${collection.sched.reps}');
+//       });
+//     }
 
-    // 学習カードと復習カードの動作確認
-    void testLearningAndReviewCards() {
-      // 学習カードの取得と確認
-      Card? card = collection.sched.getCard();
-      if (card != null) {
-        print('Learning card ID: ${card.id}');
-        collection.sched.answerCard(card, 3); // ease 3 for learning card
-      }
+//     // 学習カードと復習カードの動作確認
+//     void testLearningAndReviewCards() {
+//       // 学習カードの取得と確認
+//       Card? card = collection.sched.getCard();
+//       if (card != null) {
+//         print('Learning card ID: ${card.id}');
+//         collection.sched.answerCard(card, 3); // ease 3 for learning card
+//       }
 
-      // 復習カードの取得と確認
-      card = collection.sched.getCard();
-      if (card != null) {
-        print('Review card ID: ${card.id}');
-        collection.sched.answerCard(card, 2); // ease 2 for review card
-      }
-    }
+//       // 復習カードの取得と確認
+//       card = collection.sched.getCard();
+//       if (card != null) {
+//         print('Review card ID: ${card.id}');
+//         collection.sched.answerCard(card, 2); // ease 2 for review card
+//       }
+//     }
 
-    // テスト実行
-    print('Starting new tests...');
-    testCardRetrievalAndAnswer();
-    testDayRollover();
-    testLearningAndReviewCards();
-  } catch (e, stackTrace) {
-    print('Error: $e');
-    print('StackTrace: $stackTrace');
-  }
-}
+//     // テスト実行
+//     print('Starting new tests...');
+//     testCardRetrievalAndAnswer();
+//     testDayRollover();
+//     testLearningAndReviewCards();
+//   } catch (e, stackTrace) {
+//     print('Error: $e');
+//     print('StackTrace: $stackTrace');
+//   }
+// }
