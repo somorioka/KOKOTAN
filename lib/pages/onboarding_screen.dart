@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
+import 'package:kokotan/view_models/data_view_model.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'top_page.dart'; // TopPageをインポート
 
@@ -18,7 +20,8 @@ class OnboardingPage extends StatelessWidget {
           image: Center(
             child: Image.asset(
               'assets/images/intro_1.png', // ここに画像のパスを指定
-              height: 250.0,
+              height: 244,
+              width: 366,
             ),
           ),
           decoration: const PageDecoration(
@@ -32,7 +35,8 @@ class OnboardingPage extends StatelessWidget {
           image: Center(
             child: Image.asset(
               'assets/images/intro_2.png', // ここに画像のパスを指定
-              height: 250.0,
+              height: 244,
+              width: 366,
             ),
           ),
           decoration: const PageDecoration(
@@ -46,7 +50,8 @@ class OnboardingPage extends StatelessWidget {
           image: Center(
             child: Image.asset(
               'assets/images/intro_3.png', // ここに画像のパスを指定
-              height: 250.0,
+              height: 244,
+              width: 366,
             ),
           ),
           decoration: const PageDecoration(
@@ -60,7 +65,8 @@ class OnboardingPage extends StatelessWidget {
           image: Center(
             child: Image.asset(
               'assets/images/intro_4.png', // ここに画像のパスを指定
-              height: 400.0,
+              height: 244,
+              width: 366,
             ),
           ),
           decoration: const PageDecoration(
@@ -95,6 +101,8 @@ class OnboardingPage extends StatelessWidget {
           context,
           MaterialPageRoute(builder: (context) => TopPage()),
         );
+        Provider.of<DataViewModel>(context, listen: false)
+            .downloadAndImportExcel();
       },
       showSkipButton: false,
       skip: const Text("Skip"),
