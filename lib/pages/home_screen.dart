@@ -9,7 +9,7 @@ class HomeScreen extends StatelessWidget {
     final items = [
       {
         'title': 'スタンダードA',
-        'subtitle': 'ターゲット1900, システム英単語 前半レベル',
+        'cards': 'あと62枚',
         'icon': Icons.chevron_right,
         'color': Color.fromARGB(255, 251, 251, 251),
       },
@@ -60,9 +60,51 @@ class HomeScreen extends StatelessWidget {
                       return Card(
                         child: ListTile(
                           tileColor: item['color'] as Color,
-                          trailing: Icon(item['icon'] as IconData),
-                          title: Text(item['title'] as String),
-                          subtitle: Text(item['subtitle'] as String),
+                          // trailing: Icon(item['icon'] as IconData),
+                          title: Text(
+                            item['title'] as String,
+                            style: const TextStyle(
+                              fontSize: 18,
+                            ),
+                          ),
+                          trailing: SizedBox(
+                            width: 160,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        '今日できるカード',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      Text(
+                                        item['cards'] as String,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  item['icon'] as IconData,
+                                  size: 18, // アイコンのサイズを調整
+                                ),
+                                // const Text(
+                                //   '>',
+                                //   style: TextStyle(
+                                //       fontSize: 18,
+                                //       fontWeight: FontWeight.w400),
+                                // ),
+                              ],
+                            ),
+                          ),
                           onTap: () {
                             Navigator.push(
                               context,
