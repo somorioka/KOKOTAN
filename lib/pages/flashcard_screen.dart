@@ -83,19 +83,15 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         children: [
                           Text(
                             word.word,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 32, fontWeight: FontWeight.bold),
                           ),
-                          IconButton(
-                            icon: Icon(Icons.volume_up),
-                            tooltip: 'Play sound',
-                            onPressed: () {
-                              // Play sound logic here
-                            },
+                          const SizedBox(
+                            width: 20,
                           ),
                           Text(
-                            '${getCardQueueLabel(card?.queue ?? -1)}',
-                            style: TextStyle(
+                            getCardQueueLabel(card?.queue ?? -1),
+                            style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: Color.fromARGB(221, 97, 160, 255)),
@@ -232,9 +228,8 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
               ),
             ),
             floatingActionButton: FloatingActionButton(
-              onPressed: () =>
-                  showHalfModal(context, currentWord?.word ?? 'practice'),
-              child: Icon(Icons.search),
+              onPressed: () {},
+              child: Icon(Icons.volume_up),
             ),
             bottomNavigationBar: showDetails
                 ? BottomAppBar(
