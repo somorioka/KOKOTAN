@@ -31,15 +31,15 @@ class HomeScreen extends StatelessWidget {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
+                const Text(
                   '単語帳データをダウンロードしています',
                   style: TextStyle(fontSize: 18),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 LinearProgressIndicator(
                   value: viewModel.downloadProgress, // プログレスバーを表示
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text("${(viewModel.downloadProgress * 100).toInt()}%"),
               ],
             );
@@ -53,7 +53,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 Expanded(
                   child: ListView.builder(
-                    padding: EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(8.0),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
@@ -76,7 +76,24 @@ class HomeScreen extends StatelessWidget {
                     },
                   ),
                 ),
-                const ElevatedButton(onPressed: null, child: Text("単語帳を追加")),
+                SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(
+                            1, 240, 240, 240), // ボタンの背景色を指定
+                        foregroundColor: Colors.white, // テキストやアイコンの色を指定
+                      ),
+                      onPressed: () {},
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add),
+                          SizedBox(width: 8),
+                          Text("単語帳を追加"),
+                        ],
+                      )),
+                ),
                 const SizedBox(height: 16),
               ],
             );
