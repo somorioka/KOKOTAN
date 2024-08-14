@@ -34,7 +34,7 @@ class DataViewModel extends ChangeNotifier {
   Future<void> initializeData() async {
     await fetchWordsAndInitializeScheduler();
     // バックグラウンドで残りのデータをダウンロード
-    _downloadRemainingDataInBackground();
+    downloadRemainingDataInBackground();
   }
 
   List<srs.Word> get words => _words;
@@ -184,7 +184,7 @@ class DataViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _downloadRemainingDataInBackground() async {
+  Future<void> downloadRemainingDataInBackground() async {
     if (_allDataDownloaded) {
       print(
           'All data has already been downloaded. Skipping background download.');

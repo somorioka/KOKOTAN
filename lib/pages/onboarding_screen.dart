@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
-import 'package:kokotan/view_models/data_view_model.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'top_page.dart'; // TopPageをインポート
 
@@ -99,10 +97,9 @@ class OnboardingPage extends StatelessWidget {
         // TopPageへ遷移する
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => TopPage()),
+          MaterialPageRoute(
+              builder: (context) => const TopPage(fromOnboarding: true)),
         );
-        Provider.of<DataViewModel>(context, listen: false)
-            .downloadAndImportExcel();
       },
       showSkipButton: false,
       skip: const Text("Skip"),

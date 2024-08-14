@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/view_models/data_view_model.dart';
+import 'package:provider/provider.dart';
 
 import 'column_screen.dart';
 import 'home_screen.dart';
@@ -7,6 +9,10 @@ import 'record_screen.dart';
 import 'setting_screen.dart';
 
 class TopPage extends StatefulWidget {
+  final bool fromOnboarding;
+
+  const TopPage({super.key, this.fromOnboarding = false});
+
   @override
   _TopPageState createState() => _TopPageState();
 }
@@ -14,7 +20,7 @@ class TopPage extends StatefulWidget {
 class _TopPageState extends State<TopPage> {
   int _selectedIndex = 0;
 
-  static List<Widget> _widgetOptions = <Widget>[
+  static final List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     ListScreen(),
     RecordScreen(),
@@ -26,6 +32,19 @@ class _TopPageState extends State<TopPage> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.fromOnboarding) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Provider.of<DataViewModel>(context, listen: false)
+            .downloadAndImportExcel();
+        Provider.of<DataViewModel>(context, listen: false)
+            .downloadRemainingDataInBackground();
+      });
+    }
   }
 
   @override
