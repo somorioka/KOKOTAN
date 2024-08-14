@@ -6,15 +6,6 @@ import 'package:provider/provider.dart';
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final items = [
-      {
-        'title': 'スタンダードA',
-        'cards': 'あと62枚',
-        'icon': Icons.chevron_right,
-        'color': Color.fromARGB(255, 251, 251, 251),
-      },
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('ホーム'),
@@ -54,16 +45,15 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(8.0),
-                    itemCount: items.length,
+                    itemCount: 1,
                     itemBuilder: (context, index) {
-                      final item = items[index];
                       return Card(
                         child: ListTile(
-                          tileColor: item['color'] as Color,
+                          tileColor: const Color.fromARGB(255, 251, 251, 251),
                           // trailing: Icon(item['icon'] as IconData),
-                          title: Text(
-                            item['title'] as String,
-                            style: const TextStyle(
+                          title: const Text(
+                            "スタンダードA",
+                            style: TextStyle(
                               fontSize: 18,
                             ),
                           ),
@@ -83,7 +73,7 @@ class HomeScreen extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        item['cards'] as String,
+                                        "あと${viewModel.newCardCount.toString()}枚",
                                         style: const TextStyle(
                                           fontSize: 16,
                                         ),
@@ -92,8 +82,8 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Icon(
-                                  item['icon'] as IconData,
+                                const Icon(
+                                  Icons.chevron_right,
                                   size: 18, // アイコンのサイズを調整
                                 ),
                                 // const Text(
