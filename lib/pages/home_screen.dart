@@ -6,71 +6,131 @@ import 'package:provider/provider.dart';
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final items = [
-      {
-        'title': 'ベーシック',
-        'subtitle': 'ターゲット1400, システム英単語basicレベル',
-        'icon': Icons.cloud_download,
-      },
-      {
-        'title': 'スタンダードA',
-        'subtitle': 'ターゲット1900, システム英単語 前半レベル',
-        'icon': Icons.cloud_download,
-      },
-      {
-        'title': 'スタンダードB',
-        'subtitle': 'ターゲット1900, システム英単語 後半レベル',
-        'icon': Icons.cloud_download,
-      },
-    ];
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('ココタン'),
+        title: const Text('ホーム'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {},
+          ),
+        ],
       ),
-      body: Column(
-        children: [
-          Container(
-              height: 200,
-              width: 200,
-              child: Image.asset('assets/images/humor_top.png')),
-          Expanded(
-            child: Consumer<DataViewModel>(
-              builder: (context, viewModel, child) {
-                return ListView.builder(
-                  padding: EdgeInsets.all(8.0),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return Card(
-                      child: ListTile(
-                        trailing: viewModel.isLoading
-                            ? Icon(Icons.hourglass_empty)
-                            : (viewModel.dataFetched
-                                ? Icon(Icons.check_circle)
-                                : Icon(Icons.cloud_download)),
-                        title: Text(item['title'] as String),
-                        subtitle: Text(item['subtitle'] as String),
-                        onTap: () {
-                          if (viewModel.dataFetched) {
+      body: Consumer<DataViewModel>(
+        builder: (context, viewModel, child) {
+          if (viewModel.isLoading) {
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '単語帳データをダウンロードしています',
+                  style: TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                LinearProgressIndicator(
+                  value: viewModel.downloadProgress, // プログレスバーを表示
+                ),
+                const SizedBox(height: 20),
+                Text("${(viewModel.downloadProgress * 100).toInt()}%"),
+              ],
+            );
+          } else {
+            return Column(
+              children: [
+                Container(
+                    height: 241,
+                    width: 361,
+                    child: Image.asset('assets/images/home_humor1.png')),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount: 1,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        child: ListTile(
+                          tileColor: const Color.fromARGB(255, 251, 251, 251),
+                          // trailing: Icon(item['icon'] as IconData),
+                          title: const Text(
+                            "スタンダードA",
+                            style: TextStyle(
+                              fontSize: 18,
+                            ),
+                          ),
+                          trailing: SizedBox(
+                            width: 160,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        '今日できるカード',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      Text(
+                                        "あと${viewModel.newCardCount.toString()}枚",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  size: 18, // アイコンのサイズを調整
+                                ),
+                                // const Text(
+                                //   '>',
+                                //   style: TextStyle(
+                                //       fontSize: 18,
+                                //       fontWeight: FontWeight.w400),
+                                // ),
+                              ],
+                            ),
+                          ),
+                          onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => FlashCardScreen(),
                               ),
                             );
-                          } else {
-                            viewModel.downloadAndImportExcel();
-                          }
-                        },
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(
+                            1, 240, 240, 240), // ボタンの背景色を指定
+                        foregroundColor: Colors.white, // テキストやアイコンの色を指定
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+                      onPressed: () {},
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add),
+                          SizedBox(width: 8),
+                          Text("単語帳を追加"),
+                        ],
+                      )),
+                ),
+                const SizedBox(height: 16),
+              ],
+            );
+          }
+        },
       ),
     );
   }

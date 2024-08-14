@@ -12,25 +12,38 @@ class DataViewModel extends ChangeNotifier {
   List<srs.Card> _cards = [];
   bool _isLoading = false;
   List<srs.Word> _searchResults = [];
-  bool _dataFetched = false;
   srs.Scheduler? scheduler;
   srs.Card? currentCard;
+  double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
+  bool _allDataDownloaded = false;
 
   DataViewModel() {
-    _loadDataFetchedFlag();
+    _loadDataDownloadedFlag();
+  }
+
+  Future<void> _loadDataDownloadedFlag() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _allDataDownloaded = prefs.getBool('allDataDownloaded') ?? false;
+  }
+
+  Future<void> _saveDataDownloadedFlag(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('allDataDownloaded', value);
   }
 
   Future<void> initializeData() async {
     await fetchWordsAndInitializeScheduler();
+    // バックグラウンドで残りのデータをダウンロード
+    downloadRemainingDataInBackground();
   }
 
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
   bool get isLoading => _isLoading;
   List<srs.Word> get searchResults => _searchResults;
-  bool get dataFetched => _dataFetched;
   srs.Card? get card => currentCard;
   srs.Word? get currentWord => currentCard?.word;
+  double get downloadProgress => _downloadProgress; // プログレスを取得
 
   int get newCardCount => scheduler?.newQueueCount ?? 20;
   // learningCardCountだけは学習queueタイプの総数で数える
@@ -38,45 +51,38 @@ class DataViewModel extends ChangeNotifier {
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
 
-  Future<void> _loadDataFetchedFlag() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    _dataFetched = prefs.getBool('dataFetched') ?? false;
-    notifyListeners();
-  }
-
-  Future<void> _saveDataFetchedFlag(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('dataFetched', value);
-  }
-
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
     notifyListeners();
 
-    const url =
-        'https://kokomirai.jp/wp-content/uploads/2024/06/dev_kokotan_list.xlsx';
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final bytes = response.bodyBytes;
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/dev_kokotan_list.xlsx');
-      await file.writeAsBytes(bytes);
+    try {
+      const url =
+          'https://kokomirai.jp/wp-content/uploads/2024/08/sa_ver01.xlsx';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/sa_ver01.xlsx');
+        await file.writeAsBytes(bytes);
 
-      await _importExcelToDatabase(file);
-      await fetchWordsAndInitializeScheduler();
-      print("Excel downloaded and imported successfully！");
-
-      _dataFetched = true;
-      await _saveDataFetchedFlag(true);
-    } else {
+        await _importExcelToDatabase(file);
+        await fetchWordsAndInitializeScheduler();
+        print("Excel downloaded and imported successfully！");
+      } else {
+        print('Error downloading file: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error during download and import: $e');
+    } finally {
       _isLoading = false;
       notifyListeners();
-      print('Error downloading file: ${response.statusCode}');
     }
   }
 
-  Future<void> _importExcelToDatabase(File file) async {
+  Future<void> _importExcelToDatabase(File file, {int limit = 20}) async {
     final dbHelper = DatabaseHelper.instance;
+    final directory = await getApplicationDocumentsDirectory();
+    int wordCount = 0;
 
     try {
       var bytes = file.readAsBytesSync();
@@ -85,18 +91,54 @@ class DataViewModel extends ChangeNotifier {
       for (var table in excel.tables.keys) {
         var sheet = excel.tables[table];
         for (var row in sheet!.rows) {
-          if (row[0] == 'id') continue; // Skip the header row
+          if (row[0]?.value.toString() == 'wordid') {
+            continue; // Skip the header row
+          }
+
+          int wordId = int.tryParse(row[0]?.value.toString() ?? '') ?? 0;
+
+          // 既にデータベースに存在する単語をスキップ
+          if (await dbHelper.doesWordExist(wordId)) {
+            continue;
+          }
+
+          if (wordCount >= limit) break;
+          print(wordId);
+
+          // 音声ファイルのダウンロードと保存
+          String wordVoiceUrl =
+              row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
+          String sentenceVoiceUrl =
+              row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
+          String wordVoicePath = '';
+          String sentenceVoicePath = '';
+
+          if (wordVoiceUrl.isNotEmpty) {
+            wordVoicePath = await _downloadAndSaveFile(
+                wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
+            print('Downloaded word voice: $wordVoicePath');
+          }
+
+          if (sentenceVoiceUrl.isNotEmpty) {
+            sentenceVoicePath = await _downloadAndSaveFile(sentenceVoiceUrl,
+                '${row[0]?.value}_sentence.mp3', directory.path);
+            print('Downloaded sentence voice: $sentenceVoicePath');
+          }
 
           srs.Word word = srs.Word(
             id: row.length > 0
                 ? (int.tryParse(row[0]?.value.toString() ?? '') ?? 0)
                 : 0,
             word: row.length > 1 ? (row[1]?.value?.toString() ?? '') : '',
+            pronunciation:
+                row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
             mainMeaning:
-                row.length > 2 ? (row[2]?.value?.toString() ?? '') : '',
-            subMeaning: row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
-            sentence: row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
-            sentenceJp: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
+                row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
+            subMeaning: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
+            sentence: row.length > 6 ? (row[6]?.value?.toString() ?? '') : '',
+            sentenceJp: row.length > 8 ? (row[8]?.value?.toString() ?? '') : '',
+            wordVoice: wordVoicePath, // ローカルの音声ファイルパスを保存
+            sentenceVoice: sentenceVoicePath, // ローカルの音声ファイルパスを保存
           );
 
           if (word.id == 0 ||
@@ -112,8 +154,16 @@ class DataViewModel extends ChangeNotifier {
           srs.Card card = srs.Card(word); // カスタムのCardクラスを使用
           await dbHelper.insertCard(card);
 
+          wordCount++;
+          // 進捗率を更新
+          _downloadProgress = wordCount / limit;
+          notifyListeners();
+
+          if (wordCount >= limit) break;
+
           print('Inserted word: ${word.word}, card ID: ${card.id}');
         }
+        if (wordCount >= limit) break;
       }
       print('Excel data imported successfully');
     } catch (e) {
@@ -121,10 +171,45 @@ class DataViewModel extends ChangeNotifier {
     }
   }
 
+  Future<String> _downloadAndSaveFile(
+      String url, String fileName, String dir) async {
+    print('Downloading file: $url');
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final file = File('$dir/$fileName');
+      await file.writeAsBytes(response.bodyBytes);
+      return file.path;
+    } else {
+      throw Exception('Failed to download file');
+    }
+  }
+
+  Future<void> downloadRemainingDataInBackground() async {
+    if (_allDataDownloaded) {
+      print(
+          'All data has already been downloaded. Skipping background download.');
+      return;
+    }
+    print('Starting background download of remaining data...');
+
+    // すべてのデータをインポートするように設定 (limit=無制限)
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/sa_ver01.xlsx');
+    if (await file.exists()) {
+      // 既に存在するExcelファイルからデータを取り込む
+      await _importExcelToDatabase(file, limit: 1484);
+      print('Background download completed successfully');
+
+      // フラグをtrueに設定
+      await _saveDataDownloadedFlag(true);
+      _allDataDownloaded = true;
+    } else {
+      print('Error: Excel file not found for background import.');
+    }
+  }
+
   Future<void> fetchWordsAndInitializeScheduler() async {
     print('Fetching words and initializing scheduler...');
-    _isLoading = true;
-    notifyListeners();
 
     final dbHelper = DatabaseHelper.instance;
     final wordRows = await dbHelper.queryAllWords();
@@ -141,7 +226,6 @@ class DataViewModel extends ChangeNotifier {
     _words = words;
     _cards = cards;
     _searchResults = words;
-    _dataFetched = _words.isNotEmpty;
 
     // コレクションとデッキを初期化
     var collection = srs.Collection();
@@ -154,9 +238,6 @@ class DataViewModel extends ChangeNotifier {
 
     scheduler = srs.Scheduler(collection);
     currentCard = scheduler!.getCard();
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   void answerCard(int ease) async {

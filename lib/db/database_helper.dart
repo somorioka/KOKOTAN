@@ -12,9 +12,12 @@ class DatabaseHelper {
   // Word table columns
   static const columnId = 'id';
   static const columnWord = 'word';
+  static const columnWordVoice = 'word_voice';
+  static const columnPronunciation = 'pronunciation';
   static const columnMainMeaning = 'main_meaning';
   static const columnSubMeaning = 'sub_meaning';
   static const columnSentence = 'sentence';
+  static const columnSentenceVoice = 'sentence_voice';
   static const columnSentenceJp = 'sentence_jp';
 
   // Card table columns
@@ -51,9 +54,12 @@ class DatabaseHelper {
           CREATE TABLE $wordTable (
             $columnId INTEGER PRIMARY KEY,
             $columnWord TEXT NOT NULL,
+            $columnWordVoice TEXT,
+            $columnPronunciation TEXT,
             $columnMainMeaning TEXT,
             $columnSubMeaning TEXT,
             $columnSentence TEXT,
+            $columnSentenceVoice TEXT,
             $columnSentenceJp TEXT
           )
           ''');
@@ -118,5 +124,15 @@ class DatabaseHelper {
       where: '$cardColumnId = ?',
       whereArgs: [card.id],
     );
+  }
+
+  Future<bool> doesWordExist(int wordId) async {
+    Database db = await instance.database;
+    var result = await db.query(
+      wordTable,
+      where: 'id = ?',
+      whereArgs: [wordId],
+    );
+    return result.isNotEmpty;
   }
 }
