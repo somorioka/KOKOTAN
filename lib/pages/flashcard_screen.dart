@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +50,6 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       builder: (context, viewModel, child) {
         final card = viewModel.currentCard;
         final word = card?.word;
-        final currentWord = viewModel.currentWord;
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -106,19 +106,25 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 249, 249, 208),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              padding: const EdgeInsets.all(12.0),
-                              child: Text(
-                                word.mainMeaning,
-                                style: TextStyle(
-                                    fontSize: 20, color: Colors.black),
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  word.mainMeaning,
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w900),
+                                ),
+                                Text(
+                                  word.subMeaning!,
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 20),
+                            SizedBox(height: 10),
                             Container(
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey),
@@ -133,14 +139,174 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                 ),
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(Icons.volume_up),
-                              tooltip: 'Play sound',
-                              onPressed: () {
-                                // Play sound logic here
-                              },
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 24.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 画像検索のセクション
+                                      const Text(
+                                        '画像検索',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchImage(word.word);
+                                          },
+                                          child: Text('単語'),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchImage(word.word);
+                                          },
+                                          child: Text('例文'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 辞書を引くのセクション
+                                      const Text(
+                                        '英和辞書',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text('weblio'),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchEnglishDictionary(word.word);
+                                          },
+                                          child: Text('英次郎'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 類義語を検索のセクション
+                                      const Text(
+                                        '英英辞書',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text(
+                                            'Cambridge',
+                                            style: TextStyle(fontSize: 9),
+                                          ),
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          _searchEnglishDictionary(word.word);
+                                        },
+                                        child: Text('Oxford'),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 類義語を検索のセクション
+                                      const Text(
+                                        'その他　',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text('語源'),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchEnglishDictionary(word.word);
+                                          },
+                                          child: Text('類義語'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        '　　　　',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text('コーパス',
+                                              style: TextStyle(fontSize: 13)),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchEnglishDictionary(word.word);
+                                          },
+                                          child: Text('天才\n英単語'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            SizedBox(height: 10),
                             DropRegion(
                               onDropOver: (event) => DropOperation.move,
                               formats: Formats.standardFormats,
@@ -299,119 +465,6 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
-            ),
-          ),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  child: Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('画像検索',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchImage(keyword);
-                            },
-                            child: Text('Google'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchImage(keyword);
-                            },
-                            child: Text('Getty'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchImage(keyword);
-                            },
-                            child: Text('iStock'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      Text('辞書を引く',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchDictionary(keyword);
-                            },
-                            child: Text('英次郎'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('Cambridge'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('Oxford'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      Text('類義語を検索',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchDictionary(keyword);
-                            },
-                            child: Text('WordNet'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('SKELL'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('Tensai'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ),
         );
