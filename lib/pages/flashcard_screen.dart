@@ -22,11 +22,11 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   String getCardQueueLabel(int queue) {
     switch (queue) {
       case 0:
-        return "新規";
+        return "未学習";
       case 1:
-        return "学習中";
+        return "覚え中";
       case 2:
-        return "復習中";
+        return "復習";
       default:
         return "Unknown";
     }
@@ -419,7 +419,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       children: [
                         Column(
                           children: [
-                            Text('新規'),
+                            Text('未学習'),
                             Text(
                               viewModel.newCardCount.toString(),
                               style: TextStyle(fontSize: 20),
@@ -428,7 +428,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         ),
                         Column(
                           children: [
-                            Text('学習中'),
+                            Text('覚え中'),
                             Text(
                               viewModel.learningCardCount.toString(),
                               style: TextStyle(fontSize: 20),
@@ -437,7 +437,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         ),
                         Column(
                           children: [
-                            Text('復習中'),
+                            Text('復習'),
                             Text(
                               viewModel.reviewCardCount.toString(),
                               style: TextStyle(fontSize: 20),
