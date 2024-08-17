@@ -49,7 +49,8 @@ class DataViewModel extends ChangeNotifier {
   // learningCardCountだけは学習queueタイプの総数で数える
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
-  int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
+  // int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
+  int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
 
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
@@ -239,6 +240,32 @@ class DataViewModel extends ChangeNotifier {
     scheduler = srs.Scheduler(collection);
     currentCard = scheduler!.getCard();
     notifyListeners();
+  }
+
+  Future<Map<String, int>> fetchCardQueueDistribution() async {
+    final dbHelper = DatabaseHelper.instance;
+    final cardRows = await dbHelper.queryAllCards();
+
+    int newCount = 0;
+    int learnCount = 0;
+    int reviewCount = 0;
+
+    for (var row in cardRows) {
+      int queue = row['queue'];
+      if (queue == 0) {
+        newCount++;
+      } else if (queue == 1) {
+        learnCount++;
+      } else if (queue == 2) {
+        reviewCount++;
+      }
+    }
+
+    return {
+      'New': newCount,
+      'Learn': learnCount,
+      'Review': reviewCount,
+    };
   }
 
   Future<void> answerCard(int ease) async {
