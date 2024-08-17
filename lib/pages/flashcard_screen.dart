@@ -1,8 +1,10 @@
-import 'dart:typed_data';
+import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:clipboard/clipboard.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
@@ -14,18 +16,18 @@ class FlashCardScreen extends StatefulWidget {
 
 class _FlashCardScreenState extends State<FlashCardScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
-  Uint8List? _imageData;
   TextEditingController field = TextEditingController();
   bool haspasted = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   String getCardQueueLabel(int queue) {
     switch (queue) {
       case 0:
-        return "新規";
+        return "未学習";
       case 1:
-        return "学習中";
+        return "覚え中";
       case 2:
-        return "復習中";
+        return "復習";
       default:
         return "Unknown";
     }
@@ -43,19 +45,56 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     });
   }
 
+  // 音声再生のメソッド
+  Future<void> _playVoice(String? voicePath) async {
+    if (voicePath != null && voicePath.isNotEmpty) {
+      final file = File(voicePath);
+      if (await file.exists()) {
+        try {
+          await _audioPlayer.play(DeviceFileSource(voicePath)); // デバイスのファイルを再生
+        } catch (e) {
+          print('Error playing audio: $e');
+        }
+      } else {
+        print('File not found at path: $voicePath');
+      }
+    } else {
+      print('音声ファイルが見つかりません');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 初回表示時にwordVoiceを再生
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final word =
+          Provider.of<DataViewModel>(context, listen: false).currentCard?.word;
+      if (word != null) {
+        _playVoice(word.wordVoice); // 表面の音声を再生
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<DataViewModel>(
       builder: (context, viewModel, child) {
         final card = viewModel.currentCard;
         final word = card?.word;
-        final currentWord = viewModel.currentWord;
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
             setState(() {
-              showDetails = !showDetails;
+              showDetails = true;
+              _playVoice(word?.sentenceVoice); // 裏面が表示されたらsentence_voiceを再生
             });
           },
           child: Scaffold(
@@ -83,19 +122,15 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         children: [
                           Text(
                             word.word,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 32, fontWeight: FontWeight.bold),
                           ),
-                          IconButton(
-                            icon: Icon(Icons.volume_up),
-                            tooltip: 'Play sound',
-                            onPressed: () {
-                              // Play sound logic here
-                            },
+                          const SizedBox(
+                            width: 20,
                           ),
                           Text(
-                            '${getCardQueueLabel(card?.queue ?? -1)}',
-                            style: TextStyle(
+                            getCardQueueLabel(card?.queue ?? -1),
+                            style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: Color.fromARGB(221, 97, 160, 255)),
@@ -110,19 +145,29 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color.fromARGB(255, 249, 249, 208),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              padding: const EdgeInsets.all(12.0),
-                              child: Text(
-                                word.mainMeaning,
-                                style: TextStyle(
-                                    fontSize: 20, color: Colors.black),
-                              ),
+                            Wrap(
+                              children: [
+                                Text(
+                                  word.mainMeaning,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w900),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
+                                ),
+                                Text(
+                                  word.subMeaning!,
+                                  style: const TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w500),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 20),
+                            SizedBox(height: 10),
                             Container(
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey),
@@ -137,92 +182,252 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                 ),
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(Icons.volume_up),
-                              tooltip: 'Play sound',
-                              onPressed: () {
-                                // Play sound logic here
-                              },
-                            ),
-                            SizedBox(height: 10),
-                            DropRegion(
-                              onDropOver: (event) => DropOperation.move,
-                              formats: Formats.standardFormats,
-                              onPerformDrop: (event) async {
-                                final item = event.session.items.first;
-                                final reader = item.dataReader!;
-                                if (reader.canProvide(Formats.jpeg)) {
-                                  reader.getFile(Formats.jpeg, (file) {
-                                    file.readAll().then((data) {
-                                      setState(() {
-                                        _imageData = data;
-                                      });
-                                    });
-                                  }, onError: (error) {
-                                    print('Error reading image: $error');
-                                  });
-                                }
-                              },
-                              child: _imageData == null
-                                  ? Container(
-                                      padding: EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.blue, width: 2),
-                                        borderRadius: BorderRadius.circular(8),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 24.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 画像検索のセクション
+                                      const Text(
+                                        '画像検索',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
                                       ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Image.asset(
-                                              'assets/images/add-picture.png',
-                                              width: 50,
-                                              height: 50),
-                                          Text('ここに画像をドロップ！',
-                                              style: TextStyle(fontSize: 16)),
-                                        ],
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchImage(word.word);
+                                          },
+                                          child: Text('単語'),
+                                        ),
                                       ),
-                                    )
-                                  : Image.memory(_imageData!),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchImage(word.word);
+                                          },
+                                          child: Text('例文'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 辞書を引くのセクション
+                                      const Text(
+                                        '英和辞書',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text('weblio'),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchEnglishDictionary(word.word);
+                                          },
+                                          child: Text('英次郎'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 類義語を検索のセクション
+                                      const Text(
+                                        '英英辞書',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text(
+                                            'Cambridge',
+                                            style: TextStyle(fontSize: 9),
+                                          ),
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          _searchEnglishDictionary(word.word);
+                                        },
+                                        child: Text('Oxford'),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // 類義語を検索のセクション
+                                      const Text(
+                                        'その他　',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text('語源'),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchEnglishDictionary(word.word);
+                                          },
+                                          child: Text('類義語'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        '　　　　',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchDictionary(word.word);
+                                          },
+                                          child: Text('コーパス',
+                                              style: TextStyle(fontSize: 13)),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            _searchEnglishDictionary(word.word);
+                                          },
+                                          child: Text('天才\n英単語'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            SizedBox(height: 20),
-                            if (haspasted)
-                              Container(
-                                width: double.infinity,
-                                padding: EdgeInsets.all(15),
-                                decoration: BoxDecoration(
-                                  color:
-                                      Color.fromARGB(255, 254, 254, 244), // 背景色
-                                  border: Border.all(
-                                      color: Color.fromARGB(255, 248, 210, 154),
-                                      width: 2), // 枠線
-                                  borderRadius: BorderRadius.circular(8), // 角丸
-                                ),
-                                child: Text(
-                                  '${field.text}',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            SizedBox(height: 20),
-                            ElevatedButton.icon(
-                              icon: Icon(Icons.paste, color: Colors.white),
-                              onPressed: pasteFromClipboard,
-                              label: Text(
-                                'ペースト',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Color.fromARGB(255, 127, 127, 127),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                              ),
-                            ),
+                            // DropRegion(
+                            //   onDropOver: (event) => DropOperation.move,
+                            //   formats: Formats.standardFormats,
+                            //   onPerformDrop: (event) async {
+                            //     final item = event.session.items.first;
+                            //     final reader = item.dataReader!;
+                            //     if (reader.canProvide(Formats.jpeg)) {
+                            //       reader.getFile(Formats.jpeg, (file) {
+                            //         file.readAll().then((data) {
+                            //           setState(() {
+                            //             _imageData = data;
+                            //           });
+                            //         });
+                            //       }, onError: (error) {
+                            //         print('Error reading image: $error');
+                            //       });
+                            //     }
+                            //   },
+                            //   child: _imageData == null
+                            //       ? Container(
+                            //           padding: EdgeInsets.all(20),
+                            //           decoration: BoxDecoration(
+                            //             border: Border.all(
+                            //                 color: Colors.blue, width: 2),
+                            //             borderRadius: BorderRadius.circular(8),
+                            //           ),
+                            //           child: Column(
+                            //             mainAxisSize: MainAxisSize.min,
+                            //             children: <Widget>[
+                            //               Image.asset(
+                            //                   'assets/images/add-picture.png',
+                            //                   width: 50,
+                            //                   height: 50),
+                            //               Text('ここに画像をドロップ！',
+                            //                   style: TextStyle(fontSize: 16)),
+                            //             ],
+                            //           ),
+                            //         )
+                            //       : Image.memory(_imageData!),
+                            // ),
+                            // SizedBox(height: 20),
+                            // if (haspasted)
+                            //   Container(
+                            //     width: double.infinity,
+                            //     padding: EdgeInsets.all(15),
+                            //     decoration: BoxDecoration(
+                            //       color:
+                            //           Color.fromARGB(255, 254, 254, 244), // 背景色
+                            //       border: Border.all(
+                            //           color: Color.fromARGB(255, 248, 210, 154),
+                            //           width: 2), // 枠線
+                            //       borderRadius: BorderRadius.circular(8), // 角丸
+                            //     ),
+                            //     child: Text(
+                            //       '${field.text}',
+                            //       style: TextStyle(
+                            //           fontSize: 16,
+                            //           fontWeight: FontWeight.bold),
+                            //     ),
+                            //   ),
+                            // SizedBox(height: 20),
+                            // ElevatedButton.icon(
+                            //   icon: Icon(Icons.paste, color: Colors.white),
+                            //   onPressed: pasteFromClipboard,
+                            //   label: Text(
+                            //     'ペースト',
+                            //     style: TextStyle(
+                            //       fontSize: 18,
+                            //       color: Colors.white,
+                            //     ),
+                            //   ),
+                            //   style: ElevatedButton.styleFrom(
+                            //     backgroundColor:
+                            //         Color.fromARGB(255, 127, 127, 127),
+                            //     padding: EdgeInsets.symmetric(
+                            //         horizontal: 20, vertical: 10),
+                            //   ),
+                            // ),
                           ],
                         ),
                       ),
@@ -232,21 +437,53 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
               ),
             ),
             floatingActionButton: FloatingActionButton(
-              onPressed: () =>
-                  showHalfModal(context, currentWord?.word ?? 'practice'),
-              child: Icon(Icons.search),
+              onPressed: () {
+                String? voicePath;
+
+                if (showDetails) {
+                  voicePath = word?.sentenceVoice; // 裏面ではsentence_voiceを再生
+                } else {
+                  voicePath = word?.wordVoice; // 表面ではword_voiceを再生
+                }
+
+                _playVoice(voicePath);
+              },
+              child: Icon(Icons.volume_up),
             ),
             bottomNavigationBar: showDetails
                 ? BottomAppBar(
-                    color: Colors.blueGrey[50], // 背景色を設定
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    padding: EdgeInsets.symmetric(vertical: 0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
-                        _buildButton(context, 'Again', Colors.red, viewModel),
-                        _buildButton(context, 'Hard', Colors.orange, viewModel),
-                        _buildButton(context, 'Good', Colors.green, viewModel),
-                        _buildButton(context, 'Easy', Colors.blue, viewModel),
+                        _buildCustomButton(
+                          context,
+                          '覚え直す',
+                          'assets/images/oboenaosu.png',
+                          Color.fromARGB(255, 255, 91, 91),
+                          viewModel,
+                        ),
+                        _buildCustomButton(
+                          context,
+                          '微妙',
+                          'assets/images/bimyou.png',
+                          Color.fromARGB(255, 111, 243, 197),
+                          viewModel,
+                        ),
+                        _buildCustomButton(
+                          context,
+                          'OK',
+                          'assets/images/OK.png',
+                          Color.fromARGB(255, 83, 209, 161),
+                          viewModel,
+                        ),
+                        _buildCustomButton(
+                          context,
+                          '余裕',
+                          'assets/images/yoyuu.png',
+                          Color.fromARGB(255, 33, 176, 175),
+                          viewModel,
+                        ),
                       ],
                     ),
                   )
@@ -258,7 +495,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       children: [
                         Column(
                           children: [
-                            Text('新規'),
+                            Text('未学習'),
                             Text(
                               viewModel.newCardCount.toString(),
                               style: TextStyle(fontSize: 20),
@@ -267,7 +504,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         ),
                         Column(
                           children: [
-                            Text('学習中'),
+                            Text('覚え中'),
                             Text(
                               viewModel.learningCardCount.toString(),
                               style: TextStyle(fontSize: 20),
@@ -276,7 +513,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         ),
                         Column(
                           children: [
-                            Text('復習中'),
+                            Text('復習'),
                             Text(
                               viewModel.reviewCardCount.toString(),
                               style: TextStyle(fontSize: 20),
@@ -286,138 +523,6 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       ],
                     ),
                   ),
-          ),
-        );
-      },
-    );
-  }
-
-  void showHalfModal(BuildContext context, String keyword) {
-    showModalBottomSheet(
-      isScrollControlled: true,
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height / 2,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  child: Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('画像検索',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchImage(keyword);
-                            },
-                            child: Text('Google'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchImage(keyword);
-                            },
-                            child: Text('Getty'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchImage(keyword);
-                            },
-                            child: Text('iStock'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      Text('辞書を引く',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchDictionary(keyword);
-                            },
-                            child: Text('英次郎'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('Cambridge'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('Oxford'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      Text('類義語を検索',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchDictionary(keyword);
-                            },
-                            child: Text('WordNet'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('SKELL'),
-                          ),
-                          SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              _searchEnglishDictionary(keyword);
-                            },
-                            child: Text('Tensai'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
         );
       },
@@ -500,15 +605,65 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
+  Widget _buildCustomButton(BuildContext context, String label,
+      String imagePath, Color color, DataViewModel viewModel) {
+    return Expanded(
+      child: ElevatedButton(
+        onPressed: () async {
+          int ease = _getEaseValue(label);
+          await viewModel.answerCard(ease);
+          setState(() {
+            showDetails = false;
+          });
+          // 新しいカードのword_voiceを再生
+          final newWord = viewModel.currentCard?.word;
+          if (newWord != null) {
+            _playVoice(newWord.wordVoice);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: color,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero, // 角丸なし
+            ),
+            elevation: 0,
+            padding: EdgeInsets.zero),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              imagePath,
+              width: 60, // アイコンのサイズ
+              height: 40,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildButton(BuildContext context, String label, Color color,
       DataViewModel viewModel) {
     return ElevatedButton(
-      onPressed: () {
+      onPressed: () async {
         int ease = _getEaseValue(label);
-        viewModel.answerCard(ease);
+        await viewModel.answerCard(ease);
         setState(() {
           showDetails = false;
         });
+        // 新しいカードのword_voiceを再生
+        final newWord = viewModel.currentCard?.word;
+        if (newWord != null) {
+          _playVoice(newWord.wordVoice);
+        }
       },
       style: ElevatedButton.styleFrom(
         foregroundColor: Colors.white,

@@ -240,7 +240,7 @@ class DataViewModel extends ChangeNotifier {
     currentCard = scheduler!.getCard();
   }
 
-  void answerCard(int ease) async {
+  Future<void> answerCard(int ease) async {
     if (scheduler != null && currentCard != null) {
       scheduler!.answerCard(currentCard!, ease);
 
