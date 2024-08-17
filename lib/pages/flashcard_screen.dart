@@ -66,6 +66,19 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // 初回表示時にwordVoiceを再生
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final word =
+          Provider.of<DataViewModel>(context, listen: false).currentCard?.word;
+      if (word != null) {
+        _playVoice(word.wordVoice); // 表面の音声を再生
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _audioPlayer.dispose();
     super.dispose();
@@ -83,6 +96,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
           onTap: () {
             setState(() {
               showDetails = !showDetails;
+              _playVoice(word?.sentenceVoice); // 裏面が表示されたらsentence_voiceを再生
             });
           },
           child: Scaffold(
@@ -569,12 +583,17 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   Widget _buildButton(BuildContext context, String label, Color color,
       DataViewModel viewModel) {
     return ElevatedButton(
-      onPressed: () {
+      onPressed: () async {
         int ease = _getEaseValue(label);
-        viewModel.answerCard(ease);
+        await viewModel.answerCard(ease);
         setState(() {
           showDetails = false;
         });
+        // 新しいカードのword_voiceを再生
+        final newWord = viewModel.currentCard?.word;
+        if (newWord != null) {
+          _playVoice(newWord.wordVoice);
+        }
       },
       style: ElevatedButton.styleFrom(
         foregroundColor: Colors.white,
