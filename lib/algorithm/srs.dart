@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:clock/clock.dart';
+
 // 新規カードの表示順設定
 const int NEW_CARDS_DISTRIBUTE = 0;
 const int NEW_CARDS_LAST = 1;
@@ -11,7 +13,7 @@ const int STARTING_FACTOR = 2500;
 
 /// ユーティリティ関数
 int intTime({int scale = 1}) {
-  return DateTime.now().millisecondsSinceEpoch ~/ scale;
+  return clock.now().millisecondsSinceEpoch ~/ scale;
 }
 
 int intId() {
@@ -63,7 +65,7 @@ class Collection {
   int newCardModulus = 0;
 
   Collection({int? id})
-      : crt = DateTime.now().millisecondsSinceEpoch,
+      : crt = clock.now().millisecondsSinceEpoch,
         decks = {},
         colConf = colDefaultConf,
         deckConf = deckDefaultConf {
@@ -83,7 +85,7 @@ class Collection {
   }
 
   static int _getStartOfDay() {
-    DateTime now = DateTime.now();
+    DateTime now = clock.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
     return startOfDay.millisecondsSinceEpoch ~/ 1000;
   }
@@ -189,11 +191,11 @@ class Card {
   }
 
   static int _intTimeMs() {
-    return DateTime.now().millisecondsSinceEpoch;
+    return clock.now().millisecondsSinceEpoch;
   }
 
   static int _intTime() {
-    return DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return clock.now().millisecondsSinceEpoch ~/ 1000;
   }
 
   Map<String, dynamic> toMap() {
@@ -316,7 +318,7 @@ class Scheduler {
 
   // 日付が変わったかどうかを確認し、リセットする
   void _checkDay() {
-    final now = DateTime.now();
+    final now = clock.now();
     final todayStart =
         DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
 
@@ -338,13 +340,13 @@ class Scheduler {
   // int _daysSinceCreation() {
   //   // コレクションが作成されてからの経過日数を返す
   //   final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt);
-  //   final currentDate = DateTime.now();
+  //   final currentDate = clock.now();
   //   return currentDate.difference(startDate).inDays;
   // }
 
   int _calculateDayCutoff() {
     // 日の終了時間を返す
-    final date = DateTime.now();
+    final date = clock.now();
     final nextDay =
         DateTime(date.year, date.month, date.day).add(const Duration(days: 1));
     return nextDay.millisecondsSinceEpoch;
@@ -357,7 +359,7 @@ class Scheduler {
   }
 
   bool _updateLrnCutoff({required bool force}) {
-    final nextCutoff = DateTime.now().millisecondsSinceEpoch +
+    final nextCutoff = clock.now().millisecondsSinceEpoch +
         (col.colConf['collapseTime'] as int);
     if (nextCutoff - _lrnCutoff > 60 || force) {
       _lrnCutoff = nextCutoff;
@@ -466,7 +468,7 @@ class Scheduler {
     if (_lrnQueue.isNotEmpty) {
       return true;
     }
-    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    final currentTime = clock.now().millisecondsSinceEpoch;
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
@@ -527,7 +529,7 @@ class Scheduler {
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
     // 今日の終了時刻を取得
-    final now = DateTime.now();
+    final now = clock.now();
     final todayEnd = DateTime(now.year, now.month, now.day)
         .add(const Duration(days: 1))
         .millisecondsSinceEpoch;
@@ -602,7 +604,7 @@ class Scheduler {
     // 現在のステップの通常の遅延？
     delay ??= _delayForGrade(conf, card.left);
 
-    card.due = DateTime.now().millisecondsSinceEpoch + delay;
+    card.due = clock.now().millisecondsSinceEpoch + delay;
     card.queue = 1;
   }
 
@@ -646,7 +648,7 @@ class Scheduler {
 
   void _rescheduleGraduatingLapse(Card card) {
     card.due =
-        DateTime.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
+        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
     card.queue = 2;
     card.type = 2;
   }
@@ -660,7 +662,7 @@ class Scheduler {
 
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
-    now ??= DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
     delays = delays.sublist(delays.length - left);
     int ok = 0;
     for (int i = 0; i < delays.length; i++) {
@@ -689,10 +691,10 @@ class Scheduler {
   void _rescheduleNew(Card card, Map<String, dynamic> conf, bool early) {
     // カードが初めて卒業するときの復習感覚スケジュール
     card.ivl = _graduatingIvl(card, conf, early);
-    card.due = DateTime.now().millisecondsSinceEpoch +
+    card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //本番用
     // card.due =
-    //     DateTime.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
+    //     clock.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -725,7 +727,7 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = DateTime.now().millisecondsSinceEpoch +
+    card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //ここ間違いの可能性あり
   }
 
@@ -881,7 +883,7 @@ class Scheduler {
 //     void testDayRollover() {
 //       // 今日の終わりの時間を設定してテスト
 //       collection.sched._dayCutoff =
-//           DateTime.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
+//           clock.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
 //       Future.delayed(Duration(seconds: 2), () {
 //         collection.sched.getCard(); // リセットをトリガー
 //         print('Day rollover check. Reps after reset: ${collection.sched.reps}');
