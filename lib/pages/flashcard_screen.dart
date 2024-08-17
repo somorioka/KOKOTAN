@@ -95,7 +95,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
           behavior: HitTestBehavior.opaque,
           onTap: () {
             setState(() {
-              showDetails = !showDetails;
+              showDetails = true;
               _playVoice(word?.sentenceVoice); // 裏面が表示されたらsentence_voiceを再生
             });
           },
