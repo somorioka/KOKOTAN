@@ -1,10 +1,6 @@
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:clipboard/clipboard.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
@@ -33,17 +29,17 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
-  void pasteFromClipboard() {
-    FlutterClipboard.paste().then((value) {
-      setState(() {
-        field.text = value;
-        haspasted = true;
-      });
-    }).catchError((e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error pasting from Clipboard')));
-    });
-  }
+  // void pasteFromClipboard() {
+  //   FlutterClipboard.paste().then((value) {
+  //     setState(() {
+  //       field.text = value;
+  //       haspasted = true;
+  //     });
+  //   }).catchError((e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error pasting from Clipboard')));
+  //   });
+  // }
 
   // 音声再生のメソッド
   Future<void> _playVoice(String? voicePath) async {
