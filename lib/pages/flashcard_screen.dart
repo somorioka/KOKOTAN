@@ -452,15 +452,38 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
             ),
             bottomNavigationBar: showDetails
                 ? BottomAppBar(
-                    color: Colors.blueGrey[50], // 背景色を設定
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    padding: EdgeInsets.symmetric(vertical: 0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
-                        _buildButton(context, 'Again', Colors.red, viewModel),
-                        _buildButton(context, 'Hard', Colors.orange, viewModel),
-                        _buildButton(context, 'Good', Colors.green, viewModel),
-                        _buildButton(context, 'Easy', Colors.blue, viewModel),
+                        _buildCustomButton(
+                          context,
+                          '覚え直す',
+                          'assets/images/oboenaosu.png',
+                          Color.fromARGB(255, 255, 91, 91),
+                          viewModel,
+                        ),
+                        _buildCustomButton(
+                          context,
+                          '微妙',
+                          'assets/images/bimyou.png',
+                          Color.fromARGB(255, 111, 243, 197),
+                          viewModel,
+                        ),
+                        _buildCustomButton(
+                          context,
+                          'OK',
+                          'assets/images/OK.png',
+                          Color.fromARGB(255, 83, 209, 161),
+                          viewModel,
+                        ),
+                        _buildCustomButton(
+                          context,
+                          '余裕',
+                          'assets/images/yoyuu.png',
+                          Color.fromARGB(255, 33, 176, 175),
+                          viewModel,
+                        ),
                       ],
                     ),
                   )
@@ -580,6 +603,51 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $_url');
     }
+  }
+
+  Widget _buildCustomButton(BuildContext context, String label,
+      String imagePath, Color color, DataViewModel viewModel) {
+    return Expanded(
+      child: ElevatedButton(
+        onPressed: () async {
+          int ease = _getEaseValue(label);
+          await viewModel.answerCard(ease);
+          setState(() {
+            showDetails = false;
+          });
+          // 新しいカードのword_voiceを再生
+          final newWord = viewModel.currentCard?.word;
+          if (newWord != null) {
+            _playVoice(newWord.wordVoice);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: color,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero, // 角丸なし
+            ),
+            elevation: 0,
+            padding: EdgeInsets.zero),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              imagePath,
+              width: 60, // アイコンのサイズ
+              height: 40,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildButton(BuildContext context, String label, Color color,

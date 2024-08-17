@@ -78,6 +78,10 @@ flutter:
     - assets/images/intro_2.png
     - assets/images/intro_3.png
     - assets/images/intro_4.png
+    - assets/images/OK.png
+    - assets/images/yoyuu.png
+    - assets/images/bimyou.png
+    - assets/images/oboenaosu.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
