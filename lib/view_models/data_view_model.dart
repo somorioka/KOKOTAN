@@ -238,6 +238,7 @@ class DataViewModel extends ChangeNotifier {
 
     scheduler = srs.Scheduler(collection);
     currentCard = scheduler!.getCard();
+    notifyListeners();
   }
 
   Future<void> answerCard(int ease) async {
