@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kokotan/pages/flashcard_screen.dart';
+import 'package:kokotan/pages/otsukare.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -105,7 +106,13 @@ class HomeScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => FlashCardScreen(),
+                                    builder: (context) =>
+                                        viewModel.newCardCount == 0 &&
+                                                viewModel.learningCardCount ==
+                                                    0 &&
+                                                viewModel.reviewCardCount == 0
+                                            ? OtsukareScreen()
+                                            : FlashCardScreen(),
                                   ),
                                 );
                               },

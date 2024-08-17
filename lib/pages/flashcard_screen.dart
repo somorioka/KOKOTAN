@@ -607,7 +607,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       child: ElevatedButton(
         onPressed: () async {
           int ease = _getEaseValue(label);
-          await viewModel.answerCard(ease);
+          await viewModel.answerCard(ease, context);
           setState(() {
             showDetails = false;
           });
@@ -651,7 +651,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     return ElevatedButton(
       onPressed: () async {
         int ease = _getEaseValue(label);
-        await viewModel.answerCard(ease);
+        await viewModel.answerCard(ease, context);
         setState(() {
           showDetails = false;
         });

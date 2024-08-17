@@ -441,7 +441,8 @@ class Scheduler {
     }
 
     // collapseまたは終了
-    return _getLrnCard(collapse: true);
+    c = _getLrnCard(collapse: true);
+    return c;
   }
 
   Card? _getLrnCard({bool collapse = false}) {
