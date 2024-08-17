@@ -247,7 +247,7 @@ class Scheduler {
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
-    reset();
+    _checkDay();
   }
 
   int get newQueueCount => _newQueue.length;
@@ -272,6 +272,11 @@ class Scheduler {
     _resetLrn();
     _resetRev();
     _resetNew();
+
+    // 新規キューをすぐに埋める
+    _fillNew();
+    // 復習キューをすぐに埋める
+    _fillRev();
   }
 
   // カードへの回答
