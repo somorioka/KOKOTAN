@@ -1,12 +1,10 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
@@ -18,7 +16,6 @@ class FlashCardScreen extends StatefulWidget {
 
 class _FlashCardScreenState extends State<FlashCardScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
-  Uint8List? _imageData;
   TextEditingController field = TextEditingController();
   bool haspasted = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -353,84 +350,84 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                 ],
                               ),
                             ),
-                            DropRegion(
-                              onDropOver: (event) => DropOperation.move,
-                              formats: Formats.standardFormats,
-                              onPerformDrop: (event) async {
-                                final item = event.session.items.first;
-                                final reader = item.dataReader!;
-                                if (reader.canProvide(Formats.jpeg)) {
-                                  reader.getFile(Formats.jpeg, (file) {
-                                    file.readAll().then((data) {
-                                      setState(() {
-                                        _imageData = data;
-                                      });
-                                    });
-                                  }, onError: (error) {
-                                    print('Error reading image: $error');
-                                  });
-                                }
-                              },
-                              child: _imageData == null
-                                  ? Container(
-                                      padding: EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.blue, width: 2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Image.asset(
-                                              'assets/images/add-picture.png',
-                                              width: 50,
-                                              height: 50),
-                                          Text('ここに画像をドロップ！',
-                                              style: TextStyle(fontSize: 16)),
-                                        ],
-                                      ),
-                                    )
-                                  : Image.memory(_imageData!),
-                            ),
-                            SizedBox(height: 20),
-                            if (haspasted)
-                              Container(
-                                width: double.infinity,
-                                padding: EdgeInsets.all(15),
-                                decoration: BoxDecoration(
-                                  color:
-                                      Color.fromARGB(255, 254, 254, 244), // 背景色
-                                  border: Border.all(
-                                      color: Color.fromARGB(255, 248, 210, 154),
-                                      width: 2), // 枠線
-                                  borderRadius: BorderRadius.circular(8), // 角丸
-                                ),
-                                child: Text(
-                                  '${field.text}',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            SizedBox(height: 20),
-                            ElevatedButton.icon(
-                              icon: Icon(Icons.paste, color: Colors.white),
-                              onPressed: pasteFromClipboard,
-                              label: Text(
-                                'ペースト',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Color.fromARGB(255, 127, 127, 127),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                              ),
-                            ),
+                            // DropRegion(
+                            //   onDropOver: (event) => DropOperation.move,
+                            //   formats: Formats.standardFormats,
+                            //   onPerformDrop: (event) async {
+                            //     final item = event.session.items.first;
+                            //     final reader = item.dataReader!;
+                            //     if (reader.canProvide(Formats.jpeg)) {
+                            //       reader.getFile(Formats.jpeg, (file) {
+                            //         file.readAll().then((data) {
+                            //           setState(() {
+                            //             _imageData = data;
+                            //           });
+                            //         });
+                            //       }, onError: (error) {
+                            //         print('Error reading image: $error');
+                            //       });
+                            //     }
+                            //   },
+                            //   child: _imageData == null
+                            //       ? Container(
+                            //           padding: EdgeInsets.all(20),
+                            //           decoration: BoxDecoration(
+                            //             border: Border.all(
+                            //                 color: Colors.blue, width: 2),
+                            //             borderRadius: BorderRadius.circular(8),
+                            //           ),
+                            //           child: Column(
+                            //             mainAxisSize: MainAxisSize.min,
+                            //             children: <Widget>[
+                            //               Image.asset(
+                            //                   'assets/images/add-picture.png',
+                            //                   width: 50,
+                            //                   height: 50),
+                            //               Text('ここに画像をドロップ！',
+                            //                   style: TextStyle(fontSize: 16)),
+                            //             ],
+                            //           ),
+                            //         )
+                            //       : Image.memory(_imageData!),
+                            // ),
+                            // SizedBox(height: 20),
+                            // if (haspasted)
+                            //   Container(
+                            //     width: double.infinity,
+                            //     padding: EdgeInsets.all(15),
+                            //     decoration: BoxDecoration(
+                            //       color:
+                            //           Color.fromARGB(255, 254, 254, 244), // 背景色
+                            //       border: Border.all(
+                            //           color: Color.fromARGB(255, 248, 210, 154),
+                            //           width: 2), // 枠線
+                            //       borderRadius: BorderRadius.circular(8), // 角丸
+                            //     ),
+                            //     child: Text(
+                            //       '${field.text}',
+                            //       style: TextStyle(
+                            //           fontSize: 16,
+                            //           fontWeight: FontWeight.bold),
+                            //     ),
+                            //   ),
+                            // SizedBox(height: 20),
+                            // ElevatedButton.icon(
+                            //   icon: Icon(Icons.paste, color: Colors.white),
+                            //   onPressed: pasteFromClipboard,
+                            //   label: Text(
+                            //     'ペースト',
+                            //     style: TextStyle(
+                            //       fontSize: 18,
+                            //       color: Colors.white,
+                            //     ),
+                            //   ),
+                            //   style: ElevatedButton.styleFrom(
+                            //     backgroundColor:
+                            //         Color.fromARGB(255, 127, 127, 127),
+                            //     padding: EdgeInsets.symmetric(
+                            //         horizontal: 20, vertical: 10),
+                            //   ),
+                            // ),
                           ],
                         ),
                       ),
