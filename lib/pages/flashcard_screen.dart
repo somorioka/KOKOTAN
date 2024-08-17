@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +20,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   Uint8List? _imageData;
   TextEditingController field = TextEditingController();
   bool haspasted = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   String getCardQueueLabel(int queue) {
     switch (queue) {
@@ -42,6 +45,30 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error pasting from Clipboard')));
     });
+  }
+
+  // 音声再生のメソッド
+  Future<void> _playVoice(String? voicePath) async {
+    if (voicePath != null && voicePath.isNotEmpty) {
+      final file = File(voicePath);
+      if (await file.exists()) {
+        try {
+          await _audioPlayer.play(DeviceFileSource(voicePath)); // デバイスのファイルを再生
+        } catch (e) {
+          print('Error playing audio: $e');
+        }
+      } else {
+        print('File not found at path: $voicePath');
+      }
+    } else {
+      print('音声ファイルが見つかりません');
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
@@ -394,7 +421,17 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
               ),
             ),
             floatingActionButton: FloatingActionButton(
-              onPressed: () {},
+              onPressed: () {
+                String? voicePath;
+
+                if (showDetails) {
+                  voicePath = word?.sentenceVoice; // 裏面ではsentence_voiceを再生
+                } else {
+                  voicePath = word?.wordVoice; // 表面ではword_voiceを再生
+                }
+
+                _playVoice(voicePath);
+              },
               child: Icon(Icons.volume_up),
             ),
             bottomNavigationBar: showDetails
@@ -447,25 +484,6 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       ],
                     ),
                   ),
-          ),
-        );
-      },
-    );
-  }
-
-  void showHalfModal(BuildContext context, String keyword) {
-    showModalBottomSheet(
-      isScrollControlled: true,
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height / 2,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
           ),
         );
       },
