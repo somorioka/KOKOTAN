@@ -676,13 +676,13 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
 
   int _getEaseValue(String label) {
     switch (label) {
-      case 'Again':
+      case '覚え直す':
         return 1;
-      case 'Hard':
+      case '微妙':
         return 2;
-      case 'Good':
+      case 'OK':
         return 3;
-      case 'Easy':
+      case '余裕':
         return 4;
       default:
         return 1;
