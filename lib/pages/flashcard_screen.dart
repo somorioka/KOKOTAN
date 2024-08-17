@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:clipboard/clipboard.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -147,21 +148,25 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Row(
+                            Wrap(
                               children: [
                                 Text(
                                   word.mainMeaning,
                                   style: const TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 18,
                                       color: Colors.black,
                                       fontWeight: FontWeight.w900),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
                                 ),
                                 Text(
                                   word.subMeaning!,
                                   style: const TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 18,
                                       color: Colors.black,
                                       fontWeight: FontWeight.w500),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
                                 ),
                               ],
                             ),
