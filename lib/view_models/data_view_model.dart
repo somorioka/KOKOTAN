@@ -239,6 +239,7 @@ class DataViewModel extends ChangeNotifier {
     }
 
     scheduler = srs.Scheduler(collection);
+    await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
     currentCard = scheduler!.getCard();
     notifyListeners();
   }
