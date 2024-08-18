@@ -96,14 +96,14 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
           child: Scaffold(
             appBar: AppBar(
               title: Text('Flash Card'),
-              actions: <Widget>[
-                IconButton(
-                  icon: Icon(Icons.settings),
-                  onPressed: () {
-                    showSettingsModal(context);
-                  },
-                ),
-              ],
+              // actions: <Widget>[
+              //   IconButton(
+              //     icon: Icon(Icons.settings),
+              //     onPressed: () {
+              //       showSettingsModal(context);
+              //     },
+              //   ),
+              // ],
             ),
             body: SingleChildScrollView(
               child: Column(
@@ -208,7 +208,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchImage(word.word);
+                                            _searchSentence(word.sentence);
                                           },
                                           child: Text('例文'),
                                         ),
@@ -231,7 +231,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchDictionary(word.word);
+                                            _searchWeblio(word.word);
                                           },
                                           child: Text('weblio'),
                                         ),
@@ -240,7 +240,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchEnglishDictionary(word.word);
+                                            _searchEijiro(word.word);
                                           },
                                           child: Text('英次郎'),
                                         ),
@@ -263,9 +263,9 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchDictionary(word.word);
+                                            _searchCambidge(word.word);
                                           },
-                                          child: Text(
+                                          child: const Text(
                                             'Cambridge',
                                             style: TextStyle(fontSize: 9),
                                           ),
@@ -273,7 +273,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                       ),
                                       ElevatedButton(
                                         onPressed: () {
-                                          _searchEnglishDictionary(word.word);
+                                          _searchOxford(word.word);
                                         },
                                         child: Text('Oxford'),
                                       ),
@@ -295,7 +295,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchDictionary(word.word);
+                                            _searchGogen(word.word);
                                           },
                                           child: Text('語源'),
                                         ),
@@ -304,7 +304,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchEnglishDictionary(word.word);
+                                            _searchThesaurus(word.word);
                                           },
                                           child: Text('類義語'),
                                         ),
@@ -326,7 +326,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchDictionary(word.word);
+                                            _searchSkell(word.word);
                                           },
                                           child: Text('コーパス',
                                               style: TextStyle(fontSize: 13)),
@@ -336,7 +336,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                         width: 100,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _searchEnglishDictionary(word.word);
+                                            _searchTensai(word.word);
                                           },
                                           child: Text('天才\n英単語'),
                                         ),
@@ -581,6 +581,72 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
 
   void _searchImage(String keyword) async {
     final _url = Uri.parse('https://www.google.com/search?tbm=isch&q=$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchSentence(String keyword) async {
+    final _url = Uri.parse('https://www.google.com/search?tbm=isch&q=$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchWeblio(String keyword) async {
+    final _url = Uri.parse('https://www.weblio.jp/content/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchEijiro(String keyword) async {
+    final _url = Uri.parse('https://eow.alc.co.jp/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchCambidge(String keyword) async {
+    final _url = Uri.parse(
+        'https://dictionary.cambridge.org/dictionary/english/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchOxford(String keyword) async {
+    final _url = Uri.parse(
+        'https://www.oxfordlearnersdictionaries.com/definition/english/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchSkell(String keyword) async {
+    final _url = Uri.parse(
+        'https://skell.sketchengine.eu/#result?f=thesaurus&lang=en&query=$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchThesaurus(String keyword) async {
+    final _url = Uri.parse('https://www.thesaurus.com/browse/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchGogen(String keyword) async {
+    final _url = Uri.parse('https://www.etymonline.com/word/$keyword');
+    if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_url');
+    }
+  }
+
+  void _searchTensai(String keyword) async {
+    final _url = Uri.parse('https://www.tentan.jp/word/$keyword');
     if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $_url');
     }
