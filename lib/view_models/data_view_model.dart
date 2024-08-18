@@ -3,6 +3,7 @@ import 'package:kokotan/Algorithm/srs.dart' as srs;
 import 'package:kokotan/db/database_helper.dart';
 import 'dart:io';
 import 'package:excel/excel.dart';
+import 'package:kokotan/pages/otsukare.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,6 +51,7 @@ class DataViewModel extends ChangeNotifier {
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
+  // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
 
   Future<void> downloadAndImportExcel() async {
     _isLoading = true;
@@ -237,18 +239,49 @@ class DataViewModel extends ChangeNotifier {
     }
 
     scheduler = srs.Scheduler(collection);
+    await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
     currentCard = scheduler!.getCard();
+    notifyListeners();
   }
 
-  Future<void> answerCard(int ease) async {
+  Future<Map<String, int>> fetchCardQueueDistribution() async {
+    final dbHelper = DatabaseHelper.instance;
+    final cardRows = await dbHelper.queryAllCards();
+
+    int newCount = 0;
+    int learnCount = 0;
+    int reviewCount = 0;
+
+    for (var row in cardRows) {
+      int queue = row['queue'];
+      if (queue == 0) {
+        newCount++;
+      } else if (queue == 1) {
+        learnCount++;
+      } else if (queue == 2) {
+        reviewCount++;
+      }
+    }
+
+    return {
+      'New': newCount,
+      'Learn': learnCount,
+      'Review': reviewCount,
+    };
+  }
+
+  Future<void> answerCard(int ease, BuildContext context) async {
     if (scheduler != null && currentCard != null) {
       scheduler!.answerCard(currentCard!, ease);
 
       // カード情報を更新
       final dbHelper = DatabaseHelper.instance;
       await dbHelper.updateCard(currentCard!);
-
-      currentCard = scheduler!.getCard();
+      if (newCardCount == 0 && learningCardCount == 0 && reviewCardCount == 0) {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => OtsukareScreen()));
+      }
+      currentCard = getCard();
       notifyListeners();
     }
   }

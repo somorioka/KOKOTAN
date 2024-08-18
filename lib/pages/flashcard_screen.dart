@@ -1,10 +1,6 @@
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:clipboard/clipboard.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
@@ -33,17 +29,17 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
-  void pasteFromClipboard() {
-    FlutterClipboard.paste().then((value) {
-      setState(() {
-        field.text = value;
-        haspasted = true;
-      });
-    }).catchError((e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error pasting from Clipboard')));
-    });
-  }
+  // void pasteFromClipboard() {
+  //   FlutterClipboard.paste().then((value) {
+  //     setState(() {
+  //       field.text = value;
+  //       haspasted = true;
+  //     });
+  //   }).catchError((e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error pasting from Clipboard')));
+  //   });
+  // }
 
   // 音声再生のメソッド
   Future<void> _playVoice(String? voicePath) async {
@@ -611,7 +607,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       child: ElevatedButton(
         onPressed: () async {
           int ease = _getEaseValue(label);
-          await viewModel.answerCard(ease);
+          await viewModel.answerCard(ease, context);
           setState(() {
             showDetails = false;
           });
@@ -655,7 +651,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     return ElevatedButton(
       onPressed: () async {
         int ease = _getEaseValue(label);
-        await viewModel.answerCard(ease);
+        await viewModel.answerCard(ease, context);
         setState(() {
           showDetails = false;
         });
@@ -680,13 +676,13 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
 
   int _getEaseValue(String label) {
     switch (label) {
-      case 'Again':
+      case '覚え直す':
         return 1;
-      case 'Hard':
+      case '微妙':
         return 2;
-      case 'Good':
+      case 'OK':
         return 3;
-      case 'Easy':
+      case '余裕':
         return 4;
       default:
         return 1;

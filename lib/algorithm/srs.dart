@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:clock/clock.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 // 新規カードの表示順設定
 const int NEW_CARDS_DISTRIBUTE = 0;
 const int NEW_CARDS_LAST = 1;
@@ -11,7 +14,7 @@ const int STARTING_FACTOR = 2500;
 
 /// ユーティリティ関数
 int intTime({int scale = 1}) {
-  return DateTime.now().millisecondsSinceEpoch ~/ scale;
+  return clock.now().millisecondsSinceEpoch ~/ scale;
 }
 
 int intId() {
@@ -63,7 +66,7 @@ class Collection {
   int newCardModulus = 0;
 
   Collection({int? id})
-      : crt = DateTime.now().millisecondsSinceEpoch,
+      : crt = clock.now().millisecondsSinceEpoch,
         decks = {},
         colConf = colDefaultConf,
         deckConf = deckDefaultConf {
@@ -83,7 +86,7 @@ class Collection {
   }
 
   static int _getStartOfDay() {
-    DateTime now = DateTime.now();
+    DateTime now = clock.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
     return startOfDay.millisecondsSinceEpoch ~/ 1000;
   }
@@ -189,11 +192,11 @@ class Card {
   }
 
   static int _intTimeMs() {
-    return DateTime.now().millisecondsSinceEpoch;
+    return clock.now().millisecondsSinceEpoch;
   }
 
   static int _intTime() {
-    return DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return clock.now().millisecondsSinceEpoch ~/ 1000;
   }
 
   Map<String, dynamic> toMap() {
@@ -236,8 +239,8 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  late int _dayCutoff;
-  int todayNewCards = 0; // 新規カードのカウント
+  int _dayCutoff = 0;
+  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
   List<Card> _newQueue = [];
@@ -247,7 +250,15 @@ class Scheduler {
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
-    reset();
+    _dayCutoff = _calculateDayCutoff();
+  }
+
+  Future<void> initializeScheduler() async {
+    await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
+    _checkDay();
+    print('日付: $today');
+    print('日の終了時間: $_dayCutoff');
+    print('1日の新規カード消化数: $todayNewCardsCount');
   }
 
   int get newQueueCount => _newQueue.length;
@@ -266,12 +277,16 @@ class Scheduler {
 
   // 1日1回のキューリセット
   void reset() {
-    // _updateCutoff();
-    _dayCutoff = _calculateDayCutoff();
-    todayNewCards = 0; // 新規カードのカウントをリセット
+    _updateCutoff();
     _resetLrn();
     _resetRev();
     _resetNew();
+    todayNewCardsCount = 0; // 今日消化した新規カードの枚数をリセット
+    _saveTodayNewCardsCount(); // リセット後のカウントを保存
+    // 新規キューをすぐに埋める
+    _fillNew();
+    // 復習キューをすぐに埋める
+    _fillRev();
   }
 
   // カードへの回答
@@ -283,6 +298,9 @@ class Scheduler {
     _removeCardFromQueue(card);
 
     if (card.queue == 0) {
+      todayNewCardsCount += 1;
+      _saveTodayNewCardsCount(); // 新規カードの消化数を保存
+      print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
       card.type = 1;
@@ -311,38 +329,48 @@ class Scheduler {
 
   // 日付が変わったかどうかを確認し、リセットする
   void _checkDay() {
-    final now = DateTime.now();
-    final todayStart =
-        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-
-    if (today == null || today != todayStart) {
-      today = todayStart;
-      reset();
+    // 現在の時間が_dayCutoffを超えているかを確認
+    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000; // 秒単位で取得
+    print('現在の時間: $currentTime');
+    print('日の終了時間: $_dayCutoff');
+    if (currentTime > _dayCutoff) {
+      reset(); // 日が変わったらリセット
+      print('日付が変わりました');
     }
   }
 
-  // FIXME: よくわからないのでコメントアウトしてる
-  // // 日付のカットオフを更新する
-  // void _updateCutoff() {
-  //   // コレクションが作成されてからの経過日数を計算
-  //   today = _daysSinceCreation();
-  //   // 日の終了時間を設定
-  //   _dayCutoff = _calculateDayCutoff();
-  // }
-
-  // int _daysSinceCreation() {
-  //   // コレクションが作成されてからの経過日数を返す
-  //   final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt);
-  //   final currentDate = DateTime.now();
-  //   return currentDate.difference(startDate).inDays;
-  // }
+  // 日付のカットオフを更新する
+  void _updateCutoff() {
+    // コレクションが作成されてからの経過日数を計算
+    today = _daysSinceCreation();
+    print('経過日数: $today');
+    // 日の終了時間を設定
+    _dayCutoff = _calculateDayCutoff();
+    print('日の終了時間: $_dayCutoff');
+  }
 
   int _calculateDayCutoff() {
-    // 日の終了時間を返す
-    final date = DateTime.now();
-    final nextDay =
-        DateTime(date.year, date.month, date.day).add(const Duration(days: 1));
-    return nextDay.millisecondsSinceEpoch;
+    // 今日の日付を取得し、時間を00:00:00にリセット
+    final now = clock.now();
+    final todayMidnight = DateTime(now.year, now.month, now.day);
+
+    // 今日の現在時刻が00:00:00より遅い場合、次の日の00:00:00を計算
+    final nextMidnight = todayMidnight.add(const Duration(days: 1));
+
+    // 次の日の00:00:00をUNIXタイムスタンプ（秒単位）として返す
+    return nextMidnight.millisecondsSinceEpoch ~/ 1000;
+  }
+
+  int _daysSinceCreation() {
+    // コレクションが作成された時間を取得
+    final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt * 1000);
+
+    // 現在の時間と作成時間の差を日数として計算
+    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000;
+    final difference = currentTime - startDate.millisecondsSinceEpoch ~/ 1000;
+
+    // 1日（86400秒）で割って日数を返す
+    return difference ~/ 86400;
   }
 
   void _resetLrn() {
@@ -352,7 +380,7 @@ class Scheduler {
   }
 
   bool _updateLrnCutoff({required bool force}) {
-    final nextCutoff = DateTime.now().millisecondsSinceEpoch +
+    final nextCutoff = clock.now().millisecondsSinceEpoch +
         (col.colConf['collapseTime'] as int);
     if (nextCutoff - _lrnCutoff > 60 || force) {
       _lrnCutoff = nextCutoff;
@@ -434,7 +462,8 @@ class Scheduler {
     }
 
     // collapseまたは終了
-    return _getLrnCard(collapse: true);
+    c = _getLrnCard(collapse: true);
+    return c;
   }
 
   Card? _getLrnCard({bool collapse = false}) {
@@ -461,7 +490,7 @@ class Scheduler {
     if (_lrnQueue.isNotEmpty) {
       return true;
     }
-    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    final currentTime = clock.now().millisecondsSinceEpoch;
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
@@ -486,26 +515,34 @@ class Scheduler {
       return true;
     }
 
-    // 今日の新規カードのカウントが制限を超えていないかチェック
-    final perDayLimit = col.deckConf['new']['perDay'] as int;
-    final remainingNewCards = perDayLimit - todayNewCards;
+    print('新規キューを埋めます: ${todayNewCardsCount}');
+    if (todayNewCardsCount < 20) {
+      // 新規カードが20枚未満なら追加
+      final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
+      _newQueue = col.decks.values
+          .expand((deck) => deck.cards.where((card) => card.queue == 0))
+          .toList();
+      _newQueue.sort((a, b) => a.due.compareTo(b.due));
+      _newQueue = _newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
 
-    if (remainingNewCards <= 0) {
-      return false; // 制限を超えた場合、新規カードを追加しない
-    }
-
-    final limit = min(queueLimit, remainingNewCards);
-    _newQueue = col.decks.values
-        .expand((deck) => deck.cards.where((card) => card.queue == 0))
-        .toList();
-    _newQueue.sort((a, b) => a.due.compareTo(b.due));
-    _newQueue = _newQueue.take(limit).toList();
-
-    if (_newQueue.isNotEmpty) {
-      todayNewCards += _newQueue.length; // 新規カードのカウントを更新
-      return true;
+      if (_newQueue.isNotEmpty) {
+        return true;
+      }
     }
     return false;
+  }
+
+  void _saveTodayNewCardsCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('todayNewCardsCount', todayNewCardsCount);
+    print('今日の新規カード消化数を保存しました: $todayNewCardsCount');
+  }
+
+  Future<void> _loadTodayNewCardsCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    print('今日の新規カード消化数を読み込みます');
+    todayNewCardsCount = prefs.getInt('todayNewCardsCount') ?? 0;
+    print('今日の新規カード消化数を読み込みました: $todayNewCardsCount');
   }
 
   Card? _getRevCard() {
@@ -522,7 +559,7 @@ class Scheduler {
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
     // 今日の終了時刻を取得
-    final now = DateTime.now();
+    final now = clock.now();
     final todayEnd = DateTime(now.year, now.month, now.day)
         .add(const Duration(days: 1))
         .millisecondsSinceEpoch;
@@ -597,7 +634,7 @@ class Scheduler {
     // 現在のステップの通常の遅延？
     delay ??= _delayForGrade(conf, card.left);
 
-    card.due = DateTime.now().millisecondsSinceEpoch + delay;
+    card.due = clock.now().millisecondsSinceEpoch + delay;
     card.queue = 1;
   }
 
@@ -641,7 +678,7 @@ class Scheduler {
 
   void _rescheduleGraduatingLapse(Card card) {
     card.due =
-        DateTime.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
+        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
     card.queue = 2;
     card.type = 2;
   }
@@ -655,7 +692,7 @@ class Scheduler {
 
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
-    now ??= DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
     delays = delays.sublist(delays.length - left);
     int ok = 0;
     for (int i = 0; i < delays.length; i++) {
@@ -684,10 +721,10 @@ class Scheduler {
   void _rescheduleNew(Card card, Map<String, dynamic> conf, bool early) {
     // カードが初めて卒業するときの復習感覚スケジュール
     card.ivl = _graduatingIvl(card, conf, early);
-    card.due = DateTime.now().millisecondsSinceEpoch +
+    card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //本番用
     // card.due =
-    //     DateTime.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
+    //     clock.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -720,7 +757,7 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = DateTime.now().millisecondsSinceEpoch +
+    card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //ここ間違いの可能性あり
   }
 
@@ -876,7 +913,7 @@ class Scheduler {
 //     void testDayRollover() {
 //       // 今日の終わりの時間を設定してテスト
 //       collection.sched._dayCutoff =
-//           DateTime.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
+//           clock.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
 //       Future.delayed(Duration(seconds: 2), () {
 //         collection.sched.getCard(); // リセットをトリガー
 //         print('Day rollover check. Reps after reset: ${collection.sched.reps}');

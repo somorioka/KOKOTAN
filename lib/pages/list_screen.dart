@@ -73,6 +73,7 @@ class _ListScreenState extends State<ListScreen> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Text('id: ${word.id}'),
                                 Text('Main Meaning: ${word.mainMeaning}'),
                                 Text('Sub Meaning: ${word.subMeaning}'),
                                 Text('Sentence: ${word.sentence}'),
