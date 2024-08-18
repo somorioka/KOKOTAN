@@ -74,16 +74,16 @@ class _ListScreenState extends State<ListScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('id: ${word.id}'),
-                                Text('Main Meaning: ${word.mainMeaning}'),
-                                Text('Sub Meaning: ${word.subMeaning}'),
-                                Text('Sentence: ${word.sentence}'),
-                                Text('Sentence JP: ${word.sentenceJp}'),
+                                Text('意味: ${word.mainMeaning}'),
+                                Text('意味(サブ): ${word.subMeaning}'),
+                                Text('例文: ${word.sentence}'),
+                                Text('例文意味: ${word.sentenceJp}'),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('Card ID: ${card.id}'),
                                     Text(
-                                        'Due: ${DateTime.fromMillisecondsSinceEpoch(card.due)}'),
+                                        '次の期限: ${DateTime.fromMillisecondsSinceEpoch(card.due)}'),
                                     Text('type: ${card.type}'),
                                     Text('Queue: ${card.queue}'),
                                     Text('Interval: ${card.ivl}'),
