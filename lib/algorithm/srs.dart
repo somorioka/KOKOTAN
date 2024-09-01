@@ -240,7 +240,7 @@ class Scheduler {
   int? today;
   int _lrnCutoff;
   int _dayCutoff = 0;
-  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数
+  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
   List<Card> _newQueue = [];
@@ -298,8 +298,8 @@ class Scheduler {
     _removeCardFromQueue(card);
 
     if (card.queue == 0) {
-      todayNewCardsCount += 1;
-      _saveTodayNewCardsCount(); // 新規カードの消化数を保存
+      todayNewCardsCount += 1; //不要
+      _saveTodayNewCardsCount(); // 新規カードの消化数を保存 //不要
       print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
@@ -494,7 +494,7 @@ class Scheduler {
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
-            card.queue == 1 &&
+            card.type == 1 && card.type == 3 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
@@ -518,9 +518,10 @@ class Scheduler {
     print('新規キューを埋めます: ${todayNewCardsCount}');
     if (todayNewCardsCount < 20) {
       // 新規カードが20枚未満なら追加
+      // このremainingSlotsは不要。新規カードの投入枚数を20枚から変更した場合は、その差分だけ足したり引いたりすれば良い。
       final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
       _newQueue = col.decks.values
-          .expand((deck) => deck.cards.where((card) => card.queue == 0))
+          .expand((deck) => deck.cards.where((card) => card.type == 0))
           .toList();
       _newQueue.sort((a, b) => a.due.compareTo(b.due));
       _newQueue = _newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
@@ -685,11 +686,12 @@ class Scheduler {
 
   int _startingLeft(Card card) {
     var conf = _lrnConf(card);
-    int tot = conf['delays'].length;
+    int tot = conf['delays'].length; // 2
     int tod = _leftToday(conf['delays'], tot);
     return tot + tod * 1000;
   }
 
+  // lrn1かlrn2かを判断してそう こんなに複雑にしなくても良い！
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
     now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
@@ -758,11 +760,11 @@ class Scheduler {
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
     card.due = clock.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000; //ここ間違いの可能性あり
+        card.ivl * 24 * 60 * 60 * 1000;
   }
 
   int _nextRevIvl(Card card, int ease) {
-    int delay = _daysLate(card); //この値が間違っている場合がある
+    int delay = _daysLate(card);
     var conf = col.deckConf["rev"];
     double fct = card.factor / 1000;
     double hardFactor = conf["hardFactor"];
