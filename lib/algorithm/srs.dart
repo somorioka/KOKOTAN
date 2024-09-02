@@ -242,8 +242,8 @@ class Scheduler {
   int _dayCutoff = 0;
   int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
   List<Card> _lrnQueue = [];
-  List<Card> _revQueue = [];
-  List<Card> _newQueue = [];
+  late List<Card> _revQueue; // DBで管理する
+  late List<Card> _newQueue; // DBで管理する
 
   Scheduler(this.col)
       : queueLimit = 50,
@@ -251,6 +251,8 @@ class Scheduler {
         reps = 0,
         _lrnCutoff = 0 {
     _dayCutoff = _calculateDayCutoff();
+    _newQueue = []; // ほんとはnewQueueにDBに保存した配列を入れる
+    _revQueue = []; // ほんとはrevfQueueにDBに保存した配列を入れる
   }
 
   Future<void> initializeScheduler() async {
@@ -267,7 +269,7 @@ class Scheduler {
 
   // カードの取得
   Card? getCard() {
-    _checkDay();
+    _checkDay(); //　ここでは実際は不要かも
     Card? card = _getCard();
     if (card != null) {
       reps += 1;
@@ -296,6 +298,7 @@ class Scheduler {
 
     card.reps += 1;
     _removeCardFromQueue(card);
+    _checkDay();
 
     if (card.queue == 0) {
       todayNewCardsCount += 1; //不要
@@ -494,7 +497,8 @@ class Scheduler {
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
-            card.type == 1 && card.type == 3 &&
+            card.type == 1 &&
+            card.type == 3 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
@@ -510,25 +514,17 @@ class Scheduler {
     return null;
   }
 
+  // FIXME: _refreshNewQueueとかに命名を変える
   bool _fillNew() {
+    // 1日1回のみこのメソッドは呼ばれる。
+    // 新規の配列に数枚埋まっているかどうか関係なく、20枚の新規キューリストで置き換える。
+    _newQueue = col.decks.values
+        .expand((deck) => deck.cards.where((card) => card.type == 0))
+        .toList();
+    _newQueue.sort((a, b) => a.due.compareTo(b.due));
+    _newQueue = _newQueue.take(20).toList();
     if (_newQueue.isNotEmpty) {
       return true;
-    }
-
-    print('新規キューを埋めます: ${todayNewCardsCount}');
-    if (todayNewCardsCount < 20) {
-      // 新規カードが20枚未満なら追加
-      // このremainingSlotsは不要。新規カードの投入枚数を20枚から変更した場合は、その差分だけ足したり引いたりすれば良い。
-      final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
-      _newQueue = col.decks.values
-          .expand((deck) => deck.cards.where((card) => card.type == 0))
-          .toList();
-      _newQueue.sort((a, b) => a.due.compareTo(b.due));
-      _newQueue = _newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
-
-      if (_newQueue.isNotEmpty) {
-        return true;
-      }
     }
     return false;
   }
@@ -759,8 +755,8 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = clock.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000;
+    card.due =
+        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
   }
 
   int _nextRevIvl(Card card, int ease) {
