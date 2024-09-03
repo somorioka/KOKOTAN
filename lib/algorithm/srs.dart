@@ -281,10 +281,6 @@ class Scheduler {
     _resetNew();
     todayNewCardsCount = 0; // 今日消化した新規カードの枚数をリセット
     _saveTodayNewCardsCount(); // リセット後のカウントを保存
-    // 新規キューをすぐに埋める
-    _fillNew();
-    // 復習キューをすぐに埋める
-    _fillRev();
   }
 
   // カードへの回答
@@ -443,7 +439,7 @@ class Scheduler {
     return false;
   }
 
-  Card? _getCard() {
+  Future<Card?> _getCard() async {
     // 次にレビューするカードを返す。カードがない場合はnullを返す。
     // 学習カードの期限が来ているか？
     Card? c = _getLrnCard();
@@ -453,7 +449,7 @@ class Scheduler {
 
     // 新しいカードを優先するか、新しいカードの時間か？
     if (_timeForNewCard()) {
-      c = _getNewCard();
+      c = await _getNewCard();
       if (c != null) {
         return c;
       }
@@ -466,7 +462,7 @@ class Scheduler {
     }
 
     // 新しいカードが残っているか？
-    c = _getNewCard();
+    c = await _getNewCard();
     if (c != null) {
       return c;
     }
