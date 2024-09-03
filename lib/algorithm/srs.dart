@@ -326,11 +326,14 @@ class Scheduler {
   DateTime? lastCheck; // 最後にcheckDayを発動した日付
 
   Future<void> _checkDay() async {
+    final dbHelper = DatabaseHelper.instance; // インスタンスを取得
     DateTime today = calculateCustomToday(); // 4時に日付が変わるTodayを取得
     await _loadLastCheckDate(); // SharedPreferencesからlastCheckを読み込む
 
     if (lastCheck == null || lastCheck != today) {
-      // A処理を実行
+      // キューのデータベースにカードを追加する
+      _fillNew(dbHelper);
+      _fillRev(dbHelper);
       print('A処理を実行します。');
       // 最後にチェックした日付を更新して保存
       lastCheck = today;
