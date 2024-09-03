@@ -540,6 +540,7 @@ class Scheduler {
       newQueue.add(card); // newQueueに追加
       await dbHelper.insertCardToQueue(card.id, 0); // 0 = newQueue
     }
+    print('New Queue after selection: ${newQueue.length}');
   }
 
 //いらない疑惑あるなカウント数えるやつ
@@ -596,6 +597,7 @@ class Scheduler {
       final rand = Random(todayEnd);
       revQueue.shuffle(rand);
     }
+    print('review Queue after selection: ${revQueue.length}');
   }
 
   void _answerLrnCard(Card card, int ease) {
