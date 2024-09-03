@@ -514,11 +514,11 @@ class Scheduler {
     return lrnQueue.isNotEmpty;
   }
 
-  Card? _getNewCard() {
-    if (_fillNew()) {
+  Future<Card?> _getNewCard() async {
+    if (newQueue.isNotEmpty) {
       return newQueue.last; // キューから削除せず最後のカードを返す
     }
-    return null;
+    return null; // newQueueが空の場合はnullを返す
   }
 
   // FIXME: _refreshNewQueueとかに命名を変える
@@ -545,8 +545,6 @@ class Scheduler {
       newQueue.add(card); // newQueueに追加
       await dbHelper.insertCardToQueue(card.id, 0); // 0 = newQueue
     }
-
-    return newQueue.isNotEmpty;
   }
 
   void _saveTodayNewCardsCount() async {
