@@ -352,9 +352,7 @@ class Scheduler {
       lastCheck = today;
       await _saveLastCheckDate(lastCheck!);
     } else {
-      print('日付が同じですが、念のためキューを更新します。');
-      await _fillNew(dbHelper);
-      await _fillRev(dbHelper);
+      print('日付が同じなので、キューを更新しません。');
     }
   }
 
@@ -549,19 +547,23 @@ class Scheduler {
     await dbHelper.clearQueue(0); // 0 = newQueue
 
     // すべての新規カードを取得し、dueが古い順にソート
-    newQueue = col.decks.values
+    List<Card> allNewCards = col.decks.values
         .expand((deck) => deck.cards.where((card) => card.type == 0))
         .toList();
-    newQueue.sort((a, b) => a.due.compareTo(b.due)); // 古い順にソート
+    allNewCards.sort((a, b) => a.due.compareTo(b.due)); // 古い順にソート
 
     // 古いカード20枚を選択
-    List<Card> newSelectedQueue = newQueue.take(20).toList();
+    List<Card> newSelectedQueue = allNewCards.take(20).toList();
+
+    // newQueueを新しく作り直す
+    newQueue = [];
 
     // 新しいnewQueueを挿入し、データベースのQueueテーブルを更新
     for (var card in newSelectedQueue) {
       newQueue.add(card); // newQueueに追加
       await dbHelper.insertCardToQueue(card.id, 0); // 0 = newQueue
     }
+
     print('New Queue after selection: ${newQueue.length}');
   }
 
@@ -833,6 +835,9 @@ class Scheduler {
 
   // ここでの設定がどうかしている
   int _daysLate(Card card) {
+    if (today == null) {
+      throw Exception("The 'today' variable is not initialized.");
+    }
     return max(0, today! - card.due); //dueの値がおかしいときがある
   }
 
