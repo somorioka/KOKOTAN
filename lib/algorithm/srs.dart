@@ -567,9 +567,9 @@ class Scheduler {
     return null;
   }
 
-  bool _fillRev() {
+  Future<void> _fillRev(DatabaseHelper dbHelper) async {
     if (revQueue.isNotEmpty) {
-      return true;
+      return;
     }
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
@@ -579,19 +579,28 @@ class Scheduler {
         .add(const Duration(days: 1))
         .millisecondsSinceEpoch;
 
+    // 今日とそれ以前の due を持つカードを取得
     revQueue = col.decks.values
-        .expand((deck) => deck.cards.where((card) =>
-            card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
+        .expand((deck) =>
+            deck.cards.where((card) => card.queue == 2 && card.due <= todayEnd))
         .toList();
     revQueue.sort((a, b) => a.due.compareTo(b.due));
     revQueue = revQueue.take(limit).toList();
 
-    if (revQueue.isNotEmpty) {
-      final rand = Random(today);
-      revQueue.shuffle(rand);
-      return true;
+    // 既存のrevQueueを削除
+    for (var card in revQueue) {
+      await dbHelper.removeCardFromQueue(card.id, 2); // 2 = revQueue
     }
-    return false;
+
+    // 新しいrevQueueを挿入し、データベースのQueueテーブルを更新
+    for (var card in revQueue) {
+      await dbHelper.insertCardToQueue(card.id, 2); // 2 = revQueue
+    }
+
+    if (revQueue.isNotEmpty) {
+      final rand = Random(todayEnd);
+      revQueue.shuffle(rand);
+    }
   }
 
   void _answerLrnCard(Card card, int ease) {
