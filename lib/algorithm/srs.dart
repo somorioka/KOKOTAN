@@ -335,7 +335,7 @@ class Scheduler {
       // キューのデータベースにカードを追加する
       _fillNew(dbHelper);
       _fillRev(dbHelper);
-      print('A処理を実行します。');
+      print('処理を実行します。');
       // 最後にチェックした日付を更新して保存
       lastCheck = today;
       await _saveLastCheckDate(lastCheck!);
