@@ -211,9 +211,11 @@ class DataViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchWordsAndInitializeScheduler() async {
-    print('Fetching words and initializing scheduler...');
+    print('Fetching words, cards, and initializing scheduler...');
 
     final dbHelper = DatabaseHelper.instance;
+
+    // すべての単語とカードをデータベースから取得
     final wordRows = await dbHelper.queryAllWords();
     final cardRows = await dbHelper.queryAllCards();
 
@@ -238,7 +240,56 @@ class DataViewModel extends ChangeNotifier {
       collection.addCardToDeck(deckName, card);
     }
 
+    // Schedulerの初期化
     scheduler = srs.Scheduler(collection);
+    
+    final newQueueData = await dbHelper.queryCardsInQueue(0); // 0 = newQueue
+    final newQueueCards = newQueueData
+        .map((map) {
+          int cardId = map['card_id']; // card_id を取得
+          return _cards.firstWhere((card) => card.id == cardId,
+              orElse: () => srs.Card(srs.Word(
+                    id: -1,
+                    word: '',
+                    pronunciation: '',
+                    mainMeaning: '',
+                    subMeaning: '',
+                    sentence: '',
+                    sentenceJp: '',
+                    wordVoice: '',
+                    sentenceVoice: '',
+                  )) // ダミーのCardオブジェクトを返す
+              );
+        })
+        .where((card) => card.id != -1)
+        .toList(); // ダミーオブジェクトを除外
+
+    final revQueueData = await dbHelper.queryCardsInQueue(2); // 2 = revQueue
+
+    final revQueueCards = revQueueData
+        .map((map) {
+          int cardId = map['card_id']; // card_id を取得
+          return _cards.firstWhere((card) => card.id == cardId,
+              orElse: () => srs.Card(srs.Word(
+                    id: -1,
+                    word: '',
+                    pronunciation: '',
+                    mainMeaning: '',
+                    subMeaning: '',
+                    sentence: '',
+                    sentenceJp: '',
+                    wordVoice: '',
+                    sentenceVoice: '',
+                  )) // ダミーのCardオブジェクトを返す
+              );
+        })
+        .where((card) => card.id != -1)
+        .toList(); // ダミーオブジェクトを除外
+
+    // Scheduler に設定
+    scheduler?.newQueue = newQueueCards;
+    scheduler?.revQueue = revQueueCards;
+
     await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
     currentCard = scheduler!.getCard();
     notifyListeners();
