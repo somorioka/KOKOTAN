@@ -255,8 +255,9 @@ class Scheduler {
   }
 
   Future<void> initializeScheduler() async {
+    today = calculateCustomToday().millisecondsSinceEpoch ~/ 1000;
     await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
-    _checkDay();
+    await _checkDay();
     print('日付: $today');
     print('1日の新規カード消化数: $todayNewCardsCount');
   }
@@ -838,7 +839,7 @@ class Scheduler {
     if (today == null) {
       throw Exception("The 'today' variable is not initialized.");
     }
-    return max(0, today! - card.due); //dueの値がおかしいときがある
+    return max(0, today! - card.due);
   }
 
   void _updateRevIvl(Card card, int ease) {
