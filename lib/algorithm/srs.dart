@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:clock/clock.dart';
+import 'package:kokotan/db/database_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 新規カードの表示順設定
@@ -370,8 +371,6 @@ class Scheduler {
     }
   }
 
-
-
   int _daysSinceCreation() {
     // コレクションが作成された時間を取得
     final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt * 1000);
@@ -523,18 +522,31 @@ class Scheduler {
   }
 
   // FIXME: _refreshNewQueueとかに命名を変える
-  bool _fillNew() {
+  Future<void> _fillNew(DatabaseHelper dbHelper) async {
     // 1日1回のみこのメソッドは呼ばれる。
     // 新規の配列に数枚埋まっているかどうか関係なく、20枚の新規キューリストで置き換える。
+
+    // すべての新規カードを取得し、dueが古い順にソート
     newQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) => card.type == 0))
         .toList();
-    newQueue.sort((a, b) => a.due.compareTo(b.due));
-    newQueue = newQueue.take(20).toList();
-    if (newQueue.isNotEmpty) {
-      return true;
+    newQueue.sort((a, b) => a.due.compareTo(b.due)); // 古い順にソート
+
+    // 古いカード20枚を選択
+    List<Card> newSelectedQueue = newQueue.take(20).toList();
+
+    // 既存のnewQueueを削除
+    for (var card in newQueue) {
+      _removeCardFromQueue(card);
     }
-    return false;
+
+    // 新しいnewQueueを挿入し、データベースのQueueテーブルを更新
+    for (var card in newSelectedQueue) {
+      newQueue.add(card); // newQueueに追加
+      await dbHelper.insertCardToQueue(card.id, 0); // 0 = newQueue
+    }
+
+    return newQueue.isNotEmpty;
   }
 
   void _saveTodayNewCardsCount() async {
