@@ -239,10 +239,12 @@ class DataViewModel extends ChangeNotifier {
     for (var card in cards) {
       collection.addCardToDeck(deckName, card);
     }
+    await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
 
     // Schedulerの初期化
     scheduler = srs.Scheduler(collection);
     
+    //データベースからnewQueueとrevQueueを取得
     final newQueueData = await dbHelper.queryCardsInQueue(0); // 0 = newQueue
     final newQueueCards = newQueueData
         .map((map) {
@@ -290,7 +292,6 @@ class DataViewModel extends ChangeNotifier {
     scheduler?.newQueue = newQueueCards;
     scheduler?.revQueue = revQueueCards;
 
-    await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
     currentCard = scheduler!.getCard();
     notifyListeners();
   }
