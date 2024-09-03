@@ -561,7 +561,7 @@ class Scheduler {
   }
 
   Card? _getRevCard() {
-    if (_fillRev()) {
+    if (revQueue.isNotEmpty) {
       return revQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
