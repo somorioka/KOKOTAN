@@ -270,7 +270,10 @@ class Scheduler {
   Future<Card?> getCard() async {
     Card? card = await _getCard(); // 非同期メソッドの結果を待つ
     if (card != null) {
+      print('Retrieved card ID: ${card.id}');
       reps += 1;
+    } else {
+      print('No card retrieved');
     }
     return card;
   }
@@ -331,16 +334,21 @@ class Scheduler {
     DateTime today = calculateCustomToday(); // 4時に日付が変わるTodayを取得
     await _loadLastCheckDate(); // SharedPreferencesからlastCheckを読み込む
 
-    if (lastCheck == null || lastCheck != today) {
-      // キューのデータベースにカードを追加する
+    if (lastCheck == null) {
+      print('First time check or date not found, setting lastCheck to today.');
+      lastCheck = today;
+      await _saveLastCheckDate(lastCheck!);
+    } else if (lastCheck != today) {
+      // 日付が異なる場合、リセット処理を実行
       _fillNew(dbHelper);
+      print('fillNewを実行します。');
+
       _fillRev(dbHelper);
-      print('処理を実行します。');
-      // 最後にチェックした日付を更新して保存
+      print('fillRevを実行します。');
+
       lastCheck = today;
       await _saveLastCheckDate(lastCheck!);
     } else {
-      // 日付が同じなら何もしない
       print('日付が同じなので何もしません。');
     }
   }
@@ -355,12 +363,14 @@ class Scheduler {
       customToday = DateTime(now.year, now.month, now.day); // 当日扱い
     }
 
+    print('Custom Today Date: $customToday');
     return customToday;
   }
 
   Future<void> _saveLastCheckDate(DateTime date) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('lastCheck', date.toIso8601String());
+    print('Saved last check date: ${date.toIso8601String()}');
   }
 
   Future<void> _loadLastCheckDate() async {
@@ -368,6 +378,10 @@ class Scheduler {
     String? lastCheckString = prefs.getString('lastCheck');
     if (lastCheckString != null) {
       lastCheck = DateTime.parse(lastCheckString);
+      print('Loaded last check date: $lastCheck');
+    } else {
+      print('No last check date found, setting to null');
+      lastCheck = null;
     }
   }
 
