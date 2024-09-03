@@ -522,26 +522,25 @@ class Scheduler {
   }
 
   // FIXME: _refreshNewQueueとかに命名を変える
-Future<void> _fillNew(DatabaseHelper dbHelper) async {
-  // 既存のnewQueueをクリア
-  await dbHelper.clearQueue(0); // 0 = newQueue
+  Future<void> _fillNew(DatabaseHelper dbHelper) async {
+    // 既存のnewQueueをクリア
+    await dbHelper.clearQueue(0); // 0 = newQueue
 
-  // すべての新規カードを取得し、dueが古い順にソート
-  newQueue = col.decks.values
-      .expand((deck) => deck.cards.where((card) => card.type == 0))
-      .toList();
-  newQueue.sort((a, b) => a.due.compareTo(b.due)); // 古い順にソート
+    // すべての新規カードを取得し、dueが古い順にソート
+    newQueue = col.decks.values
+        .expand((deck) => deck.cards.where((card) => card.type == 0))
+        .toList();
+    newQueue.sort((a, b) => a.due.compareTo(b.due)); // 古い順にソート
 
-  // 古いカード20枚を選択
-  List<Card> newSelectedQueue = newQueue.take(20).toList();
+    // 古いカード20枚を選択
+    List<Card> newSelectedQueue = newQueue.take(20).toList();
 
-  // 新しいnewQueueを挿入し、データベースのQueueテーブルを更新
-  for (var card in newSelectedQueue) {
-    newQueue.add(card); // newQueueに追加
-    await dbHelper.insertCardToQueue(card.id, 0); // 0 = newQueue
+    // 新しいnewQueueを挿入し、データベースのQueueテーブルを更新
+    for (var card in newSelectedQueue) {
+      newQueue.add(card); // newQueueに追加
+      await dbHelper.insertCardToQueue(card.id, 0); // 0 = newQueue
+    }
   }
-}
-
 
 //いらない疑惑あるなカウント数えるやつ
   void _saveTodayNewCardsCount() async {
@@ -597,8 +596,7 @@ Future<void> _fillNew(DatabaseHelper dbHelper) async {
       final rand = Random(todayEnd);
       revQueue.shuffle(rand);
     }
-}
-
+  }
 
   void _answerLrnCard(Card card, int ease) {
     var conf = _lrnConf(card);

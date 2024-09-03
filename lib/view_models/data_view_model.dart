@@ -243,7 +243,7 @@ class DataViewModel extends ChangeNotifier {
 
     // Schedulerの初期化
     scheduler = srs.Scheduler(collection);
-    
+
     //データベースからnewQueueとrevQueueを取得
     final newQueueData = await dbHelper.queryCardsInQueue(0); // 0 = newQueue
     final newQueueCards = newQueueData
@@ -329,10 +329,17 @@ class DataViewModel extends ChangeNotifier {
       // カード情報を更新
       final dbHelper = DatabaseHelper.instance;
       await dbHelper.updateCard(currentCard!);
+
+      // キューから今のカードを削除する
+      await dbHelper.removeCardFromQueue(currentCard!.id, currentCard!.queue);
+
+      // 全てのキューが空であれば「お疲れ様」画面に遷移
       if (newCardCount == 0 && learningCardCount == 0 && reviewCardCount == 0) {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => OtsukareScreen()));
       }
+
+      // 次のカードを取得
       currentCard = getCard();
       notifyListeners();
     }
