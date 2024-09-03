@@ -135,6 +135,16 @@ class DatabaseHelper {
     );
   }
 
+//全部削除
+  Future<void> clearQueue(int queueType) async {
+    Database db = await instance.database;
+    await db.delete(
+      queueTable,
+      where: '$queueColumnType = ?',
+      whereArgs: [queueType],
+    );
+  }
+
   Future<List<Map<String, dynamic>>> queryAllWords() async {
     Database db = await instance.database;
     final rows = await db.query(wordTable);
