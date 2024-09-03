@@ -241,9 +241,9 @@ class Scheduler {
   int _lrnCutoff;
   int _dayCutoff = 0;
   int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
-  List<Card> _lrnQueue = [];
-  late List<Card> _revQueue; // DBで管理する
-  late List<Card> _newQueue; // DBで管理する
+  List<Card> lrnQueue = [];
+  List<Card> revQueue = []; // DBで管理する
+  List<Card> newQueue = []; // DBで管理する
 
   Scheduler(this.col)
       : queueLimit = 50,
@@ -251,8 +251,8 @@ class Scheduler {
         reps = 0,
         _lrnCutoff = 0 {
     _dayCutoff = _calculateDayCutoff();
-    _newQueue = []; // ほんとはnewQueueにDBに保存した配列を入れる
-    _revQueue = []; // ほんとはrevfQueueにDBに保存した配列を入れる
+    newQueue = []; // ほんとはnewQueueにDBに保存した配列を入れる
+    revQueue = []; // ほんとはrevfQueueにDBに保存した配列を入れる
   }
 
   Future<void> initializeScheduler() async {
@@ -263,9 +263,9 @@ class Scheduler {
     print('1日の新規カード消化数: $todayNewCardsCount');
   }
 
-  int get newQueueCount => _newQueue.length;
-  int get learningQueueCount => _lrnQueue.length;
-  int get reviewQueueCount => _revQueue.length;
+  int get newQueueCount => newQueue.length;
+  int get learningQueueCount => lrnQueue.length; //使っていないっぽい
+  int get reviewQueueCount => revQueue.length;
 
   // カードの取得
   Card? getCard() {
@@ -322,23 +322,56 @@ class Scheduler {
 
   void _removeCardFromQueue(Card card) {
     if (card.queue == 0) {
-      _newQueue.remove(card);
+      newQueue.remove(card);
     } else if (card.queue == 1) {
-      _lrnQueue.remove(card);
+      lrnQueue.remove(card);
     } else if (card.queue == 2) {
-      _revQueue.remove(card);
+      revQueue.remove(card);
     }
   }
 
   // 日付が変わったかどうかを確認し、リセットする
-  void _checkDay() {
-    // 現在の時間が_dayCutoffを超えているかを確認
-    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000; // 秒単位で取得
-    print('現在の時間: $currentTime');
-    print('日の終了時間: $_dayCutoff');
-    if (currentTime > _dayCutoff) {
-      reset(); // 日が変わったらリセット
-      print('日付が変わりました');
+  DateTime? lastCheck; // 最後にcheckDayを発動した日付
+
+  Future<void> _checkDay() async {
+    DateTime today = calculateCustomToday(); // 4時に日付が変わるTodayを取得
+    await _loadLastCheckDate(); // SharedPreferencesからlastCheckを読み込む
+
+    if (lastCheck == null || lastCheck != today) {
+      // A処理を実行
+      print('A処理を実行します。');
+      // 最後にチェックした日付を更新して保存
+      lastCheck = today;
+      await _saveLastCheckDate(lastCheck!);
+    } else {
+      // 日付が同じなら何もしない
+      print('日付が同じなので何もしません。');
+    }
+  }
+
+  DateTime calculateCustomToday() {
+    DateTime now = DateTime.now();
+    DateTime customToday;
+
+    if (now.hour < 4) {
+      customToday = DateTime(now.year, now.month, now.day - 1); // 前日扱い
+    } else {
+      customToday = DateTime(now.year, now.month, now.day); // 当日扱い
+    }
+
+    return customToday;
+  }
+
+  Future<void> _saveLastCheckDate(DateTime date) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lastCheck', date.toIso8601String());
+  }
+
+  Future<void> _loadLastCheckDate() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? lastCheckString = prefs.getString('lastCheck');
+    if (lastCheckString != null) {
+      lastCheck = DateTime.parse(lastCheckString);
     }
   }
 
@@ -379,7 +412,7 @@ class Scheduler {
   void _resetLrn() {
     // 学習キューをリセットする
     _updateLrnCutoff(force: true);
-    _lrnQueue = [];
+    lrnQueue = [];
   }
 
   bool _updateLrnCutoff({required bool force}) {
@@ -394,21 +427,21 @@ class Scheduler {
 
   void _resetRev() {
     // 復習キューをリセットする
-    _revQueue = [];
+    revQueue = [];
   }
 
   void _resetNew() {
     // 新規キューをリセットする
-    _newQueue = [];
+    newQueue = [];
     _updateNewCardRatio();
   }
 
   void _updateNewCardRatio() {
     // 新規カードの表示比率を更新する
     if (col.colConf['newSpread'] == NEW_CARDS_DISTRIBUTE) {
-      if (_newQueue.isNotEmpty) {
-        final newCount = _newQueue.length;
-        final revCount = _revQueue.length;
+      if (newQueue.isNotEmpty) {
+        final newCount = newQueue.length;
+        final revCount = revQueue.length;
         final newCardModulus = ((newCount + revCount) ~/ newCount);
         if (revCount > 0) {
           col.newCardModulus = max(2, newCardModulus);
@@ -423,7 +456,7 @@ class Scheduler {
 
   // 新しいカードを表示する時間かどうかを判断する
   bool _timeForNewCard() {
-    if (_newQueue.isEmpty) {
+    if (newQueue.isEmpty) {
       return false;
     }
     if (col.colConf['newSpread'] == NEW_CARDS_LAST) {
@@ -478,7 +511,7 @@ class Scheduler {
       _maybeResetLrn(force: false);
     }
     if (_fillLrn(collapse: collapse)) {
-      return _lrnQueue.last; // キューから削除せず最後のカードを返す
+      return lrnQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
@@ -490,26 +523,26 @@ class Scheduler {
   }
 
   bool _fillLrn({bool collapse = false}) {
-    if (_lrnQueue.isNotEmpty) {
+    if (lrnQueue.isNotEmpty) {
       return true;
     }
     final currentTime = clock.now().millisecondsSinceEpoch;
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
-    _lrnQueue = col.decks.values
+    lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
             card.type == 1 &&
             card.type == 3 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
-    print('学習キューのカード枚数 : ${_lrnQueue.length}');
-    _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
-    _lrnQueue = _lrnQueue.take(reportLimit).toList();
-    return _lrnQueue.isNotEmpty;
+    print('学習キューのカード枚数 : ${lrnQueue.length}');
+    lrnQueue.sort((a, b) => a.due.compareTo(b.due));
+    lrnQueue = lrnQueue.take(reportLimit).toList();
+    return lrnQueue.isNotEmpty;
   }
 
   Card? _getNewCard() {
     if (_fillNew()) {
-      return _newQueue.last; // キューから削除せず最後のカードを返す
+      return newQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
@@ -518,12 +551,12 @@ class Scheduler {
   bool _fillNew() {
     // 1日1回のみこのメソッドは呼ばれる。
     // 新規の配列に数枚埋まっているかどうか関係なく、20枚の新規キューリストで置き換える。
-    _newQueue = col.decks.values
+    newQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) => card.type == 0))
         .toList();
-    _newQueue.sort((a, b) => a.due.compareTo(b.due));
-    _newQueue = _newQueue.take(20).toList();
-    if (_newQueue.isNotEmpty) {
+    newQueue.sort((a, b) => a.due.compareTo(b.due));
+    newQueue = newQueue.take(20).toList();
+    if (newQueue.isNotEmpty) {
       return true;
     }
     return false;
@@ -544,13 +577,13 @@ class Scheduler {
 
   Card? _getRevCard() {
     if (_fillRev()) {
-      return _revQueue.last; // キューから削除せず最後のカードを返す
+      return revQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
 
   bool _fillRev() {
-    if (_revQueue.isNotEmpty) {
+    if (revQueue.isNotEmpty) {
       return true;
     }
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
@@ -561,16 +594,16 @@ class Scheduler {
         .add(const Duration(days: 1))
         .millisecondsSinceEpoch;
 
-    _revQueue = col.decks.values
+    revQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
             card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
         .toList();
-    _revQueue.sort((a, b) => a.due.compareTo(b.due));
-    _revQueue = _revQueue.take(limit).toList();
+    revQueue.sort((a, b) => a.due.compareTo(b.due));
+    revQueue = revQueue.take(limit).toList();
 
-    if (_revQueue.isNotEmpty) {
+    if (revQueue.isNotEmpty) {
       final rand = Random(today);
-      _revQueue.shuffle(rand);
+      revQueue.shuffle(rand);
       return true;
     }
     return false;
