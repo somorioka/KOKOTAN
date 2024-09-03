@@ -334,23 +334,34 @@ class Scheduler {
     DateTime today = calculateCustomToday(); // 4時に日付が変わるTodayを取得
     await _loadLastCheckDate(); // SharedPreferencesからlastCheckを読み込む
 
+    print('Current date: $today');
+    print('Last check date: $lastCheck');
+
     if (lastCheck == null) {
       print('First time check or date not found, setting lastCheck to today.');
       lastCheck = today;
       await _saveLastCheckDate(lastCheck!);
-    } else if (lastCheck != today) {
+    } else if (!isSameDay(lastCheck!, today)) {
       // 日付が異なる場合、リセット処理を実行
-      _fillNew(dbHelper);
+      await _fillNew(dbHelper);
       print('fillNewを実行します。');
 
-      _fillRev(dbHelper);
+      await _fillRev(dbHelper);
       print('fillRevを実行します。');
 
       lastCheck = today;
       await _saveLastCheckDate(lastCheck!);
     } else {
-      print('日付が同じなので何もしません。');
+      print('日付が同じですが、念のためキューを更新します。');
+      await _fillNew(dbHelper);
+      await _fillRev(dbHelper);
     }
+  }
+
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   DateTime calculateCustomToday() {
@@ -458,36 +469,40 @@ class Scheduler {
   }
 
   Future<Card?> _getCard() async {
-    // 次にレビューするカードを返す。カードがない場合はnullを返す。
+    Card? card;
+
     // 学習カードの期限が来ているか？
-    Card? c = _getLrnCard();
-    if (c != null) {
-      return c;
+    card = _getLrnCard();
+    if (card != null) {
+      return card;
     }
 
     // 新しいカードを優先するか、新しいカードの時間か？
-    if (_timeForNewCard()) {
-      c = await _getNewCard();
-      if (c != null) {
-        return c;
-      }
+    card = await _getNewCard(); // ここで新規カードを強制的に確認
+    if (card != null) {
+      print('New card retrieved: ${card.word.word}');
+      return card;
     }
 
     // レビューするカードの期限が来ているか？
-    c = _getRevCard();
-    if (c != null) {
-      return c;
+    card = _getRevCard();
+    if (card != null) {
+      return card;
     }
 
-    // 新しいカードが残っているか？
-    c = await _getNewCard();
-    if (c != null) {
-      return c;
-    }
+    print('No card retrieved');
+    return null;
+  }
 
-    // collapseまたは終了
-    c = _getLrnCard(collapse: true);
-    return c;
+  Future<Card?> _getNewCard() async {
+    if (newQueue.isNotEmpty) {
+      final card = newQueue.removeLast(); // キューから削除してカードを返す
+      print('Retrieved new card: ${card.word.word}');
+      return card;
+    } else {
+      print('No new card found');
+    }
+    return null; // newQueueが空の場合はnullを返す
   }
 
   Card? _getLrnCard({bool collapse = false}) {
@@ -526,13 +541,6 @@ class Scheduler {
     lrnQueue.sort((a, b) => a.due.compareTo(b.due));
     lrnQueue = lrnQueue.take(reportLimit).toList();
     return lrnQueue.isNotEmpty;
-  }
-
-  Future<Card?> _getNewCard() async {
-    if (newQueue.isNotEmpty) {
-      return newQueue.last; // キューから削除せず最後のカードを返す
-    }
-    return null; // newQueueが空の場合はnullを返す
   }
 
   // FIXME: _refreshNewQueueとかに命名を変える
