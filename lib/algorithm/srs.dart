@@ -266,8 +266,9 @@ class Scheduler {
   int get reviewQueueCount => revQueue.length;
 
   // カードの取得
-  Card? getCard() {
-    Card? card = _getCard();
+// カードの取得
+  Future<Card?> getCard() async {
+    Card? card = await _getCard(); // 非同期メソッドの結果を待つ
     if (card != null) {
       reps += 1;
     }
