@@ -239,7 +239,6 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  int _dayCutoff = 0;
   int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
   List<Card> lrnQueue = [];
   List<Card> revQueue = []; // DBで管理する
@@ -250,7 +249,6 @@ class Scheduler {
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
-    _dayCutoff = _calculateDayCutoff();
     newQueue = []; // ほんとはnewQueueにDBに保存した配列を入れる
     revQueue = []; // ほんとはrevfQueueにDBに保存した配列を入れる
   }
@@ -259,7 +257,6 @@ class Scheduler {
     await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
     _checkDay();
     print('日付: $today');
-    print('日の終了時間: $_dayCutoff');
     print('1日の新規カード消化数: $todayNewCardsCount');
   }
 
@@ -269,7 +266,6 @@ class Scheduler {
 
   // カードの取得
   Card? getCard() {
-    _checkDay(); //　ここでは実際は不要かも
     Card? card = _getCard();
     if (card != null) {
       reps += 1;
@@ -279,7 +275,6 @@ class Scheduler {
 
   // 1日1回のキューリセット
   void reset() {
-    _updateCutoff();
     _resetLrn();
     _resetRev();
     _resetNew();
@@ -308,7 +303,7 @@ class Scheduler {
       card.queue = 1;
       card.type = 1;
       // 卒業までのリピート数を初期化
-      card.left = _startingLeft(card);
+      // card.left = _startingLeft(card);
     }
 
     if (card.queue == 1 || card.queue == 3) {
@@ -375,27 +370,7 @@ class Scheduler {
     }
   }
 
-  // 日付のカットオフを更新する
-  void _updateCutoff() {
-    // コレクションが作成されてからの経過日数を計算
-    today = _daysSinceCreation();
-    print('経過日数: $today');
-    // 日の終了時間を設定
-    _dayCutoff = _calculateDayCutoff();
-    print('日の終了時間: $_dayCutoff');
-  }
 
-  int _calculateDayCutoff() {
-    // 今日の日付を取得し、時間を00:00:00にリセット
-    final now = clock.now();
-    final todayMidnight = DateTime(now.year, now.month, now.day);
-
-    // 今日の現在時刻が00:00:00より遅い場合、次の日の00:00:00を計算
-    final nextMidnight = todayMidnight.add(const Duration(days: 1));
-
-    // 次の日の00:00:00をUNIXタイムスタンプ（秒単位）として返す
-    return nextMidnight.millisecondsSinceEpoch ~/ 1000;
-  }
 
   int _daysSinceCreation() {
     // コレクションが作成された時間を取得
@@ -637,7 +612,7 @@ class Scheduler {
   }
 
   void _moveToFirstStep(Card card, Map<String, dynamic> conf) {
-    card.left = _startingLeft(card);
+    // card.left = _startingLeft(card);
 
     // 再学習カード？
     if (card.type == 3) {
@@ -650,7 +625,7 @@ class Scheduler {
   void _moveToNextStep(Card card, Map<String, dynamic> conf) {
     // 実際の残り回数を減少させ、今日の残り回数を再計算
     int left = (card.left % 1000) - 1;
-    card.left = _leftToday(conf['delays'], left) * 1000 + left;
+    // card.left = _leftToday(conf['delays'], left) * 1000 + left;
 
     _rescheduleLrnCard(card, conf);
   }
@@ -713,15 +688,15 @@ class Scheduler {
     card.type = 2;
   }
 
-  int _startingLeft(Card card) {
-    var conf = _lrnConf(card);
-    int tot = conf['delays'].length; // 2
-    int tod = _leftToday(conf['delays'], tot);
-    return tot + tod * 1000;
-  }
+  // int _startingLeft(Card card) {
+  //   var conf = _lrnConf(card);
+  //   int tot = conf['delays'].length; // 2
+  //   int tod = _leftToday(conf['delays'], tot);
+  //   return tot + tod * 1000;
+  // }
 
   // lrn1かlrn2かを判断してそう こんなに複雑にしなくても良い！
-  int _leftToday(List<int> delays, int left, {int? now}) {
+  /*int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
     now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
     delays = delays.sublist(delays.length - left);
@@ -734,7 +709,7 @@ class Scheduler {
       ok = i;
     }
     return ok + 1;
-  }
+  }*/
 
   int _graduatingIvl(Card card, Map<String, dynamic> conf, bool early) {
     if (card.type == 2 || card.type == 3) {
