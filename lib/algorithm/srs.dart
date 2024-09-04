@@ -257,7 +257,7 @@ class Scheduler {
   Future<void> initializeScheduler() async {
     today = calculateCustomToday().millisecondsSinceEpoch ~/ 1000;
     await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
-    await _checkDay();
+    await checkDay();
     print('日付: $today');
     print('1日の新規カード消化数: $todayNewCardsCount');
   }
@@ -295,7 +295,7 @@ class Scheduler {
 
     card.reps += 1;
     _removeCardFromQueue(card);
-    _checkDay();
+    checkDay();
 
     if (card.queue == 0) {
       todayNewCardsCount += 1; //不要
@@ -328,11 +328,14 @@ class Scheduler {
   }
 
   // 日付が変わったかどうかを確認し、リセットする
-  DateTime? lastCheck; // 最後にcheckDayを発動した日付
+  DateTime? lastCheck;
 
-  Future<void> _checkDay() async {
-    final dbHelper = DatabaseHelper.instance; // インスタンスを取得
-    DateTime today = calculateCustomToday(); // 4時に日付が変わるTodayを取得
+  Future<void> checkDay({DateTime? customCurrentTime}) async {
+    final dbHelper = DatabaseHelper.instance;
+
+    // 引数のcustomCurrentTimeがnullであれば現在時刻を使用
+    DateTime today = customCurrentTime ?? calculateCustomToday();
+
     await _loadLastCheckDate(); // SharedPreferencesからlastCheckを読み込む
 
     print('Current date: $today');

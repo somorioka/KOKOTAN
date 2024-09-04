@@ -18,6 +18,26 @@ class DataViewModel extends ChangeNotifier {
   double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
   bool _allDataDownloaded = false;
 
+  DateTime _currentTime = DateTime.now(); // プライベートな currentTime 変数
+  DateTime get currentTime => _currentTime; // getter
+
+  void setCurrentTime(DateTime newTime) {
+    _currentTime = newTime;
+    notifyListeners(); // データの変更を通知
+  }
+
+  // Scheduler の checkDay を発動
+  Future<void> triggerCheckDay() async {
+    print('trigerCheckDayが発動しました');
+
+    if (scheduler != null) {
+      // currentTime を渡して checkDay を発動
+      await scheduler!.checkDay(customCurrentTime: currentTime);
+      currentCard = await scheduler!.getCard(); // checkDay後に新しいカードを取得
+      notifyListeners();
+    }
+  }
+
   DataViewModel() {
     _loadDataDownloadedFlag();
   }
@@ -46,11 +66,11 @@ class DataViewModel extends ChangeNotifier {
   srs.Word? get currentWord => currentCard?.word;
   double get downloadProgress => _downloadProgress; // プログレスを取得
 
-  int get newCardCount => scheduler?.newQueueCount ?? 20;
+  int get newCardCount => scheduler?.newQueue.length ?? 0;
   // learningCardCountだけは学習queueタイプの総数で数える
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
-  int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
+  int get reviewCardCount => scheduler?.revQueue.length ?? 0;
   // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
 
   Future<void> downloadAndImportExcel() async {

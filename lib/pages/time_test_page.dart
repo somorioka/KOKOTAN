@@ -10,28 +10,6 @@ class TimeTestPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     // Hookを使って状態を管理する
-    final currentTime = useState<DateTime>(clock.now());
-
-    void setToNextDay7AM() {
-      currentTime.value = DateTime(
-        currentTime.value.year,
-        currentTime.value.month,
-        currentTime.value.day + 1,
-        7,
-      );
-    }
-
-    void advanceTimeByOneMinute() {
-      currentTime.value = currentTime.value.add(Duration(minutes: 1));
-    }
-
-    void advanceTimeByTenMinutes() {
-      currentTime.value = currentTime.value.add(Duration(minutes: 10));
-    }
-
-    void advanceTimeByOneHour() {
-      currentTime.value = currentTime.value.add(Duration(hours: 1));
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -47,22 +25,43 @@ class TimeTestPage extends HookWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Current Time: ${currentTime.value}'),
+                Text('Current Time: ${viewModel.currentTime}'),
                 SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: setToNextDay7AM,
+                  onPressed: () {
+                    DateTime newTime = DateTime(
+                      viewModel.currentTime.year,
+                      viewModel.currentTime.month,
+                      viewModel.currentTime.day + 1,
+                      7,
+                    );
+                    viewModel.setCurrentTime(newTime); // 次の日の7時に変更
+                    viewModel.triggerCheckDay();
+                  },
                   child: Text('次の日の朝にする'),
                 ),
                 ElevatedButton(
-                  onPressed: advanceTimeByOneMinute,
+                  onPressed: () {
+                    DateTime newTime =
+                        viewModel.currentTime.add(Duration(minutes: 1));
+                    viewModel.setCurrentTime(newTime); // 1分後に変更
+                  },
                   child: Text('１分後にする'),
                 ),
                 ElevatedButton(
-                  onPressed: advanceTimeByTenMinutes,
+                  onPressed: () {
+                    DateTime newTime =
+                        viewModel.currentTime.add(Duration(minutes: 10));
+                    viewModel.setCurrentTime(newTime); // 10分後に変更
+                  },
                   child: Text('10分後にする'),
                 ),
                 ElevatedButton(
-                  onPressed: advanceTimeByOneHour,
+                  onPressed: () {
+                    DateTime newTime =
+                        viewModel.currentTime.add(Duration(hours: 1));
+                    viewModel.setCurrentTime(newTime); // 1時間後に変更
+                  },
                   child: Text('１時間後にする'),
                 ),
                 SizedBox(height: 32),
@@ -79,7 +78,7 @@ class TimeTestPage extends HookWidget {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    '今日できるカードあと${viewModel.newCardCount+viewModel.learningCardCount+viewModel.reviewCardCount}枚',
+                    '今日できるカードあと${viewModel.newCardCount + viewModel.learningCardCount + viewModel.reviewCardCount}枚',
                     style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 16),
