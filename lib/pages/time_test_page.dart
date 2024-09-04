@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:clock/clock.dart';
+import 'package:kokotan/pages/flashcard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:kokotan/db/database_helper.dart';
@@ -73,9 +74,15 @@ class TimeTestPage extends HookWidget {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    '今日できるカードあと${viewModel.newCardCount}枚',
+                    'このカードのステータス: ${getCardQueueLabel(card?.queue ?? -1)}',
                     style: TextStyle(fontSize: 16),
                   ),
+                  SizedBox(height: 16),
+                  Text(
+                    '今日できるカードあと${viewModel.newCardCount+viewModel.learningCardCount+viewModel.reviewCardCount}枚',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 16),
                   Text(
                     '未学習のカードあと${viewModel.newCardCount}枚',
                     style: TextStyle(fontSize: 16),
@@ -164,6 +171,19 @@ class TimeTestPage extends HookWidget {
         return 4;
       default:
         return 1;
+    }
+  }
+
+  String getCardQueueLabel(int queue) {
+    switch (queue) {
+      case 0:
+        return "未学習";
+      case 1:
+        return "覚え中";
+      case 2:
+        return "復習";
+      default:
+        return "Unknown";
     }
   }
 }

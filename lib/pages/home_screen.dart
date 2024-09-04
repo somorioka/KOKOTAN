@@ -80,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                                             ),
                                           ),
                                           Text(
-                                            "あと${viewModel.newCardCount.toString()}枚",
+                                            "あと${viewModel.newCardCount + viewModel.learningCardCount + viewModel.reviewCardCount}枚",
                                             style: const TextStyle(
                                               fontSize: 16,
                                             ),
