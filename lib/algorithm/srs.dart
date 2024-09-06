@@ -246,7 +246,7 @@ class Scheduler {
   List<Card> newQueue = []; // DBで管理する
 
   Scheduler(this.col)
-      : queueLimit = 50,
+      : queueLimit = 200,
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
@@ -290,22 +290,12 @@ class Scheduler {
 
   // カードへの回答
   void answerCard(Card card, int ease) {
-    assert(ease >= 1 && ease <= 4);
-    assert(card.queue >= 0 && card.queue <= 4);
-
     card.reps += 1;
     _removeCardFromQueue(card);
     checkDay();
 
     if (card.queue == 0) {
-      todayNewCardsCount += 1; //不要
-      _saveTodayNewCardsCount(); // 新規カードの消化数を保存 //不要
-      print('今日の新規カード消化数: $todayNewCardsCount');
-      // 新規キューから来た場合、学習キューへ移動
-      card.queue = 1;
-      card.type = 1;
-      // 卒業までのリピート数を初期化
-      // card.left = _startingLeft(card);
+      _answerNewCard(card, ease);
     }
 
     if (card.queue == 1 || card.queue == 3) {
@@ -593,39 +583,67 @@ class Scheduler {
   }
 
   Future<void> _fillRev(DatabaseHelper dbHelper) async {
-    // データベース内の旧revQueueを削除
-    await dbHelper.clearQueue(2); // 2 = revQueueをクリア
+    print('どうモー');
 
-    if (revQueue.isNotEmpty) {
-      return;
-    }
+    // Queueの上限値を設定し、ログに表示
+    final int limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
+    print('Queue limit: $limit');
 
-    final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
+    // 今日の終了時刻を取得しログに表示
+    final int todayEnd =
+        DateTime(clock.now().year, clock.now().month, clock.now().day)
+            .add(const Duration(days: 1))
+            .millisecondsSinceEpoch;
+    print('Today\'s end (timestamp): $todayEnd');
 
-    // 今日の終了時刻を取得
-    final now = clock.now();
-    final todayEnd = DateTime(now.year, now.month, now.day)
-        .add(const Duration(days: 1))
-        .millisecondsSinceEpoch;
-
-    // 今日とそれ以前の due を持つカードを取得
-    revQueue = col.decks.values
-        .expand((deck) =>
-            deck.cards.where((card) => card.queue == 2 && card.due <= todayEnd))
+    // due が今日以内のカードを選択して revQueue に追加
+    var filteredCards = col.decks.values
+        .expand((deck) => deck.cards.where((card) {
+              return card.queue == 2 && card.due <= todayEnd; //dueの計算がおかしいっぽい！！
+            }))
         .toList();
+
+    // フィルタリング後のカードをログに表示
+    print(
+        'Filtered cards: ${filteredCards.map((card) => 'ID: ${card.id}, Queue: ${card.queue}, Due: ${card.due}').toList()}');
+
+    revQueue = filteredCards;
+
+    // 選ばれたカードをソートし、必要な数だけ選択
     revQueue.sort((a, b) => a.due.compareTo(b.due));
     revQueue = revQueue.take(limit).toList();
+    print('Selected review cards: ${revQueue.map((card) => card.id).toList()}');
 
-    // 新しいrevQueueを挿入し、データベースのQueueテーブルを更新
+    // 選ばれたカードのログ
+    print(
+        'Cards selected for revQueue: ${revQueue.map((card) => card.id).toList()}');
+
+    // 新しい revQueue をデータベースに挿入
     for (var card in revQueue) {
-      await dbHelper.insertCardToQueue(card.id, 2); // 2 = revQueue
+      await dbHelper.insertCardToQueue(card.id, 2);
+      print('Inserted card into revQueue: ${card.id}');
     }
 
+    // シャッフル処理（必要であれば）
     if (revQueue.isNotEmpty) {
       final rand = Random(todayEnd);
       revQueue.shuffle(rand);
+      print('revQueue shuffled.');
     }
-    print('review Queue after selection: ${revQueue.length}');
+
+    print('Review Queue length after selection: ${revQueue.length}');
+  }
+
+  void _answerNewCard(Card card, int ease) {
+    // 新規キューから来た場合、学習キューへ移動
+    if (ease == 4) {
+      //TODO:卒業
+    } else {
+      card.queue = 1;
+      card.type = 1;
+      // 卒業までのリピート数を初期化
+      // card.left = _startingLeft(card);
+    }
   }
 
   void _answerLrnCard(Card card, int ease) {
@@ -716,9 +734,7 @@ class Scheduler {
   }
 
   void _rescheduleAsRev(Card card, Map<String, dynamic> conf, bool early) {
-    bool lapse = card.type == 2 || card.type == 3;
-
-    if (lapse) {
+    if (card.type == 2 || card.type == 3) {
       _rescheduleGraduatingLapse(card);
     } else {
       _rescheduleNew(card, conf, early);
