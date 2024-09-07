@@ -37,7 +37,6 @@ final Map<String, dynamic> colDefaultConf = {
 final Map<String, dynamic> deckDefaultConf = {
   'new': {
     'delays': [1, 10], // 学習カードのステップ // 本番用
-    // 'delays': [1, 1], // 学習カードのステップ // テスト用
     'ints': [1, 4], // 学習カードの間隔
     'initialFactor': STARTING_FACTOR, // EasyFactorの初期値
     'perDay': 20, // 1日の新規カードの最大枚数
@@ -592,8 +591,9 @@ class Scheduler {
     // 今日の終了時刻を取得しログに表示
     final int todayEnd =
         DateTime(clock.now().year, clock.now().month, clock.now().day)
-            .add(const Duration(days: 1))
+            .add(const Duration(days: 1, hours: 4))
             .millisecondsSinceEpoch;
+
     print('Today\'s end (timestamp): $todayEnd');
 
     // due が今日以内のカードを選択して revQueue に追加
@@ -642,7 +642,7 @@ class Scheduler {
       card.queue = 1;
       card.type = 1;
       // 卒業までのリピート数を初期化
-      // card.left = _startingLeft(card);
+      card.left = _startingLeft(card);
     }
   }
 
@@ -674,7 +674,7 @@ class Scheduler {
   }
 
   void _moveToFirstStep(Card card, Map<String, dynamic> conf) {
-    // card.left = _startingLeft(card);
+    card.left = _startingLeft(card);
 
     // 再学習カード？
     if (card.type == 3) {
@@ -687,7 +687,7 @@ class Scheduler {
   void _moveToNextStep(Card card, Map<String, dynamic> conf) {
     // 実際の残り回数を減少させ、今日の残り回数を再計算
     int left = (card.left % 1000) - 1;
-    // card.left = _leftToday(conf['delays'], left) * 1000 + left;
+    card.left = _leftToday(conf['delays'], left) * 1000 + left;
 
     _rescheduleLrnCard(card, conf);
   }
@@ -748,28 +748,33 @@ class Scheduler {
     card.type = 2;
   }
 
-  // int _startingLeft(Card card) {
-  //   var conf = _lrnConf(card);
-  //   int tot = conf['delays'].length; // 2
-  //   int tod = _leftToday(conf['delays'], tot);
-  //   return tot + tod * 1000;
-  // }
+  int _startingLeft(Card card) {
+    var conf = _lrnConf(card);
+    int tot = conf['delays'].length; // 2
+    int tod = _leftToday(conf['delays'], tot);
+    return tot + tod * 1000;
+  }
 
   // lrn1かlrn2かを判断してそう こんなに複雑にしなくても良い！
-  /*int _leftToday(List<int> delays, int left, {int? now}) {
+  int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
     now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
     delays = delays.sublist(delays.length - left);
     int ok = 0;
+    final int todayEnd =
+        DateTime(clock.now().year, clock.now().month, clock.now().day)
+            .add(const Duration(days: 1, hours: 4))
+            .millisecondsSinceEpoch;
+
     for (int i = 0; i < delays.length; i++) {
       now = now! + delays[i] * 60;
-      if (now > _dayCutoff) {
+      if (now > todayEnd) {
         break;
       }
       ok = i;
     }
     return ok + 1;
-  }*/
+  }
 
   int _graduatingIvl(Card card, Map<String, dynamic> conf, bool early) {
     if (card.type == 2 || card.type == 3) {
