@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:clock/clock.dart';
 import 'package:kokotan/pages/flashcard_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
-import 'package:kokotan/db/database_helper.dart';
 
 class TimeTestPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    // Hookを使って状態を管理する
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Time Test Page'),
@@ -72,9 +68,13 @@ class TimeTestPage extends HookWidget {
                         fontSize: 32, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 16),
+                  // ステータスごとに色を変更
                   Text(
-                    'このカードのステータス: ${getCardQueueLabel(card?.queue ?? -1)}',
-                    style: TextStyle(fontSize: 16),
+                    '${getCardQueueLabel(card?.queue ?? -1)}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: getCardQueueColor(card?.queue ?? -1), // 色を指定
+                    ),
                   ),
                   SizedBox(height: 16),
                   Text(
@@ -183,6 +183,20 @@ class TimeTestPage extends HookWidget {
         return "復習";
       default:
         return "Unknown";
+    }
+  }
+
+  // カードのキューに応じた色を返す関数
+  Color getCardQueueColor(int queue) {
+    switch (queue) {
+      case 0:
+        return Colors.blue; // 未学習は青
+      case 1:
+        return Colors.red; // 覚え中は赤
+      case 2:
+        return Colors.green; // 復習は緑
+      default:
+        return Colors.black; // 不明なステータスは黒
     }
   }
 }
