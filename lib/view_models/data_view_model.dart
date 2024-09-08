@@ -198,13 +198,21 @@ class DataViewModel extends ChangeNotifier {
           _downloadProgress = wordCount / limit;
           notifyListeners();
 
-          if (wordCount >= limit) break;
+          if (wordCount >= limit) {
+            break;
+          }
 
           print('Inserted word: ${word.word}, card ID: ${card.id}');
         }
         if (wordCount >= limit) break;
       }
       print('Excel data imported successfully');
+
+      // インポート完了後に fillNew() を実行
+      if (scheduler != null) {
+        scheduler?.checkDay();
+        print("fillNew() executed after data import.");
+      }
     } catch (e) {
       print('Error importing Excel data: $e');
     }

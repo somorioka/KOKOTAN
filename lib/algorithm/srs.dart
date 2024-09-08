@@ -251,9 +251,11 @@ class Scheduler {
         _lrnCutoff = 0 {
     newQueue = []; // ほんとはnewQueueにDBに保存した配列を入れる
     revQueue = []; // ほんとはrevfQueueにDBに保存した配列を入れる
+    initializeScheduler();
   }
 
   Future<void> initializeScheduler() async {
+    print("スケジューラを初期化しています");
     today = calculateCustomToday().millisecondsSinceEpoch ~/ 1000;
     await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
     await checkDay();
@@ -320,6 +322,7 @@ class Scheduler {
   DateTime? lastCheck;
 
   Future<void> checkDay({DateTime? customCurrentTime}) async {
+    print("checkDayを実行しています...");
     final dbHelper = DatabaseHelper.instance;
 
     // 引数のcustomCurrentTimeがnullであれば現在時刻を使用
@@ -336,15 +339,17 @@ class Scheduler {
       await _saveLastCheckDate(lastCheck!);
     } else if (!isSameDay(lastCheck!, today)) {
       // 日付が異なる場合、リセット処理を実行
-      await _fillNew(dbHelper);
+      await fillNew(dbHelper);
       print('fillNewを実行します。');
 
-      await _fillRev(dbHelper);
+      await fillRev(dbHelper);
       print('fillRevを実行します。');
 
       lastCheck = today;
       await _saveLastCheckDate(lastCheck!);
     } else {
+      await fillNew(dbHelper);
+      print('fillNewを実行します。');
       print('日付が同じなので、キューを更新しません。');
     }
   }
@@ -535,7 +540,8 @@ class Scheduler {
   }
 
   // FIXME: _refreshNewQueueとかに命名を変える
-  Future<void> _fillNew(DatabaseHelper dbHelper) async {
+  Future<void> fillNew(DatabaseHelper dbHelper) async {
+    print("fillNew実行中です！！！");
     // 既存のnewQueueをクリア
     await dbHelper.clearQueue(0); // 0 = newQueue
 
@@ -581,7 +587,7 @@ class Scheduler {
     return null;
   }
 
-  Future<void> _fillRev(DatabaseHelper dbHelper) async {
+  Future<void> fillRev(DatabaseHelper dbHelper) async {
     print('どうモー');
 
     // Queueの上限値を設定し、ログに表示

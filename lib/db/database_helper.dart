@@ -57,7 +57,7 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade, // マイグレーションの設定
+      // onUpgrade: _onUpgrade, // マイグレーションの設定
     );
   }
 
@@ -92,12 +92,7 @@ class DatabaseHelper {
             FOREIGN KEY ($cardColumnWordId) REFERENCES $wordTable ($columnId)
           )
           ''');
-  }
-
-  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // `queues`テーブルを追加するSQLコマンド
-      await db.execute('''
+    await db.execute('''
       CREATE TABLE $queueTable (
         $queueColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
         $queueColumnCardId INTEGER NOT NULL,
@@ -105,8 +100,21 @@ class DatabaseHelper {
         FOREIGN KEY ($queueColumnCardId) REFERENCES $cardTable ($cardColumnId)
       )
     ''');
-    }
   }
+
+  // Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  //   if (oldVersion < 2) {
+  //     // `queues`テーブルを追加するSQLコマンド
+  //     await db.execute('''
+  //     CREATE TABLE $queueTable (
+  //       $queueColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
+  //       $queueColumnCardId INTEGER NOT NULL,
+  //       $queueColumnType INTEGER NOT NULL,
+  //       FOREIGN KEY ($queueColumnCardId) REFERENCES $cardTable ($cardColumnId)
+  //     )
+  //   ''');
+  //   }
+  // }
 
   Future<int> insertWord(Word word) async {
     Database db = await instance.database;
