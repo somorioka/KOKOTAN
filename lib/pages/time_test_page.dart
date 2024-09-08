@@ -7,6 +7,13 @@ import 'package:kokotan/view_models/data_view_model.dart';
 class TimeTestPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
+    // useEffectで初期化時にcurrentTimeをロード
+    useEffect(() {
+      final viewModel = Provider.of<DataViewModel>(context, listen: false);
+      viewModel.loadCurrentTime();
+      return null;
+    }, []);
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Time Test Page'),
@@ -70,7 +77,7 @@ class TimeTestPage extends HookWidget {
                   SizedBox(height: 16),
                   // ステータスごとに色を変更
                   Text(
-                    '${getCardQueueLabel(card?.queue ?? -1)}',
+                    'このカードのステータス: ${getCardQueueLabel(card?.queue ?? -1)}',
                     style: TextStyle(
                       fontSize: 16,
                       color: getCardQueueColor(card?.queue ?? -1), // 色を指定

@@ -21,9 +21,10 @@ class DataViewModel extends ChangeNotifier {
   DateTime _currentTime = DateTime.now(); // プライベートな currentTime 変数
   DateTime get currentTime => _currentTime; // getter
 
-  void setCurrentTime(DateTime newTime) {
+  void setCurrentTime(DateTime newTime) async {
     _currentTime = newTime;
     notifyListeners(); // データの変更を通知
+    await saveCurrentTime(newTime); // 変更後、現在の時間を保存
   }
 
   // Scheduler の checkDay を発動
@@ -36,6 +37,22 @@ class DataViewModel extends ChangeNotifier {
       currentCard = await scheduler!.getCard(); // checkDay後に新しいカードを取得
       notifyListeners();
     }
+  }
+
+  Future<void> saveCurrentTime(DateTime currentTime) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('currentTime', currentTime.toIso8601String());
+  }
+
+  Future<void> loadCurrentTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedTime = prefs.getString('currentTime');
+    if (savedTime != null) {
+      _currentTime = DateTime.parse(savedTime);
+    } else {
+      _currentTime = DateTime.now();
+    }
+    notifyListeners();
   }
 
   DataViewModel() {
