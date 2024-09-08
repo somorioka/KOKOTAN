@@ -104,7 +104,7 @@ class Deck {
   }
 }
 
-/// 単語クラス
+/// ワードクラス
 class Word {
   int id;
   String word;
