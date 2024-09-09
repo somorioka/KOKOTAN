@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/pages/time_test_page.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +8,7 @@ import 'home_screen.dart';
 import 'list_screen.dart';
 import 'record_screen.dart';
 import 'setting_screen.dart';
+
 
 class TopPage extends StatefulWidget {
   final bool fromOnboarding;
@@ -25,7 +27,7 @@ class _TopPageState extends State<TopPage> {
     ListScreen(),
     RecordScreen(),
     ColumnScreen(),
-    SettingsScreen(),
+    TimeTestPage(),//テスト用にsettingpageと差し替え
   ];
 
   void _onItemTapped(int index) {

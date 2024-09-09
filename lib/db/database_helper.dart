@@ -4,10 +4,11 @@ import 'package:kokotan/Algorithm/srs.dart';
 
 class DatabaseHelper {
   static const _databaseName = "myDatabase.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   static const wordTable = 'words';
   static const cardTable = 'cards';
+  static const queueTable = 'queues'; // 新しく追加するテーブル
 
   // Word table columns
   static const columnId = 'id';
@@ -33,6 +34,13 @@ class DatabaseHelper {
   static const cardColumnLapses = 'lapses';
   static const cardColumnLeft = 'left';
 
+  // Queue table columns
+  static const queueColumnId = 'id';
+  static const queueColumnCardId = 'card_id';
+  static const queueColumnType = 'queue_type';
+  // 0 = newQueue, 2 = revQueueとする。1のlrnQueueは今回使わないので注意。
+  //card_idを使って、カードをQueueに保存していく。
+
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -45,8 +53,12 @@ class DatabaseHelper {
 
   _initDatabase() async {
     String path = join(await getDatabasesPath(), _databaseName);
-    return await openDatabase(path,
-        version: _databaseVersion, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _onCreate,
+      // onUpgrade: _onUpgrade, // マイグレーションの設定
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -80,7 +92,29 @@ class DatabaseHelper {
             FOREIGN KEY ($cardColumnWordId) REFERENCES $wordTable ($columnId)
           )
           ''');
+    await db.execute('''
+      CREATE TABLE $queueTable (
+        $queueColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
+        $queueColumnCardId INTEGER NOT NULL,
+        $queueColumnType INTEGER NOT NULL,
+        FOREIGN KEY ($queueColumnCardId) REFERENCES $cardTable ($cardColumnId)
+      )
+    ''');
   }
+
+  // Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  //   if (oldVersion < 2) {
+  //     // `queues`テーブルを追加するSQLコマンド
+  //     await db.execute('''
+  //     CREATE TABLE $queueTable (
+  //       $queueColumnId INTEGER PRIMARY KEY AUTOINCREMENT,
+  //       $queueColumnCardId INTEGER NOT NULL,
+  //       $queueColumnType INTEGER NOT NULL,
+  //       FOREIGN KEY ($queueColumnCardId) REFERENCES $cardTable ($cardColumnId)
+  //     )
+  //   ''');
+  //   }
+  // }
 
   Future<int> insertWord(Word word) async {
     Database db = await instance.database;
@@ -90,6 +124,33 @@ class DatabaseHelper {
   Future<int> insertCard(Card card) async {
     Database db = await instance.database;
     return await db.insert(cardTable, card.toMap());
+  }
+
+  Future<int> insertCardToQueue(int cardId, int queueType) async {
+    Database db = await instance.database;
+    return await db.insert(queueTable, {
+      queueColumnCardId: cardId,
+      queueColumnType: queueType,
+    });
+  }
+
+  Future<int> removeCardFromQueue(int cardId, int queueType) async {
+    Database db = await instance.database;
+    return await db.delete(
+      queueTable,
+      where: '$queueColumnCardId = ? AND $queueColumnType = ?',
+      whereArgs: [cardId, queueType],
+    );
+  }
+
+//全部削除
+  Future<void> clearQueue(int queueType) async {
+    Database db = await instance.database;
+    await db.delete(
+      queueTable,
+      where: '$queueColumnType = ?',
+      whereArgs: [queueType],
+    );
   }
 
   Future<List<Map<String, dynamic>>> queryAllWords() async {
@@ -103,6 +164,14 @@ class DatabaseHelper {
     Database db = await instance.database;
     final rows = await db.query(cardTable);
     print('Queried ${rows.length} rows'); // デバッグメッセージ追加
+    return rows;
+  }
+
+  Future<List<Map<String, dynamic>>> queryCardsInQueue(int queueType) async {
+    Database db = await instance.database;
+    final rows = await db.query(queueTable,
+        where: '$queueColumnType = ?', whereArgs: [queueType]);
+    print('Queried ${rows.length} rows from queue'); // デバッグメッセージ追加
     return rows;
   }
 

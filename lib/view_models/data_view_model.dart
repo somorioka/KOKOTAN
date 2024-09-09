@@ -18,6 +18,43 @@ class DataViewModel extends ChangeNotifier {
   double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
   bool _allDataDownloaded = false;
 
+  DateTime _currentTime = DateTime.now(); // プライベートな currentTime 変数
+  DateTime get currentTime => _currentTime; // getter
+
+  void setCurrentTime(DateTime newTime) async {
+    _currentTime = newTime;
+    notifyListeners(); // データの変更を通知
+    await saveCurrentTime(newTime); // 変更後、現在の時間を保存
+  }
+
+  // Scheduler の checkDay を発動
+  Future<void> triggerCheckDay() async {
+    print('trigerCheckDayが発動しました');
+
+    if (scheduler != null) {
+      // currentTime を渡して checkDay を発動
+      await scheduler!.checkDay(customCurrentTime: currentTime);
+      currentCard = await scheduler!.getCard(); // checkDay後に新しいカードを取得
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveCurrentTime(DateTime currentTime) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('currentTime', currentTime.toIso8601String());
+  }
+
+  Future<void> loadCurrentTime() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? savedTime = prefs.getString('currentTime');
+    if (savedTime != null) {
+      _currentTime = DateTime.parse(savedTime);
+    } else {
+      _currentTime = DateTime.now();
+    }
+    notifyListeners();
+  }
+
   DataViewModel() {
     _loadDataDownloadedFlag();
   }
@@ -46,11 +83,11 @@ class DataViewModel extends ChangeNotifier {
   srs.Word? get currentWord => currentCard?.word;
   double get downloadProgress => _downloadProgress; // プログレスを取得
 
-  int get newCardCount => scheduler?.newQueueCount ?? 20;
+  int get newCardCount => scheduler?.newQueue.length ?? 0;
   // learningCardCountだけは学習queueタイプの総数で数える
   int get learningCardCount => _cards.where((card) => card.queue == 1).length;
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
-  int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
+  int get reviewCardCount => scheduler?.revQueue.length ?? 0;
   // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
 
   Future<void> downloadAndImportExcel() async {
@@ -161,13 +198,21 @@ class DataViewModel extends ChangeNotifier {
           _downloadProgress = wordCount / limit;
           notifyListeners();
 
-          if (wordCount >= limit) break;
+          if (wordCount >= limit) {
+            break;
+          }
 
           print('Inserted word: ${word.word}, card ID: ${card.id}');
         }
         if (wordCount >= limit) break;
       }
       print('Excel data imported successfully');
+
+      // インポート完了後に fillNew() を実行
+      if (scheduler != null) {
+        scheduler?.checkDay();
+        print("fillNew() executed after data import.");
+      }
     } catch (e) {
       print('Error importing Excel data: $e');
     }
@@ -211,9 +256,11 @@ class DataViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchWordsAndInitializeScheduler() async {
-    print('Fetching words and initializing scheduler...');
+    print('Fetching words, cards, and initializing scheduler...');
 
     final dbHelper = DatabaseHelper.instance;
+
+    // すべての単語とカードをデータベースから取得
     final wordRows = await dbHelper.queryAllWords();
     final cardRows = await dbHelper.queryAllCards();
 
@@ -238,9 +285,59 @@ class DataViewModel extends ChangeNotifier {
       collection.addCardToDeck(deckName, card);
     }
 
+    // Schedulerの初期化
     scheduler = srs.Scheduler(collection);
     await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
-    currentCard = scheduler!.getCard();
+
+    //データベースからnewQueueとrevQueueを取得
+    final newQueueData = await dbHelper.queryCardsInQueue(0); // 0 = newQueue
+    final newQueueCards = newQueueData
+        .map((map) {
+          int cardId = map['card_id']; // card_id を取得
+          return _cards.firstWhere((card) => card.id == cardId,
+              orElse: () => srs.Card(srs.Word(
+                    id: -1,
+                    word: '',
+                    pronunciation: '',
+                    mainMeaning: '',
+                    subMeaning: '',
+                    sentence: '',
+                    sentenceJp: '',
+                    wordVoice: '',
+                    sentenceVoice: '',
+                  )) // ダミーのCardオブジェクトを返す
+              );
+        })
+        .where((card) => card.id != -1)
+        .toList(); // ダミーオブジェクトを除外
+
+    final revQueueData = await dbHelper.queryCardsInQueue(2); // 2 = revQueue
+
+    final revQueueCards = revQueueData
+        .map((map) {
+          int cardId = map['card_id']; // card_id を取得
+          return _cards.firstWhere((card) => card.id == cardId,
+              orElse: () => srs.Card(srs.Word(
+                    id: -1,
+                    word: '',
+                    pronunciation: '',
+                    mainMeaning: '',
+                    subMeaning: '',
+                    sentence: '',
+                    sentenceJp: '',
+                    wordVoice: '',
+                    sentenceVoice: '',
+                  )) // ダミーのCardオブジェクトを返す
+              );
+        })
+        .where((card) => card.id != -1)
+        .toList(); // ダミーオブジェクトを除外
+
+    // Scheduler に設定
+    scheduler?.newQueue = newQueueCards;
+    scheduler?.revQueue = revQueueCards;
+
+    currentCard = await scheduler!.getCard();
     notifyListeners();
   }
 
@@ -277,17 +374,20 @@ class DataViewModel extends ChangeNotifier {
       // カード情報を更新
       final dbHelper = DatabaseHelper.instance;
       await dbHelper.updateCard(currentCard!);
+
+      // キューから今のカードを削除する
+      await dbHelper.removeCardFromQueue(currentCard!.id, currentCard!.queue);
+
+      // 全てのキューが空であれば「お疲れ様」画面に遷移
       if (newCardCount == 0 && learningCardCount == 0 && reviewCardCount == 0) {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => OtsukareScreen()));
       }
-      currentCard = getCard();
+
+      // 次のカードを取得
+      currentCard = await scheduler!.getCard(); // await を使用
       notifyListeners();
     }
-  }
-
-  srs.Card? getCard() {
-    return scheduler?.getCard();
   }
 
   void search(String query) {
