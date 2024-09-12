@@ -230,6 +230,12 @@ class Card {
       ..lapses = map['lapses']
       ..left = map['left'];
   }
+
+  //ログでカードの状態が明確にわかるようにする
+  @override
+  String toString() {
+    return 'Card(word: ${word.word}, queue: $queue, due: $due)';
+  }
 }
 
 class Scheduler {
@@ -494,7 +500,8 @@ class Scheduler {
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
-            card.type == 1 && card.type == 3 &&
+            card.type == 1 &&
+            card.type == 3 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
@@ -573,8 +580,11 @@ class Scheduler {
     _revQueue = _revQueue.take(limit).toList();
 
     if (_revQueue.isNotEmpty) {
+      print('シャッフル前の順序: $_revQueue');
       final rand = Random(today);
       _revQueue.shuffle(rand);
+      print('シャッフル後の順序: $_revQueue');
+
       return true;
     }
     return false;
@@ -759,8 +769,8 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = clock.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000;
+    card.due =
+        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
   }
 
   int _nextRevIvl(Card card, int ease) {
