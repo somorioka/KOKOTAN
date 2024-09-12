@@ -691,7 +691,7 @@ class Scheduler {
     return tot + tod * 1000;
   }
 
-  // lrn1かlrn2かを判断してそう こんなに複雑にしなくても良い！
+  // lrn1かlrn2かを判断してそう
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
     now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
