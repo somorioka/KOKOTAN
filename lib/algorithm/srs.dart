@@ -643,7 +643,7 @@ class Scheduler {
 
   void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
     // 現在のステップの通常の遅延？
-    delay ??= _delayForGrade(conf, card.left);
+    delay ??= _delayForGrade(conf, card.left);//delayはミリ秒
 
     card.due = clock.now().millisecondsSinceEpoch + delay;
     card.queue = 1;
@@ -659,7 +659,7 @@ class Scheduler {
       index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
     }
     int delay = conf['delays'][index];
-    return delay * 60 * 1000;
+    return delay * 60 * 1000;//ミリ秒
   }
 
   int _delayForRepeatingGrade(Map<String, dynamic> conf, int left) {
@@ -774,7 +774,8 @@ class Scheduler {
   }
 
   int _nextRevIvl(Card card, int ease) {
-    int delay = _daysLate(card);
+    int delay = daysLate(card);//delayはミリ秒に統一
+    int delayInDays = delay ~/ (24 * 60 * 60 * 1000);//ivlと計算したいときは日数に変換
     var conf = col.deckConf["rev"];
     double fct = card.factor / 1000;
     double hardFactor = conf["hardFactor"];
@@ -782,12 +783,12 @@ class Scheduler {
     int ivl2 = _constrainedIvl((card.ivl * hardFactor).toInt(), conf, hardMin);
     if (ease == 2) return ivl2;
 
-    int ivl3 =
-        _constrainedIvl(((card.ivl + delay ~/ 2) * fct).toInt(), conf, ivl2);
+    int ivl3 = _constrainedIvl(
+        ((card.ivl + delayInDays ~/ 2) * fct).toInt(), conf, ivl2);
     if (ease == 3) return ivl3;
 
     int ivl4 = _constrainedIvl(
-        ((card.ivl + delay) * fct * conf["ease4"]).toInt(), conf, ivl3);
+        ((card.ivl + delayInDays) * fct * conf["ease4"]).toInt(), conf, ivl3);
     return ivl4;
   }
 
@@ -799,9 +800,9 @@ class Scheduler {
     return ivl;
   }
 
-  // ここでの設定がどうかしている
-  int _daysLate(Card card) {
-    return max(0, today! - card.due); //dueの値がおかしいときがある
+  int daysLate(Card card) {
+    int todayInMilliseconds = today! * 24 * 60 * 60 * 1000; // today をミリ秒に変換
+    return max(0, todayInMilliseconds - card.due); // card.due はミリ秒。ミリ秒に統一
   }
 
   void _updateRevIvl(Card card, int ease) {
