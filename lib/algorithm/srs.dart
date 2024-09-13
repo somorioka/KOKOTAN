@@ -801,8 +801,7 @@ class Scheduler {
   }
 
   int daysLate(Card card) {
-    int todayInMilliseconds = today! * 24 * 60 * 60 * 1000; // today をミリ秒に変換
-    return max(0, todayInMilliseconds - card.due); // card.due はミリ秒。ミリ秒に統一
+    return max(0, clock.now().millisecondsSinceEpoch - card.due); // card.due はミリ秒。ミリ秒に統一
   }
 
   void _updateRevIvl(Card card, int ease) {
