@@ -230,6 +230,12 @@ class Card {
       ..lapses = map['lapses']
       ..left = map['left'];
   }
+
+  //ログでカードの状態が明確にわかるようにする
+  @override
+  String toString() {
+    return 'Card(word: ${word.word}, queue: $queue, due: $due)';
+  }
 }
 
 class Scheduler {
@@ -494,7 +500,8 @@ class Scheduler {
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
-            card.type == 1 && card.type == 3 &&
+            card.type == 1 &&
+            card.type == 3 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
@@ -573,8 +580,11 @@ class Scheduler {
     _revQueue = _revQueue.take(limit).toList();
 
     if (_revQueue.isNotEmpty) {
+      print('シャッフル前の順序: $_revQueue');
       final rand = Random(today);
       _revQueue.shuffle(rand);
+      print('シャッフル後の順序: $_revQueue');
+
       return true;
     }
     return false;
@@ -633,7 +643,7 @@ class Scheduler {
 
   void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
     // 現在のステップの通常の遅延？
-    delay ??= _delayForGrade(conf, card.left);
+    delay ??= _delayForGrade(conf, card.left);//delayはミリ秒
 
     card.due = clock.now().millisecondsSinceEpoch + delay;
     card.queue = 1;
@@ -649,7 +659,7 @@ class Scheduler {
       index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
     }
     int delay = conf['delays'][index];
-    return delay * 60 * 1000;
+    return delay * 60 * 1000;//ミリ秒
   }
 
   int _delayForRepeatingGrade(Map<String, dynamic> conf, int left) {
@@ -691,7 +701,7 @@ class Scheduler {
     return tot + tod * 1000;
   }
 
-  // lrn1かlrn2かを判断してそう こんなに複雑にしなくても良い！
+  // lrn1かlrn2かを判断してそう
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
     now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
@@ -759,12 +769,13 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = clock.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000;
+    card.due =
+        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
   }
 
   int _nextRevIvl(Card card, int ease) {
-    int delay = _daysLate(card);
+    int delay = daysLate(card);//delayはミリ秒に統一
+    int delayInDays = delay ~/ (24 * 60 * 60 * 1000);//ivlと計算したいときは日数に変換
     var conf = col.deckConf["rev"];
     double fct = card.factor / 1000;
     double hardFactor = conf["hardFactor"];
@@ -772,12 +783,12 @@ class Scheduler {
     int ivl2 = _constrainedIvl((card.ivl * hardFactor).toInt(), conf, hardMin);
     if (ease == 2) return ivl2;
 
-    int ivl3 =
-        _constrainedIvl(((card.ivl + delay ~/ 2) * fct).toInt(), conf, ivl2);
+    int ivl3 = _constrainedIvl(
+        ((card.ivl + delayInDays ~/ 2) * fct).toInt(), conf, ivl2);
     if (ease == 3) return ivl3;
 
     int ivl4 = _constrainedIvl(
-        ((card.ivl + delay) * fct * conf["ease4"]).toInt(), conf, ivl3);
+        ((card.ivl + delayInDays) * fct * conf["ease4"]).toInt(), conf, ivl3);
     return ivl4;
   }
 
@@ -789,9 +800,8 @@ class Scheduler {
     return ivl;
   }
 
-  // ここでの設定がどうかしている
-  int _daysLate(Card card) {
-    return max(0, today! - card.due); //dueの値がおかしいときがある
+  int daysLate(Card card) {
+    return max(0, clock.now().millisecondsSinceEpoch - card.due); // card.due はミリ秒。ミリ秒に統一
   }
 
   void _updateRevIvl(Card card, int ease) {
