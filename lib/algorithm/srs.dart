@@ -89,7 +89,7 @@ class Collection {
   static int _getStartOfDay() {
     DateTime now = clock.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
-    return startOfDay.millisecondsSinceEpoch ~/ 1000;
+    return startOfDay.millisecondsSinceEpoch;
   }
 }
 
@@ -247,7 +247,7 @@ class Scheduler {
   int? today;
   int _lrnCutoff;
   int _dayCutoff = 0;
-  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
+  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
   List<Card> _newQueue = [];
@@ -305,8 +305,8 @@ class Scheduler {
     _removeCardFromQueue(card);
 
     if (card.queue == 0) {
-      todayNewCardsCount += 1; //不要
-      _saveTodayNewCardsCount(); // 新規カードの消化数を保存 //不要
+      todayNewCardsCount += 1;
+      _saveTodayNewCardsCount(); // 新規カードの消化数を保存
       print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
@@ -364,8 +364,8 @@ class Scheduler {
     // 今日の現在時刻が00:00:00より遅い場合、次の日の00:00:00を計算
     final nextMidnight = todayMidnight.add(const Duration(days: 1));
 
-    // 次の日の00:00:00をUNIXタイムスタンプ（秒単位）として返す
-    return nextMidnight.millisecondsSinceEpoch ~/ 1000;
+    // 次の日の00:00:00をUNIXタイムスタンプ（ミリ秒単位）として返す
+    return nextMidnight.millisecondsSinceEpoch; // ミリ秒単位に変更
   }
 
   int _daysSinceCreation() {
