@@ -13,16 +13,17 @@ const int NEW_CARDS_FIRST = 2;
 const int STARTING_FACTOR = 2500;
 
 /// ユーティリティ関数
-int intTime() {
+int _intTime() {
   // 時間単位をミリ秒に統一
   return clock.now().millisecondsSinceEpoch;
 }
 
 int intId() {
-  int t = intTime();
+  int t = _intTime();
   // 次の呼び出しが異なる値を返すことを保証
-  while (intTime(scale: 1000) == t) {
-    Future.delayed(Duration(milliseconds: 1));
+  while (_intTime() == t) {
+    // sleep関数を削除し、非同期的に待機
+    t = _intTime();
   }
   return t;
 }
