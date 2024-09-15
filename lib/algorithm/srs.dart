@@ -186,19 +186,12 @@ class Card {
         left = 0;
 
   static int _generateUniqueId() {
-    int t = _intTimeMs();
-    while (_intTimeMs() == t) {
-      sleep(const Duration(milliseconds: 1));
+    int t = _intTime();
+    while (_intTime() == t) {
+      // sleepを削除し、非同期的に待機
+      t = _intTime();
     }
     return t;
-  }
-
-  static int _intTimeMs() {
-    return clock.now().millisecondsSinceEpoch;
-  }
-
-  static int _intTime() {
-    return clock.now().millisecondsSinceEpoch ~/ 1000;
   }
 
   Map<String, dynamic> toMap() {
