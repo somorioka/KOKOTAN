@@ -564,10 +564,7 @@ class Scheduler {
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
     // 今日の終了時刻を取得
-    final now = clock.now();
-    final todayEnd = DateTime(now.year, now.month, now.day)
-        .add(const Duration(days: 1))
-        .millisecondsSinceEpoch;
+    final todayEnd = _dayCutoff; // 変更箇所
 
     _revQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
