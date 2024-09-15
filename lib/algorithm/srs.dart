@@ -390,7 +390,7 @@ class Scheduler {
   bool _updateLrnCutoff({required bool force}) {
     final nextCutoff = clock.now().millisecondsSinceEpoch +
         (col.colConf['collapseTime'] as int);
-    if (nextCutoff - _lrnCutoff > 60 || force) {
+    if (nextCutoff - _lrnCutoff > 60000 || force) {
       _lrnCutoff = nextCutoff;
       return true;
     }
@@ -530,7 +530,6 @@ class Scheduler {
     print('新規キューを埋めます: ${todayNewCardsCount}');
     if (todayNewCardsCount < 20) {
       // 新規カードが20枚未満なら追加
-      // このremainingSlotsは不要。新規カードの投入枚数を20枚から変更した場合は、その差分だけ足したり引いたりすれば良い。
       final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
       _newQueue = col.decks.values
           .expand((deck) => deck.cards.where((card) => card.type == 0))
@@ -654,7 +653,6 @@ class Scheduler {
     card.queue = 1;
   }
 
-  // このメソッドがlrncardのdelayを設定している
   int _delayForGrade(Map<String, dynamic> conf, int left) {
     left = left % 1000;
     int index = conf['delays'].length - left;
@@ -664,7 +662,7 @@ class Scheduler {
       index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
     }
     int delay = conf['delays'][index];
-    return delay * 60 * 1000;//ミリ秒
+    return delay; // すでにミリ秒単位
   }
 
   int _delayForRepeatingGrade(Map<String, dynamic> conf, int left) {
@@ -693,8 +691,8 @@ class Scheduler {
   }
 
   void _rescheduleGraduatingLapse(Card card) {
-    card.due =
-        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
+    card.due = clock.now().millisecondsSinceEpoch +
+        card.ivl * 24 * 60 * 60 * 1000; // ミリ秒単位
     card.queue = 2;
     card.type = 2;
   }
@@ -709,11 +707,11 @@ class Scheduler {
   // lrn1かlrn2かを判断してそう
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
-    now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
+    now ??= clock.now().millisecondsSinceEpoch; // ミリ秒単位に修正
     delays = delays.sublist(delays.length - left);
     int ok = 0;
     for (int i = 0; i < delays.length; i++) {
-      now = now! + delays[i] * 60;
+      now = now! + delays[i];
       if (now > _dayCutoff) {
         break;
       }
