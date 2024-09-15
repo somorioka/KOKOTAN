@@ -774,21 +774,34 @@ class Scheduler {
   }
 
   int _nextRevIvl(Card card, int ease) {
-    int delay = daysLate(card);//delayはミリ秒に統一
-    int delayInDays = delay ~/ (24 * 60 * 60 * 1000);//ivlと計算したいときは日数に変換
+    int delay = daysLate(card);
+    print('Delay (ms): $delay');
+
+    int delayInDays = delay ~/ (24 * 60 * 60 * 1000);
+    print('Delay in days: $delayInDays');
+
     var conf = col.deckConf["rev"];
     double fct = card.factor / 1000;
+    print('Factor (fct): $fct');
+
     double hardFactor = conf["hardFactor"];
     int hardMin = (hardFactor > 1) ? card.ivl : 0;
+
     int ivl2 = _constrainedIvl((card.ivl * hardFactor).toInt(), conf, hardMin);
+    print('ivl2: $ivl2');
+
     if (ease == 2) return ivl2;
 
     int ivl3 = _constrainedIvl(
         ((card.ivl + delayInDays ~/ 2) * fct).toInt(), conf, ivl2);
+    print('ivl3: $ivl3');
+
     if (ease == 3) return ivl3;
 
     int ivl4 = _constrainedIvl(
         ((card.ivl + delayInDays) * fct * conf["ease4"]).toInt(), conf, ivl3);
+    print('ivl4: $ivl4');
+
     return ivl4;
   }
 
