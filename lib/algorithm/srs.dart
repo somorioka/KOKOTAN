@@ -643,7 +643,7 @@ class Scheduler {
 
   void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
     // 現在のステップの通常の遅延？
-    delay ??= _delayForGrade(conf, card.left);//delayはミリ秒
+    delay ??= _delayForGrade(conf, card.left); //delayはミリ秒
 
     card.due = clock.now().millisecondsSinceEpoch + delay;
     card.queue = 1;
@@ -734,7 +734,6 @@ class Scheduler {
     card.ivl = _graduatingIvl(card, conf, early);
     card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //本番用
-    // card.due =
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -803,7 +802,6 @@ class Scheduler {
     return ivl4;
   }
 
-  // このメソッドでバカでかいivlが返ってくるときがある
   int _constrainedIvl(int ivl, Map<String, dynamic> conf, int prev) {
     ivl = (ivl * conf["ivlFct"]).toInt();
     ivl = max(ivl, max(prev + 1, 1));
