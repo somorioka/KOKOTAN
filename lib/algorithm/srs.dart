@@ -374,11 +374,11 @@ class Scheduler {
         DateTime.fromMillisecondsSinceEpoch(col.crt); // 修正: * 1000を削除
 
     // 現在の時間と作成時間の差を日数として計算
-    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000;
-    final difference = currentTime - startDate.millisecondsSinceEpoch ~/ 1000;
+    final currentTime = clock.now().millisecondsSinceEpoch; // ミリ秒単位
+    final difference = currentTime - startDate.millisecondsSinceEpoch;
 
-    // 1日（86400秒）で割って日数を返す
-    return difference ~/ 86400;
+    // 1日（86400000ミリ秒）で割って日数を返す
+    return difference ~/ 86400000; // ミリ秒単位に変更
   }
 
   void _resetLrn() {
