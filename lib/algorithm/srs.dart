@@ -499,10 +499,13 @@ class Scheduler {
     final currentTime = clock.now().millisecondsSinceEpoch;
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     _lrnQueue = col.decks.values
-        .expand((deck) => deck.cards.where((card) =>
-            card.type == 1 &&
-            card.type == 3 &&
-            (collapse ? card.due < cutoff : card.due < currentTime)))
+        .expand((deck) => deck.cards.where((card) {
+              bool shouldAdd = card.queue == 1 && // queueが学習カード
+                  (collapse ? card.due < cutoff : card.due < currentTime);
+              print(
+                  'Checking card: ${card.word.word}, due: ${card.due}, should add: $shouldAdd');
+              return shouldAdd;
+            }))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
     _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
