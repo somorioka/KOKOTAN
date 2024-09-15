@@ -332,7 +332,7 @@ class Scheduler {
   // 日付が変わったかどうかを確認し、リセットする
   void _checkDay() {
     // 現在の時間が_dayCutoffを超えているかを確認
-    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000; // 秒単位で取得
+    final currentTime = clock.now().millisecondsSinceEpoch; // ミリ秒単位で取得
     print('現在の時間: $currentTime');
     print('日の終了時間: $_dayCutoff');
     if (currentTime > _dayCutoff) {
@@ -539,7 +539,7 @@ class Scheduler {
     return false;
   }
 
-  void _saveTodayNewCardsCount() async {
+  Future<void> _saveTodayNewCardsCount() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('todayNewCardsCount', todayNewCardsCount);
     print('今日の新規カード消化数を保存しました: $todayNewCardsCount');
