@@ -277,7 +277,8 @@ class Scheduler {
   }
 
   // 1日1回のキューリセット
-  void reset() {
+  Future<void> reset() async {
+    // メソッドを async に変更し、戻り値を Future<void> に変更
     _updateCutoff();
     _resetLrn();
     _resetRev();
