@@ -301,7 +301,7 @@ class Scheduler {
 
     if (card.queue == 0) {
       todayNewCardsCount += 1;
-      _saveTodayNewCardsCount(); // 新規カードの消化数を保存
+      await _saveTodayNewCardsCount(); // 新規カードの消化数を保存
       print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
