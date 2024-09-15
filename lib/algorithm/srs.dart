@@ -284,7 +284,7 @@ class Scheduler {
     _resetRev();
     _resetNew();
     todayNewCardsCount = 0; // 今日消化した新規カードの枚数をリセット
-    _saveTodayNewCardsCount(); // リセット後のカウントを保存
+    await _saveTodayNewCardsCount(); // リセット後のカウントを保存
     // 新規キューをすぐに埋める
     _fillNew();
     // 復習キューをすぐに埋める
