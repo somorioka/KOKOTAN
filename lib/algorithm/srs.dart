@@ -409,12 +409,16 @@ class Scheduler {
       if (_newQueue.isNotEmpty) {
         final newCount = _newQueue.length;
         final revCount = _revQueue.length;
+        if (newCount == 0) {
+          col.newCardModulus = 0; // newCountがゼロの場合の処理を追加
+        } else {
         final newCardModulus = ((newCount + revCount) ~/ newCount);
         if (revCount > 0) {
           col.newCardModulus = max(2, newCardModulus);
         } else {
           col.newCardModulus = 0;
         }
+      }
       }
     } else {
       col.newCardModulus = 0;
