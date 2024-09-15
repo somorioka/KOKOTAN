@@ -292,7 +292,8 @@ class Scheduler {
   }
 
   // カードへの回答
-  void answerCard(Card card, int ease) {
+  Future<void> answerCard(Card card, int ease) async {
+    // メソッドを async に変更し、戻り値を Future<void> に変更
     assert(ease >= 1 && ease <= 4);
     assert(card.queue >= 0 && card.queue <= 4);
 
