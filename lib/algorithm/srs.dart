@@ -739,7 +739,6 @@ class Scheduler {
     card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //本番用
     // card.due =
-    //     clock.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -772,8 +771,8 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due =
-        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
+    card.due = clock.now().millisecondsSinceEpoch +
+        card.ivl * 24 * 60 * 60 * 1000; // ミリ秒単位
   }
 
   int _nextRevIvl(Card card, int ease) {
@@ -817,7 +816,7 @@ class Scheduler {
   }
 
   int daysLate(Card card) {
-    return max(0, clock.now().millisecondsSinceEpoch - card.due); // card.due はミリ秒。ミリ秒に統一
+    return max(0, clock.now().millisecondsSinceEpoch - card.due); // ミリ秒単位
   }
 
   void _updateRevIvl(Card card, int ease) {
