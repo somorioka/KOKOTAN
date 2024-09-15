@@ -30,15 +30,15 @@ int intId() {
 /// デフォルトのコレクション設定
 final Map<String, dynamic> colDefaultConf = {
   'newSpread': NEW_CARDS_DISTRIBUTE,
-  'collapseTime': 1200000,
+  'collapseTime': 1200000, // ミリ秒単位 (20分)
 };
 
 /// デフォルトのデッキ設定
 final Map<String, dynamic> deckDefaultConf = {
   'new': {
-    'delays': [1, 10], // 学習カードのステップ // 本番用
-    // 'delays': [1, 1], // 学習カードのステップ // テスト用
-    'ints': [1, 4], // 学習カードの間隔
+    'delays': [1 * 60 * 1000, 10 * 60 * 1000], // 学習カードのステップをミリ秒に変更
+    // 'delays': [1 * 60 * 1000, 1 * 60 * 1000], // テスト用
+    'ints': [1, 4], // 学習カードの間隔 (日単位)
     'initialFactor': STARTING_FACTOR, // EasyFactorの初期値
     'perDay': 20, // 1日の新規カードの最大枚数
   },
