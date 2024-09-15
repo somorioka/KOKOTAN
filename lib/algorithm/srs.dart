@@ -43,7 +43,7 @@ final Map<String, dynamic> deckDefaultConf = {
     'perDay': 20, // 1日の新規カードの最大枚数
   },
   'lapse': {
-    'delays': [10],
+    'delays': [10 * 60 * 1000], // ミリ秒単位
     'mult': 0,
     'minInt': 1,
     'leechFails': 8,
