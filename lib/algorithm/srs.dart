@@ -370,7 +370,8 @@ class Scheduler {
 
   int _daysSinceCreation() {
     // コレクションが作成された時間を取得
-    final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt * 1000);
+    final startDate =
+        DateTime.fromMillisecondsSinceEpoch(col.crt); // 修正: * 1000を削除
 
     // 現在の時間と作成時間の差を日数として計算
     final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000;
