@@ -22,7 +22,8 @@ int intId() {
   int t = _intTime();
   // 次の呼び出しが異なる値を返すことを保証
   while (_intTime() == t) {
-    // sleep関数を削除し、非同期的に待機
+    // CPU負荷を軽減するために短時間待機を追加
+    sleep(Duration(milliseconds: 1)); // 変更箇所
     t = _intTime();
   }
   return t;
@@ -187,7 +188,8 @@ class Card {
   static int _generateUniqueId() {
     int t = _intTime();
     while (_intTime() == t) {
-      // sleepを削除し、非同期的に待機
+      // CPU負荷を軽減するために短時間待機を追加
+      sleep(Duration(milliseconds: 1)); // 変更箇所
       t = _intTime();
     }
     return t;
