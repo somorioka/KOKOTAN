@@ -37,22 +37,21 @@ final Map<String, dynamic> colDefaultConf = {
 /// デフォルトのデッキ設定
 final Map<String, dynamic> deckDefaultConf = {
   'new': {
-    'delays': [1 * 60 * 1000, 10 * 60 * 1000], // 学習カードのステップをミリ秒に変更
-    // 'delays': [1 * 60 * 1000, 1 * 60 * 1000], // テスト用
+    'delays': [1 * 60 * 1000, 10 * 60 * 1000], // ミリ秒単位に統一
     'ints': [1, 4], // 学習カードの間隔 (日単位)
     'initialFactor': STARTING_FACTOR, // EasyFactorの初期値
     'perDay': 20, // 1日の新規カードの最大枚数
   },
   'lapse': {
-    'delays': [10 * 60 * 1000], // ミリ秒単位
-    'mult': 0,
+    'delays': [10 * 60 * 1000], // ミリ秒単位に統一
+    'mult': 0.0,
     'minInt': 1,
     'leechFails': 8,
   },
   'rev': {
     'perDay': 200,
     'ease4': 1.3,
-    'ivlFct': 1,
+    'ivlFct': 1.0,
     'maxIvl': 36500,
     'hardFactor': 1.2,
   },
@@ -353,28 +352,26 @@ class Scheduler {
   }
 
   int _calculateDayCutoff() {
-    // 今日の日付を取得し、時間を00:00:00にリセット
-    final now = clock.now();
-    final todayMidnight = DateTime(now.year, now.month, now.day);
-
-    // 今日の現在時刻が00:00:00より遅い場合、次の日の00:00:00を計算
-    final nextMidnight = todayMidnight.add(const Duration(days: 1));
-
-    // 次の日の00:00:00をUNIXタイムスタンプ（ミリ秒単位）として返す
-    return nextMidnight.millisecondsSinceEpoch; // ミリ秒単位に変更
+    // 現在のローカル時間を取得（タイムゾーンを考慮）
+    final now = clock.now(); // 修正: .toUtc()を削除
+    // 翌日の0時（ローカル時間）を計算
+    final tomorrow = DateTime(now.year, now.month, now.day + 1); // 修正
+    return tomorrow.millisecondsSinceEpoch;
   }
 
   int _daysSinceCreation() {
-    // コレクションが作成された時間を取得
+    // コレクションの作成日時をローカル時間として取得
     final startDate =
-        DateTime.fromMillisecondsSinceEpoch(col.crt); // 修正: * 1000を削除
+        DateTime.fromMillisecondsSinceEpoch(col.crt); // 修正: isUtc: trueを削除
 
-    // 現在の時間と作成時間の差を日数として計算
-    final currentTime = clock.now().millisecondsSinceEpoch; // ミリ秒単位
+    // 現在のローカル時間を取得
+    final currentTime = clock.now().millisecondsSinceEpoch; // 修正: .toUtc()を削除
+
+    // 経過日数を計算
     final difference = currentTime - startDate.millisecondsSinceEpoch;
 
     // 1日（86400000ミリ秒）で割って日数を返す
-    return difference ~/ 86400000; // ミリ秒単位に変更
+    return difference ~/ 86400000;
   }
 
   void _resetLrn() {
@@ -810,7 +807,8 @@ class Scheduler {
   }
 
   int daysLate(Card card) {
-    return max(0, clock.now().millisecondsSinceEpoch - card.due); // ミリ秒単位
+    int diff = clock.now().millisecondsSinceEpoch - card.due;
+    return max(0, diff); // ミリ秒単位
   }
 
   void _updateRevIvl(Card card, int ease) {
