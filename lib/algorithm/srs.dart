@@ -527,9 +527,10 @@ class Scheduler {
     }
 
     print('新規キューを埋めます: ${todayNewCardsCount}');
-    if (todayNewCardsCount < 20) {
-      // 新規カードが20枚未満なら追加
-      final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
+    final perDayLimit = col.deckConf['new']['perDay'] as int; // 変更箇所
+    if (todayNewCardsCount < perDayLimit) {
+      // 新規カードが設定値未満なら追加
+      final remainingSlots = perDayLimit - todayNewCardsCount; // 残りの枠を計算
       _newQueue = col.decks.values
           .expand((deck) => deck.cards.where((card) => card.type == 0))
           .toList();
