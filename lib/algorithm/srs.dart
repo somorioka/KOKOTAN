@@ -13,15 +13,18 @@ const int NEW_CARDS_FIRST = 2;
 const int STARTING_FACTOR = 2500;
 
 /// ユーティリティ関数
-int intTime({int scale = 1}) {
-  return clock.now().millisecondsSinceEpoch ~/ scale;
+int _intTime() {
+  // 時間単位をミリ秒に統一
+  return clock.now().millisecondsSinceEpoch;
 }
 
 int intId() {
-  int t = intTime(scale: 1000);
+  int t = _intTime();
   // 次の呼び出しが異なる値を返すことを保証
-  while (intTime(scale: 1000) == t) {
-    Future.delayed(Duration(milliseconds: 1));
+  while (_intTime() == t) {
+    // CPU負荷を軽減するために短時間待機を追加
+    sleep(Duration(milliseconds: 1)); // 変更箇所
+    t = _intTime();
   }
   return t;
 }
@@ -29,28 +32,27 @@ int intId() {
 /// デフォルトのコレクション設定
 final Map<String, dynamic> colDefaultConf = {
   'newSpread': NEW_CARDS_DISTRIBUTE,
-  'collapseTime': 1200000,
+  'collapseTime': 1200000, // ミリ秒単位 (20分)
 };
 
 /// デフォルトのデッキ設定
 final Map<String, dynamic> deckDefaultConf = {
   'new': {
-    'delays': [1, 10], // 学習カードのステップ // 本番用
-    // 'delays': [1, 1], // 学習カードのステップ // テスト用
-    'ints': [1, 4], // 学習カードの間隔
+    'delays': [1 * 60 * 1000, 10 * 60 * 1000], // ミリ秒単位に統一
+    'ints': [1, 4], // 学習カードの間隔 (日単位)
     'initialFactor': STARTING_FACTOR, // EasyFactorの初期値
     'perDay': 20, // 1日の新規カードの最大枚数
   },
   'lapse': {
-    'delays': [10],
-    'mult': 0,
+    'delays': [10 * 60 * 1000], // ミリ秒単位に統一
+    'mult': 0.0,
     'minInt': 1,
     'leechFails': 8,
   },
   'rev': {
     'perDay': 200,
     'ease4': 1.3,
-    'ivlFct': 1,
+    'ivlFct': 1.0,
     'maxIvl': 36500,
     'hardFactor': 1.2,
   },
@@ -88,7 +90,7 @@ class Collection {
   static int _getStartOfDay() {
     DateTime now = clock.now();
     DateTime startOfDay = DateTime(now.year, now.month, now.day);
-    return startOfDay.millisecondsSinceEpoch ~/ 1000;
+    return startOfDay.millisecondsSinceEpoch;
   }
 }
 
@@ -173,7 +175,7 @@ class Card {
 
   Card(this.word, {int? id})
       : id = id ?? _generateUniqueId(),
-        due = word.id,
+        due = 0,
         crt = _intTime(),
         type = 0,
         queue = 0,
@@ -184,19 +186,13 @@ class Card {
         left = 0;
 
   static int _generateUniqueId() {
-    int t = _intTimeMs();
-    while (_intTimeMs() == t) {
-      sleep(const Duration(milliseconds: 1));
+    int t = _intTime();
+    while (_intTime() == t) {
+      // CPU負荷を軽減するために短時間待機を追加
+      sleep(Duration(milliseconds: 1)); // 変更箇所
+      t = _intTime();
     }
     return t;
-  }
-
-  static int _intTimeMs() {
-    return clock.now().millisecondsSinceEpoch;
-  }
-
-  static int _intTime() {
-    return clock.now().millisecondsSinceEpoch ~/ 1000;
   }
 
   Map<String, dynamic> toMap() {
@@ -230,6 +226,12 @@ class Card {
       ..lapses = map['lapses']
       ..left = map['left'];
   }
+
+  //ログでカードの状態が明確にわかるようにする
+  @override
+  String toString() {
+    return 'Card(word: ${word.word}, queue: $queue, due: $due)';
+  }
 }
 
 class Scheduler {
@@ -239,35 +241,39 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  int _dayCutoff = 0;
-  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
-  List<Card> _lrnQueue = [];
-  List<Card> _revQueue = [];
-  List<Card> _newQueue = [];
+  int dayCutoff = 0;
+  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数
+  final Clock clock; // Clockインスタンスを保持
 
-  Scheduler(this.col)
-      : queueLimit = 50,
+  List<Card> lrnQueue = [];
+  List<Card> revQueue = [];
+  List<Card> newQueue = [];
+
+  // コンストラクタ
+  Scheduler(this.col, {Clock? clock})
+      : clock = clock ?? Clock(), // Clock()を使ってシステムクロックをデフォルトとして設定
+        queueLimit = 50,
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
-    _dayCutoff = _calculateDayCutoff();
+    dayCutoff = _calculateDayCutoff();
   }
 
   Future<void> initializeScheduler() async {
     await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
-    _checkDay();
+    checkDay();
     print('日付: $today');
-    print('日の終了時間: $_dayCutoff');
+    print('日の終了時間: $dayCutoff');
     print('1日の新規カード消化数: $todayNewCardsCount');
   }
 
-  int get newQueueCount => _newQueue.length;
-  int get learningQueueCount => _lrnQueue.length;
-  int get reviewQueueCount => _revQueue.length;
+  int get newQueueCount => newQueue.length;
+  int get learningQueueCount => lrnQueue.length;
+  int get reviewQueueCount => revQueue.length;
 
   // カードの取得
   Card? getCard() {
-    _checkDay();
+    checkDay();
     Card? card = _getCard();
     if (card != null) {
       reps += 1;
@@ -276,64 +282,96 @@ class Scheduler {
   }
 
   // 1日1回のキューリセット
-  void reset() {
+  Future<void> reset() async {
+    // メソッドを async に変更し、戻り値を Future<void> に変更
     _updateCutoff();
     _resetLrn();
     _resetRev();
     _resetNew();
     todayNewCardsCount = 0; // 今日消化した新規カードの枚数をリセット
-    _saveTodayNewCardsCount(); // リセット後のカウントを保存
+    await saveTodayNewCardsCount(); // リセット後のカウントを保存
     // 新規キューをすぐに埋める
-    _fillNew();
+    fillNew();
     // 復習キューをすぐに埋める
-    _fillRev();
+    fillRev();
   }
 
   // カードへの回答
-  void answerCard(Card card, int ease) {
+  Future<void> answerCard(Card card, int ease) async {
+    print('answerCard() 呼び出し: ${card.word.word}, ease: $ease');
     assert(ease >= 1 && ease <= 4);
     assert(card.queue >= 0 && card.queue <= 4);
 
     card.reps += 1;
     _removeCardFromQueue(card);
+    print('カードをキューから削除: ${card.word.word}');
 
     if (card.queue == 0) {
-      todayNewCardsCount += 1; //不要
-      _saveTodayNewCardsCount(); // 新規カードの消化数を保存 //不要
+      todayNewCardsCount += 1;
+       saveTodayNewCardsCount(); // 新規カードの消化数を保存
       print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
       card.type = 1;
       // 卒業までのリピート数を初期化
       card.left = _startingLeft(card);
+      print(
+          'カードを学習キュー用に更新: ${card.word.word}, queue: ${card.queue}, due: ${card.due}');
     }
 
-    if (card.queue == 1 || card.queue == 3) {
+    if (card.queue == 1) {
+      print('学習キューにカードを追加: ${card.word.word}');
       _answerLrnCard(card, ease);
+      lrnQueue.add(card); // 明示的に学習キューに追加
     } else if (card.queue == 2) {
+      print('復習キューにカードを追加: ${card.word.word}');
       _answerRevCard(card, ease);
+      revQueue.add(card); // 明示的に復習キューに追加
     } else {
       assert(false);
     }
   }
 
+  void _repeatStep(Card card, Map<String, dynamic> conf) {
+    int delay = _delayForRepeatingGrade(conf, card.left);
+    _rescheduleLrnCard(card, conf, delay: delay);
+    print(
+        'カードを再スケジュールしました: ${card.word.word}, delay: $delay, due: ${card.due}');
+  }
+
+  void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
+    // 現在のステップの通常の遅延？
+    delay ??= _delayForGrade(conf, card.left); // delayはミリ秒
+    card.due = clock.now().millisecondsSinceEpoch + delay;
+    card.queue = 1;
+    print('カードを学習キューに再スケジュールしました: ${card.word.word}, due: ${card.due}');
+  }
+
+  void printQueues() {
+    print('--- キューの状態 ---');
+    print('学習キュー: ${lrnQueue.map((c) => c.word.word).toList()}');
+    print('復習キュー: ${revQueue.map((c) => c.word.word).toList()}');
+    print('新規キュー: ${newQueue.map((c) => c.word.word).toList()}');
+    print('-------------------');
+  }
+
   void _removeCardFromQueue(Card card) {
     if (card.queue == 0) {
-      _newQueue.remove(card);
+      newQueue.remove(card);
     } else if (card.queue == 1) {
-      _lrnQueue.remove(card);
+      lrnQueue.remove(card);
     } else if (card.queue == 2) {
-      _revQueue.remove(card);
+      revQueue.remove(card);
     }
   }
 
   // 日付が変わったかどうかを確認し、リセットする
-  void _checkDay() {
+  void checkDay() {
     // 現在の時間が_dayCutoffを超えているかを確認
-    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000; // 秒単位で取得
+    final currentTime = clock.now().millisecondsSinceEpoch; // ミリ秒単位で取得
     print('現在の時間: $currentTime');
-    print('日の終了時間: $_dayCutoff');
-    if (currentTime > _dayCutoff) {
+    print('日の終了時間: $dayCutoff');
+    if (currentTime > dayCutoff) {
       reset(); // 日が変わったらリセット
       print('日付が変わりました');
     }
@@ -345,44 +383,43 @@ class Scheduler {
     today = _daysSinceCreation();
     print('経過日数: $today');
     // 日の終了時間を設定
-    _dayCutoff = _calculateDayCutoff();
-    print('日の終了時間: $_dayCutoff');
+    dayCutoff = _calculateDayCutoff();
+    print('日の終了時間: $dayCutoff');
   }
 
   int _calculateDayCutoff() {
-    // 今日の日付を取得し、時間を00:00:00にリセット
-    final now = clock.now();
-    final todayMidnight = DateTime(now.year, now.month, now.day);
-
-    // 今日の現在時刻が00:00:00より遅い場合、次の日の00:00:00を計算
-    final nextMidnight = todayMidnight.add(const Duration(days: 1));
-
-    // 次の日の00:00:00をUNIXタイムスタンプ（秒単位）として返す
-    return nextMidnight.millisecondsSinceEpoch ~/ 1000;
+    // 現在のローカル時間を取得（タイムゾーンを考慮）
+    final now = clock.now(); // 修正: .toUtc()を削除
+    // 翌日の0時（ローカル時間）を計算
+    final tomorrow = DateTime(now.year, now.month, now.day + 1); // 修正
+    return tomorrow.millisecondsSinceEpoch;
   }
 
   int _daysSinceCreation() {
-    // コレクションが作成された時間を取得
-    final startDate = DateTime.fromMillisecondsSinceEpoch(col.crt * 1000);
+    // コレクションの作成日時をローカル時間として取得
+    final startDate =
+        DateTime.fromMillisecondsSinceEpoch(col.crt); // 修正: isUtc: trueを削除
 
-    // 現在の時間と作成時間の差を日数として計算
-    final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000;
-    final difference = currentTime - startDate.millisecondsSinceEpoch ~/ 1000;
+    // 現在のローカル時間を取得
+    final currentTime = clock.now().millisecondsSinceEpoch; // 修正: .toUtc()を削除
 
-    // 1日（86400秒）で割って日数を返す
-    return difference ~/ 86400;
+    // 経過日数を計算
+    final difference = currentTime - startDate.millisecondsSinceEpoch;
+
+    // 1日（86400000ミリ秒）で割って日数を返す
+    return difference ~/ 86400000;
   }
 
   void _resetLrn() {
     // 学習キューをリセットする
     _updateLrnCutoff(force: true);
-    _lrnQueue = [];
+    lrnQueue = [];
   }
 
   bool _updateLrnCutoff({required bool force}) {
     final nextCutoff = clock.now().millisecondsSinceEpoch +
         (col.colConf['collapseTime'] as int);
-    if (nextCutoff - _lrnCutoff > 60 || force) {
+    if (nextCutoff - _lrnCutoff > 60000 || force) {
       _lrnCutoff = nextCutoff;
       return true;
     }
@@ -391,27 +428,31 @@ class Scheduler {
 
   void _resetRev() {
     // 復習キューをリセットする
-    _revQueue = [];
+    revQueue = [];
   }
 
   void _resetNew() {
     // 新規キューをリセットする
-    _newQueue = [];
+    newQueue = [];
     _updateNewCardRatio();
   }
 
   void _updateNewCardRatio() {
     // 新規カードの表示比率を更新する
     if (col.colConf['newSpread'] == NEW_CARDS_DISTRIBUTE) {
-      if (_newQueue.isNotEmpty) {
-        final newCount = _newQueue.length;
-        final revCount = _revQueue.length;
+      if (newQueue.isNotEmpty) {
+        final newCount = newQueue.length;
+        final revCount = revQueue.length;
+        if (newCount == 0) {
+          col.newCardModulus = 0; // newCountがゼロの場合の処理を追加
+        } else {
         final newCardModulus = ((newCount + revCount) ~/ newCount);
         if (revCount > 0) {
           col.newCardModulus = max(2, newCardModulus);
         } else {
           col.newCardModulus = 0;
         }
+      }
       }
     } else {
       col.newCardModulus = 0;
@@ -420,7 +461,7 @@ class Scheduler {
 
   // 新しいカードを表示する時間かどうかを判断する
   bool _timeForNewCard() {
-    if (_newQueue.isEmpty) {
+    if (newQueue.isEmpty) {
       return false;
     }
     if (col.colConf['newSpread'] == NEW_CARDS_LAST) {
@@ -434,39 +475,40 @@ class Scheduler {
   }
 
   Card? _getCard() {
-    // 次にレビューするカードを返す。カードがない場合はnullを返す。
-    // 学習カードの期限が来ているか？
-    Card? c = _getLrnCard();
-    if (c != null) {
-      return c;
+    print('getCard() 呼び出し');
+
+    // 学習キューからカードを取得
+    Card? lrnCard = getLrnCard();
+    if (lrnCard != null) {
+      return lrnCard;
     }
 
-    // 新しいカードを優先するか、新しいカードの時間か？
+    // 新規カードを優先するか、新規カードの時間か？
     if (_timeForNewCard()) {
-      c = _getNewCard();
-      if (c != null) {
-        return c;
+      Card? newCard = _getNewCard();
+      if (newCard != null) {
+        return newCard;
       }
     }
 
     // レビューするカードの期限が来ているか？
-    c = _getRevCard();
-    if (c != null) {
-      return c;
+    Card? revCard = _getRevCard();
+    if (revCard != null) {
+      return revCard;
     }
 
-    // 新しいカードが残っているか？
-    c = _getNewCard();
-    if (c != null) {
-      return c;
+    // 新規カードが残っているか？
+    Card? finalNewCard = _getNewCard();
+    if (finalNewCard != null) {
+      return finalNewCard;
     }
 
     // collapseまたは終了
-    c = _getLrnCard(collapse: true);
-    return c;
+    Card? collapsedCard = getLrnCard(collapse: true);
+    return collapsedCard;
   }
 
-  Card? _getLrnCard({bool collapse = false}) {
+  Card? getLrnCard({bool collapse = false}) {
     if (collapse) {
       // collapseがtrueの場合のみ、collapseTime以内のカードを考慮
       _maybeResetLrn(force: true);
@@ -474,8 +516,8 @@ class Scheduler {
       // collapseがfalseの場合、現在の時間よりdueが早いカードのみ取得
       _maybeResetLrn(force: false);
     }
-    if (_fillLrn(collapse: collapse)) {
-      return _lrnQueue.last; // キューから削除せず最後のカードを返す
+    if (fillLrn(collapse: collapse)) {
+      return lrnQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
@@ -486,54 +528,59 @@ class Scheduler {
     }
   }
 
-  bool _fillLrn({bool collapse = false}) {
-    if (_lrnQueue.isNotEmpty) {
+  bool fillLrn({bool collapse = false}) {
+    if (lrnQueue.isNotEmpty) {
       return true;
     }
     final currentTime = clock.now().millisecondsSinceEpoch;
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
-    _lrnQueue = col.decks.values
-        .expand((deck) => deck.cards.where((card) =>
-            card.type == 1 && card.type == 3 &&
-            (collapse ? card.due < cutoff : card.due < currentTime)))
+    lrnQueue = col.decks.values
+        .expand((deck) => deck.cards.where((card) {
+              print(
+                  'Checking card: ${card.word.word}, due: ${card.due}, currentTime: $currentTime, collapse: $collapse');
+              return card.queue == 1 &&
+                  (!collapse ? card.due <= currentTime : card.due <= cutoff);
+            }))
         .toList();
-    print('学習キューのカード枚数 : ${_lrnQueue.length}');
-    _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
-    _lrnQueue = _lrnQueue.take(reportLimit).toList();
-    return _lrnQueue.isNotEmpty;
+
+    print('学習キューのカード枚数 : ${lrnQueue.length}');
+    lrnQueue.sort((a, b) => a.due.compareTo(b.due));
+    lrnQueue = lrnQueue.take(reportLimit).toList();
+
+    return lrnQueue.isNotEmpty;
   }
 
   Card? _getNewCard() {
-    if (_fillNew()) {
-      return _newQueue.last; // キューから削除せず最後のカードを返す
+    if (fillNew()) {
+      return newQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
 
-  bool _fillNew() {
-    if (_newQueue.isNotEmpty) {
+  bool fillNew() {
+    if (newQueue.isNotEmpty) {
       return true;
     }
 
     print('新規キューを埋めます: ${todayNewCardsCount}');
-    if (todayNewCardsCount < 20) {
-      // 新規カードが20枚未満なら追加
-      // このremainingSlotsは不要。新規カードの投入枚数を20枚から変更した場合は、その差分だけ足したり引いたりすれば良い。
-      final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
-      _newQueue = col.decks.values
+    final perDayLimit = col.deckConf['new']['perDay'] as int; // 変更箇所
+    if (todayNewCardsCount < perDayLimit) {
+      // 新規カードが設定値未満なら追加
+      final remainingSlots = perDayLimit - todayNewCardsCount; // 残りの枠を計算
+      newQueue = col.decks.values
           .expand((deck) => deck.cards.where((card) => card.type == 0))
           .toList();
-      _newQueue.sort((a, b) => a.due.compareTo(b.due));
-      _newQueue = _newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
+      newQueue.sort((a, b) => a.due.compareTo(b.due));
+      newQueue = newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
 
-      if (_newQueue.isNotEmpty) {
+      if (newQueue.isNotEmpty) {
         return true;
       }
     }
     return false;
   }
 
-  void _saveTodayNewCardsCount() async {
+  Future<void> saveTodayNewCardsCount() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('todayNewCardsCount', todayNewCardsCount);
     print('今日の新規カード消化数を保存しました: $todayNewCardsCount');
@@ -547,34 +594,34 @@ class Scheduler {
   }
 
   Card? _getRevCard() {
-    if (_fillRev()) {
-      return _revQueue.last; // キューから削除せず最後のカードを返す
+    if (fillRev()) {
+      return revQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
 
-  bool _fillRev() {
-    if (_revQueue.isNotEmpty) {
+  bool fillRev() {
+    if (revQueue.isNotEmpty) {
       return true;
     }
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
     // 今日の終了時刻を取得
-    final now = clock.now();
-    final todayEnd = DateTime(now.year, now.month, now.day)
-        .add(const Duration(days: 1))
-        .millisecondsSinceEpoch;
+    final todayEnd = dayCutoff; // 変更箇所
 
-    _revQueue = col.decks.values
+    revQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
             card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
         .toList();
-    _revQueue.sort((a, b) => a.due.compareTo(b.due));
-    _revQueue = _revQueue.take(limit).toList();
+    revQueue.sort((a, b) => a.due.compareTo(b.due));
+    revQueue = revQueue.take(limit).toList();
 
-    if (_revQueue.isNotEmpty) {
+    if (revQueue.isNotEmpty) {
+      print('シャッフル前の順序: $revQueue');
       final rand = Random(today);
-      _revQueue.shuffle(rand);
+      revQueue.shuffle(rand);
+      print('シャッフル後の順序: $revQueue');
+
       return true;
     }
     return false;
@@ -626,20 +673,6 @@ class Scheduler {
     _rescheduleLrnCard(card, conf);
   }
 
-  void _repeatStep(Card card, Map<String, dynamic> conf) {
-    int delay = _delayForRepeatingGrade(conf, card.left);
-    _rescheduleLrnCard(card, conf, delay: delay);
-  }
-
-  void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
-    // 現在のステップの通常の遅延？
-    delay ??= _delayForGrade(conf, card.left);
-
-    card.due = clock.now().millisecondsSinceEpoch + delay;
-    card.queue = 1;
-  }
-
-  // このメソッドがlrncardのdelayを設定している
   int _delayForGrade(Map<String, dynamic> conf, int left) {
     left = left % 1000;
     int index = conf['delays'].length - left;
@@ -649,7 +682,7 @@ class Scheduler {
       index = conf['delays'].length - 1; // インデックスが範囲を超える場合、最大インデックスに設定
     }
     int delay = conf['delays'][index];
-    return delay * 60 * 1000;
+    return delay; // すでにミリ秒単位
   }
 
   int _delayForRepeatingGrade(Map<String, dynamic> conf, int left) {
@@ -678,28 +711,28 @@ class Scheduler {
   }
 
   void _rescheduleGraduatingLapse(Card card) {
-    card.due =
-        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
+    card.due = clock.now().millisecondsSinceEpoch +
+        card.ivl * 24 * 60 * 60 * 1000; // ミリ秒単位
     card.queue = 2;
     card.type = 2;
   }
 
   int _startingLeft(Card card) {
     var conf = _lrnConf(card);
-    int tot = conf['delays'].length; // 2
+    int tot = conf['delays'].length;
     int tod = _leftToday(conf['delays'], tot);
     return tot + tod * 1000;
   }
 
-  // lrn1かlrn2かを判断してそう こんなに複雑にしなくても良い！
+  // lrn1かlrn2かを判断してそう
   int _leftToday(List<int> delays, int left, {int? now}) {
     // 今日のカットオフまでに完了できるステップ数
-    now ??= clock.now().millisecondsSinceEpoch ~/ 1000;
+    now ??= clock.now().millisecondsSinceEpoch; // ミリ秒単位に修正
     delays = delays.sublist(delays.length - left);
     int ok = 0;
     for (int i = 0; i < delays.length; i++) {
-      now = now! + delays[i] * 60;
-      if (now > _dayCutoff) {
+      now = now! + delays[i];
+      if (now > dayCutoff) {
         break;
       }
       ok = i;
@@ -725,8 +758,6 @@ class Scheduler {
     card.ivl = _graduatingIvl(card, conf, early);
     card.due = clock.now().millisecondsSinceEpoch +
         card.ivl * 24 * 60 * 60 * 1000; //本番用
-    // card.due =
-    //     clock.now().millisecondsSinceEpoch + 1 * 60 * 1000; //テスト用で1分後に復習
     card.factor = conf['initialFactor'];
     card.type = card.queue = 2;
   }
@@ -760,28 +791,41 @@ class Scheduler {
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
     card.due = clock.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000;
+        card.ivl * 24 * 60 * 60 * 1000; // ミリ秒単位
   }
 
-  int _nextRevIvl(Card card, int ease) {
-    int delay = _daysLate(card);
+  int nextRevIvl(Card card, int ease) {
+    int delay = daysLate(card);
+    print('Delay (ms): $delay');
+
+    int delayInDays = delay ~/ (24 * 60 * 60 * 1000);
+    print('Delay in days: $delayInDays');
+
     var conf = col.deckConf["rev"];
     double fct = card.factor / 1000;
+    print('Factor (fct): $fct');
+
     double hardFactor = conf["hardFactor"];
     int hardMin = (hardFactor > 1) ? card.ivl : 0;
+
     int ivl2 = _constrainedIvl((card.ivl * hardFactor).toInt(), conf, hardMin);
+    print('ivl2: $ivl2');
+
     if (ease == 2) return ivl2;
 
-    int ivl3 =
-        _constrainedIvl(((card.ivl + delay ~/ 2) * fct).toInt(), conf, ivl2);
+    int ivl3 = _constrainedIvl(
+        ((card.ivl + delayInDays ~/ 2) * fct).toInt(), conf, ivl2);
+    print('ivl3: $ivl3');
+
     if (ease == 3) return ivl3;
 
     int ivl4 = _constrainedIvl(
-        ((card.ivl + delay) * fct * conf["ease4"]).toInt(), conf, ivl3);
+        ((card.ivl + delayInDays) * fct * conf["ease4"]).toInt(), conf, ivl3);
+    print('ivl4: $ivl4');
+
     return ivl4;
   }
 
-  // このメソッドでバカでかいivlが返ってくるときがある
   int _constrainedIvl(int ivl, Map<String, dynamic> conf, int prev) {
     ivl = (ivl * conf["ivlFct"]).toInt();
     ivl = max(ivl, max(prev + 1, 1));
@@ -789,13 +833,13 @@ class Scheduler {
     return ivl;
   }
 
-  // ここでの設定がどうかしている
-  int _daysLate(Card card) {
-    return max(0, today! - card.due); //dueの値がおかしいときがある
+  int daysLate(Card card) {
+    int diff = clock.now().millisecondsSinceEpoch - card.due;
+    return max(0, diff); // ミリ秒単位
   }
 
   void _updateRevIvl(Card card, int ease) {
-    card.ivl = _nextRevIvl(card, ease);
+    card.ivl = nextRevIvl(card, ease);
   }
 
   bool _checkLeech(Card card, Map<String, dynamic> conf) {
@@ -814,138 +858,3 @@ class Scheduler {
     return ivl;
   }
 }
-
-// void main() {
-//   try {
-//     // コレクションの作成とデッキの追加
-//     Collection collection = Collection();
-//     collection.addDeck('Japanese Vocabulary');
-
-//     // 単語の作成とデッキへの追加
-//     Word word1 = Word(
-//       id: intId(),
-//       word: 'example',
-//       mainMeaning: '例',
-//       subMeaning: '例え',
-//       sentence: 'This is an example sentence.',
-//       sentenceJp: 'これは例文です。',
-//     );
-//     Word word2 = Word(
-//       id: intId(),
-//       word: 'test',
-//       mainMeaning: 'テスト',
-//       subMeaning: '試験',
-//       sentence: 'This is a test sentence.',
-//       sentenceJp: 'これはテスト文です。',
-//     );
-
-//     Card card1 = Card(word1);
-//     Card card2 = Card(word2);
-
-//     collection.addCardToDeck('Japanese Vocabulary', card1);
-//     collection.addCardToDeck('Japanese Vocabulary', card2);
-
-//     print('Collection created at: ${collection.crt}');
-//     print('Decks: ${collection.decks.keys}');
-//     print(
-//         'Cards in "Japanese Vocabulary" deck: ${collection.decks['Japanese Vocabulary']!.cards.length}');
-
-//     // Schedulerのインスタンスを取得
-//     Scheduler scheduler = collection.sched;
-
-//     // カードを取得して確認
-//     Card? card = scheduler.getCard();
-//     if (card != null) {
-//       print('Retrieved card ID: ${card.id}');
-//       // カードに応答
-//       scheduler.answerCard(card, 3);
-//     } else {
-//       print('No card to review.');
-//     }
-
-//     // カードの追加と再度の取得確認
-//     Word word3 = Word(
-//       id: intId(),
-//       word: 'study',
-//       mainMeaning: '勉強',
-//       subMeaning: '学習',
-//       sentence: 'I study every day.',
-//       sentenceJp: '私は毎日勉強します。',
-//     );
-//     Card card3 = Card(word3);
-//     collection.addCardToDeck('Japanese Vocabulary', card3);
-
-//     card = scheduler.getCard();
-//     if (card != null) {
-//       print('Retrieved card ID: ${card.id}');
-//       // カードに応答
-//       scheduler.answerCard(card, 2);
-//     } else {
-//       print('No card to review.');
-//     }
-
-//     // デイリーリセットの確認
-//     scheduler.reset();
-//     print('Scheduler reset. Reps: ${scheduler.reps}');
-
-//     // カードの取得と応答のテスト
-//     void testCardRetrievalAndAnswer() {
-//       Card? card = collection.sched.getCard();
-//       if (card != null) {
-//         print('Retrieved card ID: ${card.id}');
-//         collection.sched.answerCard(card, 3); // ease 3 for the first card
-//       }
-
-//       card = collection.sched.getCard();
-//       if (card != null) {
-//         print('Retrieved card ID: ${card.id}');
-//         collection.sched.answerCard(card, 4); // ease 4 for the second card
-//       }
-
-//       card = collection.sched.getCard();
-//       if (card != null) {
-//         print('Retrieved card ID: ${card.id}');
-//         collection.sched.answerCard(card, 2); // ease 2 for the third card
-//       }
-
-//       print('Scheduler reps: ${collection.sched.reps}');
-//     }
-
-//     // 日付をまたいでのリセットのテスト
-//     void testDayRollover() {
-//       // 今日の終わりの時間を設定してテスト
-//       collection.sched._dayCutoff =
-//           clock.now().millisecondsSinceEpoch + 1000; // 1秒後にリセット
-//       Future.delayed(Duration(seconds: 2), () {
-//         collection.sched.getCard(); // リセットをトリガー
-//         print('Day rollover check. Reps after reset: ${collection.sched.reps}');
-//       });
-//     }
-
-//     // 学習カードと復習カードの動作確認
-//     void testLearningAndReviewCards() {
-//       // 学習カードの取得と確認
-//       Card? card = collection.sched.getCard();
-//       if (card != null) {
-//         print('Learning card ID: ${card.id}');
-//         collection.sched.answerCard(card, 3); // ease 3 for learning card
-//       }
-
-//       // 復習カードの取得と確認
-//       card = collection.sched.getCard();
-//       if (card != null) {
-//         print('Review card ID: ${card.id}');
-//         collection.sched.answerCard(card, 2); // ease 2 for review card
-//       }
-//     }
-
-//     // テスト実行
-//     print('Starting new tests...');
-//     testCardRetrievalAndAnswer();
-//     testDayRollover();
-//     testLearningAndReviewCards();
-//   } catch (e, stackTrace) {
-//     print('Error: $e');
-//     print('StackTrace: $stackTrace');
-//   }
-// }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/pages/test_time_page.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -25,6 +26,7 @@ class _TopPageState extends State<TopPage> {
     ListScreen(),
     RecordScreen(),
     ColumnScreen(),
+    // TestTimePage(),
     SettingsScreen(),
   ];
 
