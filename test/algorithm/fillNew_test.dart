@@ -1,7 +1,7 @@
 import 'package:kokotan/algorithm/srs.dart';
 import 'package:test/test.dart';
 
-//fillNewが正常に動くかテストし、成功
+//成功
 //srs.dartの「_」を一時的に削除して行なった。
 
 void main() {
