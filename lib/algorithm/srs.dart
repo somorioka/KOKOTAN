@@ -319,7 +319,8 @@ class Scheduler {
           'カードを学習キュー用に更新: ${card.word.word}, queue: ${card.queue}, due: ${card.due}');
     }
 
-    if (card.queue == 1 || card.queue == 3) {
+    if (card.queue == 1) {
+      print('学習キューにカードを追加: ${card.word.word}');
       _answerLrnCard(card, ease);
     } else if (card.queue == 2) {
       _answerRevCard(card, ease);
