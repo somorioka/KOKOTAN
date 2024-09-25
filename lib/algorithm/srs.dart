@@ -256,24 +256,24 @@ class Scheduler {
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
-    _dayCutoff = _calculateDayCutoff();
+    dayCutoff = _calculateDayCutoff();
   }
 
   Future<void> initializeScheduler() async {
     await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
-    _checkDay();
+    checkDay();
     print('日付: $today');
-    print('日の終了時間: $_dayCutoff');
+    print('日の終了時間: $dayCutoff');
     print('1日の新規カード消化数: $todayNewCardsCount');
   }
 
-  int get newQueueCount => _newQueue.length;
-  int get learningQueueCount => _lrnQueue.length;
-  int get reviewQueueCount => _revQueue.length;
+  int get newQueueCount => newQueue.length;
+  int get learningQueueCount => lrnQueue.length;
+  int get reviewQueueCount => revQueue.length;
 
   // カードの取得
   Card? getCard() {
-    _checkDay();
+    checkDay();
     Card? card = _getCard();
     if (card != null) {
       reps += 1;
@@ -289,31 +289,34 @@ class Scheduler {
     _resetRev();
     _resetNew();
     todayNewCardsCount = 0; // 今日消化した新規カードの枚数をリセット
-    await _saveTodayNewCardsCount(); // リセット後のカウントを保存
+    await saveTodayNewCardsCount(); // リセット後のカウントを保存
     // 新規キューをすぐに埋める
-    _fillNew();
+    fillNew();
     // 復習キューをすぐに埋める
-    _fillRev();
+    fillRev();
   }
 
   // カードへの回答
   Future<void> answerCard(Card card, int ease) async {
-    // メソッドを async に変更し、戻り値を Future<void> に変更
+    print('answerCard() 呼び出し: ${card.word.word}, ease: $ease');
     assert(ease >= 1 && ease <= 4);
     assert(card.queue >= 0 && card.queue <= 4);
 
     card.reps += 1;
     _removeCardFromQueue(card);
+    print('カードをキューから削除: ${card.word.word}');
 
     if (card.queue == 0) {
       todayNewCardsCount += 1;
-      await _saveTodayNewCardsCount(); // 新規カードの消化数を保存
+       saveTodayNewCardsCount(); // 新規カードの消化数を保存
       print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
       card.type = 1;
       // 卒業までのリピート数を初期化
       card.left = _startingLeft(card);
+      print(
+          'カードを学習キュー用に更新: ${card.word.word}, queue: ${card.queue}, due: ${card.due}');
     }
 
     if (card.queue == 1 || card.queue == 3) {
