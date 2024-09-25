@@ -249,8 +249,10 @@ class Scheduler {
   List<Card> revQueue = [];
   List<Card> newQueue = [];
 
-  Scheduler(this.col)
-      : queueLimit = 50,
+  // コンストラクタ
+  Scheduler(this.col, {Clock? clock})
+      : clock = clock ?? Clock(), // Clock()を使ってシステムクロックをデフォルトとして設定
+        queueLimit = 50,
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
