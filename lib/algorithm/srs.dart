@@ -175,7 +175,7 @@ class Card {
 
   Card(this.word, {int? id})
       : id = id ?? _generateUniqueId(),
-        due = word.id,
+        due = 0,
         crt = _intTime(),
         type = 0,
         queue = 0,

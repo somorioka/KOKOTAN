@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:test/test.dart';
 import 'package:clock/clock.dart';
-import 'package:kokotan/algorithm/srs.dart'; // 実際のファイルパスを指定
+import 'package:kokotan/algorithm/srs.dart'; 
 
 //実行したところ、ivlが大きくなるのは、すでに前回のivlがめちゃくちゃでかいか、
 //めっちゃ長い期間放置した時くらいかなあ
