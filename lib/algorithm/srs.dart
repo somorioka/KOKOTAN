@@ -542,21 +542,23 @@ class Scheduler {
                   (!collapse ? card.due <= currentTime : card.due <= cutoff);
             }))
         .toList();
-    print('学習キューのカード枚数 : ${_lrnQueue.length}');
-    _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
-    _lrnQueue = _lrnQueue.take(reportLimit).toList();
-    return _lrnQueue.isNotEmpty;
+
+    print('学習キューのカード枚数 : ${lrnQueue.length}');
+    lrnQueue.sort((a, b) => a.due.compareTo(b.due));
+    lrnQueue = lrnQueue.take(reportLimit).toList();
+
+    return lrnQueue.isNotEmpty;
   }
 
   Card? _getNewCard() {
-    if (_fillNew()) {
-      return _newQueue.last; // キューから削除せず最後のカードを返す
+    if (fillNew()) {
+      return newQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
 
-  bool _fillNew() {
-    if (_newQueue.isNotEmpty) {
+  bool fillNew() {
+    if (newQueue.isNotEmpty) {
       return true;
     }
 
@@ -565,20 +567,20 @@ class Scheduler {
     if (todayNewCardsCount < perDayLimit) {
       // 新規カードが設定値未満なら追加
       final remainingSlots = perDayLimit - todayNewCardsCount; // 残りの枠を計算
-      _newQueue = col.decks.values
+      newQueue = col.decks.values
           .expand((deck) => deck.cards.where((card) => card.type == 0))
           .toList();
-      _newQueue.sort((a, b) => a.due.compareTo(b.due));
-      _newQueue = _newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
+      newQueue.sort((a, b) => a.due.compareTo(b.due));
+      newQueue = newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
 
-      if (_newQueue.isNotEmpty) {
+      if (newQueue.isNotEmpty) {
         return true;
       }
     }
     return false;
   }
 
-  Future<void> _saveTodayNewCardsCount() async {
+  Future<void> saveTodayNewCardsCount() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('todayNewCardsCount', todayNewCardsCount);
     print('今日の新規カード消化数を保存しました: $todayNewCardsCount');
@@ -592,33 +594,33 @@ class Scheduler {
   }
 
   Card? _getRevCard() {
-    if (_fillRev()) {
-      return _revQueue.last; // キューから削除せず最後のカードを返す
+    if (fillRev()) {
+      return revQueue.last; // キューから削除せず最後のカードを返す
     }
     return null;
   }
 
-  bool _fillRev() {
-    if (_revQueue.isNotEmpty) {
+  bool fillRev() {
+    if (revQueue.isNotEmpty) {
       return true;
     }
     final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
     // 今日の終了時刻を取得
-    final todayEnd = _dayCutoff; // 変更箇所
+    final todayEnd = dayCutoff; // 変更箇所
 
-    _revQueue = col.decks.values
+    revQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
             card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
         .toList();
-    _revQueue.sort((a, b) => a.due.compareTo(b.due));
-    _revQueue = _revQueue.take(limit).toList();
+    revQueue.sort((a, b) => a.due.compareTo(b.due));
+    revQueue = revQueue.take(limit).toList();
 
-    if (_revQueue.isNotEmpty) {
-      print('シャッフル前の順序: $_revQueue');
+    if (revQueue.isNotEmpty) {
+      print('シャッフル前の順序: $revQueue');
       final rand = Random(today);
-      _revQueue.shuffle(rand);
-      print('シャッフル後の順序: $_revQueue');
+      revQueue.shuffle(rand);
+      print('シャッフル後の順序: $revQueue');
 
       return true;
     }
@@ -671,19 +673,6 @@ class Scheduler {
     _rescheduleLrnCard(card, conf);
   }
 
-  void _repeatStep(Card card, Map<String, dynamic> conf) {
-    int delay = _delayForRepeatingGrade(conf, card.left);
-    _rescheduleLrnCard(card, conf, delay: delay);
-  }
-
-  void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
-    // 現在のステップの通常の遅延？
-    delay ??= _delayForGrade(conf, card.left); //delayはミリ秒
-
-    card.due = clock.now().millisecondsSinceEpoch + delay;
-    card.queue = 1;
-  }
-
   int _delayForGrade(Map<String, dynamic> conf, int left) {
     left = left % 1000;
     int index = conf['delays'].length - left;
@@ -730,7 +719,7 @@ class Scheduler {
 
   int _startingLeft(Card card) {
     var conf = _lrnConf(card);
-    int tot = conf['delays'].length; // 2
+    int tot = conf['delays'].length;
     int tod = _leftToday(conf['delays'], tot);
     return tot + tod * 1000;
   }
@@ -743,7 +732,7 @@ class Scheduler {
     int ok = 0;
     for (int i = 0; i < delays.length; i++) {
       now = now! + delays[i];
-      if (now > _dayCutoff) {
+      if (now > dayCutoff) {
         break;
       }
       ok = i;
@@ -805,7 +794,7 @@ class Scheduler {
         card.ivl * 24 * 60 * 60 * 1000; // ミリ秒単位
   }
 
-  int _nextRevIvl(Card card, int ease) {
+  int nextRevIvl(Card card, int ease) {
     int delay = daysLate(card);
     print('Delay (ms): $delay');
 
@@ -850,7 +839,7 @@ class Scheduler {
   }
 
   void _updateRevIvl(Card card, int ease) {
-    card.ivl = _nextRevIvl(card, ease);
+    card.ivl = nextRevIvl(card, ease);
   }
 
   bool _checkLeech(Card card, Map<String, dynamic> conf) {
