@@ -357,21 +357,21 @@ class Scheduler {
 
   void _removeCardFromQueue(Card card) {
     if (card.queue == 0) {
-      _newQueue.remove(card);
+      newQueue.remove(card);
     } else if (card.queue == 1) {
-      _lrnQueue.remove(card);
+      lrnQueue.remove(card);
     } else if (card.queue == 2) {
-      _revQueue.remove(card);
+      revQueue.remove(card);
     }
   }
 
   // 日付が変わったかどうかを確認し、リセットする
-  void _checkDay() {
+  void checkDay() {
     // 現在の時間が_dayCutoffを超えているかを確認
     final currentTime = clock.now().millisecondsSinceEpoch; // ミリ秒単位で取得
     print('現在の時間: $currentTime');
-    print('日の終了時間: $_dayCutoff');
-    if (currentTime > _dayCutoff) {
+    print('日の終了時間: $dayCutoff');
+    if (currentTime > dayCutoff) {
       reset(); // 日が変わったらリセット
       print('日付が変わりました');
     }
@@ -383,8 +383,8 @@ class Scheduler {
     today = _daysSinceCreation();
     print('経過日数: $today');
     // 日の終了時間を設定
-    _dayCutoff = _calculateDayCutoff();
-    print('日の終了時間: $_dayCutoff');
+    dayCutoff = _calculateDayCutoff();
+    print('日の終了時間: $dayCutoff');
   }
 
   int _calculateDayCutoff() {
@@ -413,7 +413,7 @@ class Scheduler {
   void _resetLrn() {
     // 学習キューをリセットする
     _updateLrnCutoff(force: true);
-    _lrnQueue = [];
+    lrnQueue = [];
   }
 
   bool _updateLrnCutoff({required bool force}) {
@@ -428,21 +428,21 @@ class Scheduler {
 
   void _resetRev() {
     // 復習キューをリセットする
-    _revQueue = [];
+    revQueue = [];
   }
 
   void _resetNew() {
     // 新規キューをリセットする
-    _newQueue = [];
+    newQueue = [];
     _updateNewCardRatio();
   }
 
   void _updateNewCardRatio() {
     // 新規カードの表示比率を更新する
     if (col.colConf['newSpread'] == NEW_CARDS_DISTRIBUTE) {
-      if (_newQueue.isNotEmpty) {
-        final newCount = _newQueue.length;
-        final revCount = _revQueue.length;
+      if (newQueue.isNotEmpty) {
+        final newCount = newQueue.length;
+        final revCount = revQueue.length;
         if (newCount == 0) {
           col.newCardModulus = 0; // newCountがゼロの場合の処理を追加
         } else {
@@ -461,7 +461,7 @@ class Scheduler {
 
   // 新しいカードを表示する時間かどうかを判断する
   bool _timeForNewCard() {
-    if (_newQueue.isEmpty) {
+    if (newQueue.isEmpty) {
       return false;
     }
     if (col.colConf['newSpread'] == NEW_CARDS_LAST) {
@@ -475,39 +475,40 @@ class Scheduler {
   }
 
   Card? _getCard() {
-    // 次にレビューするカードを返す。カードがない場合はnullを返す。
-    // 学習カードの期限が来ているか？
-    Card? c = _getLrnCard();
-    if (c != null) {
-      return c;
+    print('getCard() 呼び出し');
+
+    // 学習キューからカードを取得
+    Card? lrnCard = getLrnCard();
+    if (lrnCard != null) {
+      return lrnCard;
     }
 
-    // 新しいカードを優先するか、新しいカードの時間か？
+    // 新規カードを優先するか、新規カードの時間か？
     if (_timeForNewCard()) {
-      c = _getNewCard();
-      if (c != null) {
-        return c;
+      Card? newCard = _getNewCard();
+      if (newCard != null) {
+        return newCard;
       }
     }
 
     // レビューするカードの期限が来ているか？
-    c = _getRevCard();
-    if (c != null) {
-      return c;
+    Card? revCard = _getRevCard();
+    if (revCard != null) {
+      return revCard;
     }
 
-    // 新しいカードが残っているか？
-    c = _getNewCard();
-    if (c != null) {
-      return c;
+    // 新規カードが残っているか？
+    Card? finalNewCard = _getNewCard();
+    if (finalNewCard != null) {
+      return finalNewCard;
     }
 
     // collapseまたは終了
-    c = _getLrnCard(collapse: true);
-    return c;
+    Card? collapsedCard = getLrnCard(collapse: true);
+    return collapsedCard;
   }
 
-  Card? _getLrnCard({bool collapse = false}) {
+  Card? getLrnCard({bool collapse = false}) {
     if (collapse) {
       // collapseがtrueの場合のみ、collapseTime以内のカードを考慮
       _maybeResetLrn(force: true);
