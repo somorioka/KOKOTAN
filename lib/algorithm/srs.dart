@@ -241,11 +241,13 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  int _dayCutoff = 0;
+  int dayCutoff = 0;
   int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数
-  List<Card> _lrnQueue = [];
-  List<Card> _revQueue = [];
-  List<Card> _newQueue = [];
+  final Clock clock; // Clockインスタンスを保持
+
+  List<Card> lrnQueue = [];
+  List<Card> revQueue = [];
+  List<Card> newQueue = [];
 
   Scheduler(this.col)
       : queueLimit = 50,
