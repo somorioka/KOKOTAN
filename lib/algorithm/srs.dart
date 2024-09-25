@@ -322,8 +322,11 @@ class Scheduler {
     if (card.queue == 1) {
       print('学習キューにカードを追加: ${card.word.word}');
       _answerLrnCard(card, ease);
+      lrnQueue.add(card); // 明示的に学習キューに追加
     } else if (card.queue == 2) {
+      print('復習キューにカードを追加: ${card.word.word}');
       _answerRevCard(card, ease);
+      revQueue.add(card); // 明示的に復習キューに追加
     } else {
       assert(false);
     }
