@@ -332,6 +332,29 @@ class Scheduler {
     }
   }
 
+  void _repeatStep(Card card, Map<String, dynamic> conf) {
+    int delay = _delayForRepeatingGrade(conf, card.left);
+    _rescheduleLrnCard(card, conf, delay: delay);
+    print(
+        'カードを再スケジュールしました: ${card.word.word}, delay: $delay, due: ${card.due}');
+  }
+
+  void _rescheduleLrnCard(Card card, Map<String, dynamic> conf, {int? delay}) {
+    // 現在のステップの通常の遅延？
+    delay ??= _delayForGrade(conf, card.left); // delayはミリ秒
+    card.due = clock.now().millisecondsSinceEpoch + delay;
+    card.queue = 1;
+    print('カードを学習キューに再スケジュールしました: ${card.word.word}, due: ${card.due}');
+  }
+
+  void printQueues() {
+    print('--- キューの状態 ---');
+    print('学習キュー: ${lrnQueue.map((c) => c.word.word).toList()}');
+    print('復習キュー: ${revQueue.map((c) => c.word.word).toList()}');
+    print('新規キュー: ${newQueue.map((c) => c.word.word).toList()}');
+    print('-------------------');
+  }
+
   void _removeCardFromQueue(Card card) {
     if (card.queue == 0) {
       _newQueue.remove(card);
