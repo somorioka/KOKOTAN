@@ -173,7 +173,7 @@ class Card {
 
   Card(this.word, {int? id})
       : id = id ?? _generateUniqueId(),
-        due = word.id,
+        due = 9727332272713, //dueの初期値をめっちゃ未来にした
         crt = _intTime(),
         type = 0,
         queue = 0,
