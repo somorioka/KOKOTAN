@@ -18,6 +18,41 @@ class DataViewModel extends ChangeNotifier {
   double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
   bool _allDataDownloaded = false;
 
+  // DateTime? _testTime;
+
+  // Future<void> _loadTestTime() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   int? timestamp = prefs.getInt('testTime');
+  //   if (timestamp != null) {
+  //     _testTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+  //   }
+  // }
+
+  // Future<void> _saveTestTime(DateTime dateTime) async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   await prefs.setInt('testTime', dateTime.millisecondsSinceEpoch);
+  // }
+
+  // DateTime getTestTime() {
+  //   return _testTime ?? DateTime.now(); // テスト用時刻がない場合は現在時刻を返す
+  // }
+
+  // Future<void> advanceTestTimeBy(int milliseconds) async {
+  //   if (_testTime == null) {
+  //     _testTime = DateTime.now();
+  //   }
+  //   _testTime = _testTime!.add(Duration(milliseconds: milliseconds));
+  //   await _saveTestTime(_testTime!);
+  //   notifyListeners();
+  // }
+
+  // Future<void> resetTestTime() async {
+  //   _testTime = null;
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   await prefs.remove('testTime'); // テスト用時刻をリセット
+  //   notifyListeners();
+  // }
+
   DataViewModel() {
     _loadDataDownloadedFlag();
   }
