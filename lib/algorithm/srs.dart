@@ -510,14 +510,13 @@ class Scheduler {
     }
     //dueが現在時刻以下、かつqueueが0
       _newQueue = col.decks.values
-          .expand((deck) => deck.cards.where((card) => card.type == 0))
+        .expand((deck) =>
+            deck.cards.where((card) => card.queue == 0 && card.due <= 1))
           .toList();
       _newQueue.sort((a, b) => a.due.compareTo(b.due));
-      _newQueue = _newQueue.take(remainingSlots).toList(); // 残り枠だけ追加
 
       if (_newQueue.isNotEmpty) {
         return true;
-      }
     }
     return false;
   }
