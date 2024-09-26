@@ -240,7 +240,6 @@ class Scheduler {
   int? today;
   int _lrnCutoff;
   int _dayCutoff = 0;
-  int todayNewCardsCount = 0; // 1日に消化した新規カードの枚数 この変数は必要なさそう
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
   List<Card> _newQueue = [];
@@ -254,11 +253,9 @@ class Scheduler {
   }
 
   Future<void> initializeScheduler() async {
-    await _loadTodayNewCardsCount(); // 起動時に前回の新規カード消化数を読み込む
     _checkDay();
     print('日付: $today');
     print('日の終了時間: $_dayCutoff');
-    print('1日の新規カード消化数: $todayNewCardsCount');
   }
 
   int get newQueueCount => _newQueue.length;
@@ -298,9 +295,6 @@ class Scheduler {
     _removeCardFromQueue(card);
 
     if (card.queue == 0) {
-      todayNewCardsCount += 1; //不要
-      _saveTodayNewCardsCount(); // 新規カードの消化数を保存 //不要
-      print('今日の新規カード消化数: $todayNewCardsCount');
       // 新規キューから来た場合、学習キューへ移動
       card.queue = 1;
       card.type = 1;
@@ -514,12 +508,7 @@ class Scheduler {
     if (_newQueue.isNotEmpty) {
       return true;
     }
-
-    print('新規キューを埋めます: ${todayNewCardsCount}');
-    if (todayNewCardsCount < 20) {
-      // 新規カードが20枚未満なら追加
-      // このremainingSlotsは不要。新規カードの投入枚数を20枚から変更した場合は、その差分だけ足したり引いたりすれば良い。
-      final remainingSlots = 20 - todayNewCardsCount; // 残りの枠を計算
+    //dueが現在時刻以下、かつqueueが0
       _newQueue = col.decks.values
           .expand((deck) => deck.cards.where((card) => card.type == 0))
           .toList();
@@ -531,19 +520,6 @@ class Scheduler {
       }
     }
     return false;
-  }
-
-  void _saveTodayNewCardsCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('todayNewCardsCount', todayNewCardsCount);
-    print('今日の新規カード消化数を保存しました: $todayNewCardsCount');
-  }
-
-  Future<void> _loadTodayNewCardsCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    print('今日の新規カード消化数を読み込みます');
-    todayNewCardsCount = prefs.getInt('todayNewCardsCount') ?? 0;
-    print('今日の新規カード消化数を読み込みました: $todayNewCardsCount');
   }
 
   Card? _getRevCard() {
