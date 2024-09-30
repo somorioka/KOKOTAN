@@ -543,6 +543,7 @@ class Scheduler {
       if (_newQueue.isNotEmpty) {
         return true;
     }
+    print('fillNewが完了しました');
     return false;
   }
 
@@ -554,6 +555,8 @@ class Scheduler {
   }
 
   bool _fillRev() {
+    print('fillRevを実行しています');
+
     if (_revQueue.isNotEmpty) {
       return true;
     }
@@ -577,6 +580,7 @@ class Scheduler {
       _revQueue.shuffle(rand);
       return true;
     }
+    print('fillRevが完了しました');
     return false;
   }
 
@@ -759,8 +763,8 @@ class Scheduler {
     _updateRevIvl(card, ease);
 
     card.factor = max(1300, card.factor + [-150, 0, 150][ease - 2]);
-    card.due = clock.now().millisecondsSinceEpoch +
-        card.ivl * 24 * 60 * 60 * 1000;
+    card.due =
+        clock.now().millisecondsSinceEpoch + card.ivl * 24 * 60 * 60 * 1000;
   }
 
   int _nextRevIvl(Card card, int ease) {
