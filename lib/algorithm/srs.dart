@@ -278,12 +278,37 @@ class Scheduler {
     _resetLrn();
     _resetRev();
     _resetNew();
-    todayNewCardsCount = 0; // 今日消化した新規カードの枚数をリセット
-    _saveTodayNewCardsCount(); // リセット後のカウントを保存
-    // 新規キューをすぐに埋める
+
+    await assignDueToNewCards(onDueUpdated); // コールバックを渡すか、nullなら無視
+
     _fillNew();
-    // 復習キューをすぐに埋める
     _fillRev();
+    print('resetが完了しました');
+  }
+
+  Future<void> assignDueToNewCards(Function(Card)? onDueUpdated) async {
+    print('--- assignDueToNewCardsを実行しています ---');
+
+    int perDayLimit = col.deckConf['new']['perDay'] as int;
+
+    for (var deck in col.decks.values) {
+      List<Card> newCards =
+          deck.cards.where((card) => card.queue == 0).toList();
+
+      if (newCards.isNotEmpty) {
+        newCards.sort((a, b) => a.id.compareTo(b.id));
+        List<Card> limitedCards = newCards.take(perDayLimit).toList();
+
+        for (var card in limitedCards) {
+          card.due = 0;
+          if (onDueUpdated != null) {
+            onDueUpdated(card); // コールバックがある場合のみ実行
+          }
+        }
+      }
+    }
+
+    print('--- assignDueToNewCardsが完了しました ---');
   }
 
   // カードへの回答
