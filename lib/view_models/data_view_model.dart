@@ -48,14 +48,24 @@ class DataViewModel extends ChangeNotifier {
   }
 
   Future<void> initializeData() async {
+    print('initializeDataを実行しています');
+    await _load20DataDownloadedFlag(); // ここで20枚データダウンロードフラグも読み込む
+    print('_20DataDownloaded:$_20DataDownloaded');
+
+    if (_20DataDownloaded) {
+      // 20枚のデータがダウンロード済みの場合のみ、スケジューラを初期化
     await fetchWordsAndInitializeScheduler();
     // バックグラウンドで残りのデータをダウンロード
     downloadRemainingDataInBackground();
   }
 
+    print('initializeDataが完了しました');
+  }
+
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
   bool get isLoading => _isLoading;
+
   List<srs.Word> get searchResults => _searchResults;
   srs.Card? get card => currentCard;
   srs.Word? get currentWord => currentCard?.word;
@@ -68,8 +78,11 @@ class DataViewModel extends ChangeNotifier {
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
   // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
 
+  //エクセルからデータをダウンロード
   Future<void> downloadAndImportExcel() async {
+    print('downloadAndImportExcelを実行しています');
     _isLoading = true;
+
     notifyListeners();
 
     try {
@@ -82,9 +95,17 @@ class DataViewModel extends ChangeNotifier {
         final file = File('${directory.path}/sa_ver01.xlsx');
         await file.writeAsBytes(bytes);
 
+        //20枚のデータをダウンロード
         await _importExcelToDatabase(file);
+        print('20枚分のデータがダウンロードされました');
+
+        //20枚のデータがダウンロードされたことを保存
+        _20DataDownloaded = true;
+        await _save20DataDownloadedFlag(_20DataDownloaded);
+        print('_20DataDownloaded:$_20DataDownloaded');
+        print("エクセルから20枚分のデータをダウンロードしました");
+
         await fetchWordsAndInitializeScheduler();
-        print("Excel downloaded and imported successfully！");
       } else {
         print('Error downloading file: ${response.statusCode}');
       }
