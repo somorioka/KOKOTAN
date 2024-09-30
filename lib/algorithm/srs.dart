@@ -360,22 +360,23 @@ class Scheduler {
   }
 
   // 日付が変わったかどうかを確認し、リセットする
-  void _checkDay() {
-    // 現在の時間が_dayCutoffを超えているかを確認
+  Future<void> _checkDay({Function(Card)? onDueUpdated}) async {
+    print('checkDayを実行しています');
+
+    int _dayCutoff = (await getDayCutoff()) ?? 0;
     final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000; // 秒単位で取得
-    print('現在の時間: $currentTime');
-    print('日の終了時間: $_dayCutoff');
+
     if (currentTime > _dayCutoff) {
-      reset(); // 日が変わったらリセット
-      print('日付が変わりました');
+      await reset(onDueUpdated); // コールバックがある場合だけ渡す
     }
+
+    print('checkDayを完了しました');
   }
 
   // 日付のカットオフを更新する
   void _updateCutoff() {
     // コレクションが作成されてからの経過日数を計算
     today = _daysSinceCreation();
-    print('経過日数: $today');
     // 日の終了時間を設定
     _dayCutoff = _calculateDayCutoff();
     print('日の終了時間: $_dayCutoff');
