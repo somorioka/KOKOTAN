@@ -249,7 +249,7 @@ class Scheduler {
         reportLimit = 1000,
         reps = 0,
         _lrnCutoff = 0 {
-    _dayCutoff = _calculateDayCutoff();
+    _dayCutoff = 0;
   }
 
   Future<void> initializeScheduler() async {
@@ -582,6 +582,15 @@ class Scheduler {
     }
     print('fillRevが完了しました');
     return false;
+  }
+
+  void fillAll() {
+    print('fillAllを実行しています');
+
+    _fillNew();
+    _fillLrn();
+    _fillRev();
+    print('fillAllが完了しました');
   }
 
   void _answerLrnCard(Card card, int ease) {
