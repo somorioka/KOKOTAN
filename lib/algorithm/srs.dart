@@ -520,6 +520,8 @@ class Scheduler {
   }
 
   bool _fillLrn({bool collapse = false}) {
+    print('fillLrnを実行しています');
+
     if (_lrnQueue.isNotEmpty) {
       return true;
     }
@@ -533,6 +535,7 @@ class Scheduler {
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
     _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
     _lrnQueue = _lrnQueue.take(reportLimit).toList();
+    print('fillLrnを完了しました');
     return _lrnQueue.isNotEmpty;
   }
 
@@ -544,6 +547,7 @@ class Scheduler {
   }
 
   bool _fillNew() {
+    print('fillNewを実行しています');
     if (_newQueue.isNotEmpty) {
       return true;
     }
