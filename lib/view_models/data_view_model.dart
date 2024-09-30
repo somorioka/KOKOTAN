@@ -20,7 +20,11 @@ class DataViewModel extends ChangeNotifier {
   bool _20DataDownloaded = false; //最初の20枚のデータがダウンロードされたか？
 
   DataViewModel() {
-    _loadDataDownloadedFlag();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _loadDataDownloadedFlag(); // ここでデータダウンロードフラグを非同期に読み込む
   }
 
   Future<void> _loadDataDownloadedFlag() async {
@@ -31,6 +35,16 @@ class DataViewModel extends ChangeNotifier {
   Future<void> _saveDataDownloadedFlag(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('allDataDownloaded', value);
+  }
+
+  Future<void> _save20DataDownloadedFlag(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('20DataDownloaded', value);
+  }
+
+  Future<void> _load20DataDownloadedFlag() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _20DataDownloaded = prefs.getBool('20DataDownloaded') ?? false;
   }
 
   Future<void> initializeData() async {
