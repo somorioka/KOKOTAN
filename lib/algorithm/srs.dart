@@ -379,7 +379,7 @@ class Scheduler {
     today = _daysSinceCreation();
     // 日の終了時間を設定
     _dayCutoff = _calculateDayCutoff();
-    print('日の終了時間: $_dayCutoff');
+    saveDayCutoff(_dayCutoff);
   }
 
   int _calculateDayCutoff() {
