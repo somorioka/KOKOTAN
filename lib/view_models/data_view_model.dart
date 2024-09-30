@@ -115,9 +115,11 @@ class DataViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+    print('downloadAndImportExcelが完了しました');
   }
 
   Future<void> _importExcelToDatabase(File file, {int limit = 20}) async {
+    print('_importExcelToDatabaseを実行しています');
     final dbHelper = DatabaseHelper.instance;
     final directory = await getApplicationDocumentsDirectory();
     int wordCount = 0;
@@ -141,7 +143,6 @@ class DataViewModel extends ChangeNotifier {
           }
 
           if (wordCount >= limit) break;
-          print(wordId);
 
           // 音声ファイルのダウンロードと保存
           String wordVoiceUrl =
@@ -154,13 +155,11 @@ class DataViewModel extends ChangeNotifier {
           if (wordVoiceUrl.isNotEmpty) {
             wordVoicePath = await _downloadAndSaveFile(
                 wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
-            print('Downloaded word voice: $wordVoicePath');
           }
 
           if (sentenceVoiceUrl.isNotEmpty) {
             sentenceVoicePath = await _downloadAndSaveFile(sentenceVoiceUrl,
                 '${row[0]?.value}_sentence.mp3', directory.path);
-            print('Downloaded sentence voice: $sentenceVoicePath');
           }
 
           srs.Word word = srs.Word(
@@ -198,12 +197,10 @@ class DataViewModel extends ChangeNotifier {
           notifyListeners();
 
           if (wordCount >= limit) break;
-
-          print('Inserted word: ${word.word}, card ID: ${card.id}');
         }
         if (wordCount >= limit) break;
       }
-      print('Excel data imported successfully');
+      print('_importExcelToDatabaseが完了しました');
     } catch (e) {
       print('Error importing Excel data: $e');
     }
@@ -211,7 +208,6 @@ class DataViewModel extends ChangeNotifier {
 
   Future<String> _downloadAndSaveFile(
       String url, String fileName, String dir) async {
-    print('Downloading file: $url');
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final file = File('$dir/$fileName');
@@ -224,11 +220,10 @@ class DataViewModel extends ChangeNotifier {
 
   Future<void> downloadRemainingDataInBackground() async {
     if (_allDataDownloaded) {
-      print(
-          'All data has already been downloaded. Skipping background download.');
+      print('全てのデータがダウンロードされています');
       return;
     }
-    print('Starting background download of remaining data...');
+    print('残りのデータをバックグラウンドでダウンロードします');
 
     // すべてのデータをインポートするように設定 (limit=無制限)
     final directory = await getApplicationDocumentsDirectory();
@@ -236,7 +231,7 @@ class DataViewModel extends ChangeNotifier {
     if (await file.exists()) {
       // 既に存在するExcelファイルからデータを取り込む
       await _importExcelToDatabase(file, limit: 1484);
-      print('Background download completed successfully');
+      print('全てのデータがダウンロードされました');
 
       // フラグをtrueに設定
       await _saveDataDownloadedFlag(true);
@@ -247,7 +242,7 @@ class DataViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchWordsAndInitializeScheduler() async {
-    print('Fetching words and initializing scheduler...');
+    print('fetchWordsAndInitializeSchedulerを実行しています');
 
     final dbHelper = DatabaseHelper.instance;
     final wordRows = await dbHelper.queryAllWords();
@@ -278,6 +273,7 @@ class DataViewModel extends ChangeNotifier {
     await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
     currentCard = scheduler!.getCard();
     notifyListeners();
+    print('fetchWordsAndInitializeSchedulerが完了しました');
   }
 
   Future<Map<String, int>> fetchCardQueueDistribution() async {
