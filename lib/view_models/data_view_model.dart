@@ -270,8 +270,11 @@ class DataViewModel extends ChangeNotifier {
     }
 
     scheduler = srs.Scheduler(collection);
-    await scheduler!.initializeScheduler(); // 非同期で初期化を待つ
-    currentCard = scheduler!.getCard();
+    await scheduler!.initializeScheduler(onDueUpdated: (card) {
+      dbHelper.updateCard(card); // データベースを更新
+    });
+    scheduler!.fillAll();
+    currentCard = await scheduler!.getCard();
     notifyListeners();
     print('fetchWordsAndInitializeSchedulerが完了しました');
   }
