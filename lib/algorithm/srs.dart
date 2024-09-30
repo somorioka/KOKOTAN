@@ -239,7 +239,7 @@ class Scheduler {
   int reps;
   int? today;
   int _lrnCutoff;
-  int _dayCutoff = 0;
+  int _dayCutoff = 0;// 初回起動時にもcheckDayを動かすため
   List<Card> _lrnQueue = [];
   List<Card> _revQueue = [];
   List<Card> _newQueue = [];
