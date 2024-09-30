@@ -316,13 +316,13 @@ class DataViewModel extends ChangeNotifier {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => OtsukareScreen()));
       }
-      currentCard = getCard();
+      currentCard = await getCard();
       notifyListeners();
     }
   }
 
-  srs.Card? getCard() {
-    return scheduler?.getCard();
+  Future<srs.Card?> getCard() async {
+    return await scheduler?.getCard(); // await で非同期の結果を待つ
   }
 
   void search(String query) {
