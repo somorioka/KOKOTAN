@@ -347,6 +347,18 @@ class Scheduler {
     }
   }
 
+  // dayCutoffを保存するメソッド（秒単位のUNIXタイムスタンプ）
+  Future<void> saveDayCutoff(int cutoffTimestamp) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('dayCutoff', cutoffTimestamp);
+  }
+
+// dayCutoffを取得するメソッド（秒単位のUNIXタイムスタンプ）
+  Future<int?> getDayCutoff() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('dayCutoff');
+  }
+
   // 日付が変わったかどうかを確認し、リセットする
   void _checkDay() {
     // 現在の時間が_dayCutoffを超えているかを確認
