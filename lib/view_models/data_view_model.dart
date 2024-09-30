@@ -17,6 +17,7 @@ class DataViewModel extends ChangeNotifier {
   srs.Card? currentCard;
   double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
   bool _allDataDownloaded = false;
+  bool _20DataDownloaded = false; //最初の20枚のデータがダウンロードされたか？
 
   DataViewModel() {
     _loadDataDownloadedFlag();
