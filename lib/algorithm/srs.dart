@@ -272,7 +272,9 @@ class Scheduler {
   }
 
   // 1日1回のキューリセット
-  void reset() {
+  // 1日1回のキューリセット
+  Future<void> reset(Function(Card)? onDueUpdated) async {
+    print('resetを実行しています');
     _updateCutoff();
     _resetLrn();
     _resetRev();
