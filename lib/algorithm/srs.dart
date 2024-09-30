@@ -262,8 +262,8 @@ class Scheduler {
   int get reviewQueueCount => _revQueue.length;
 
   // カードの取得
-  Card? getCard() {
-    _checkDay();
+  Future<Card?> getCard() async {
+    await _checkDay();
     Card? card = _getCard();
     if (card != null) {
       reps += 1;
