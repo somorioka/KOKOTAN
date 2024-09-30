@@ -252,10 +252,9 @@ class Scheduler {
     _dayCutoff = 0;
   }
 
-  Future<void> initializeScheduler() async {
-    _checkDay();
-    print('日付: $today');
-    print('日の終了時間: $_dayCutoff');
+  Future<void> initializeScheduler(
+      {required Function(Card) onDueUpdated}) async {
+    await _checkDay(onDueUpdated: onDueUpdated); // コールバックを渡す
   }
 
   int get newQueueCount => _newQueue.length;
