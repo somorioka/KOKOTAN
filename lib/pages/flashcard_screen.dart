@@ -1229,43 +1229,23 @@ class CustomSearchButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () async {
-        int ease = _getEaseValue(label);
-        await viewModel.answerCard(ease, context);
-        setState(() {
-          showDetails = false;
-        });
-        // 新しいカードのword_voiceを再生
-        final newWord = viewModel.currentCard?.word;
-        if (newWord != null) {
-          _playVoice(newWord.wordVoice);
-        }
-      },
+      onPressed: () => onPressed(),
       style: ElevatedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+        foregroundColor: Color(0xFF464646),
+        backgroundColor: Color(0xFFE9E9E9),
+        // ignore: prefer_const_constructors
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        textStyle: TextStyle(
+          fontFamily: 'ZenMaruGothic', // フォントファミリーを指定
+          fontWeight: FontWeight.w700, // フォントウェイト
+          fontSize: 16, // フォントサイズ
         ),
-        elevation: 0,
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        minimumSize: Size(double.infinity, 10), // 高さを調整
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10), // 角を丸く
+        ),
       ),
       child: Text(label),
     );
-  }
-
-  int _getEaseValue(String label) {
-    switch (label) {
-      case '覚え直す':
-        return 1;
-      case '微妙':
-        return 2;
-      case 'OK':
-        return 3;
-      case '余裕':
-        return 4;
-      default:
-        return 1;
-    }
   }
 }
