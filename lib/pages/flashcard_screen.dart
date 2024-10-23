@@ -1163,53 +1163,71 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
-  Widget _buildCustomButton(BuildContext context, String label,
-      String imagePath, Color color, DataViewModel viewModel) {
-    return Expanded(
-      child: ElevatedButton(
-        onPressed: () async {
-          int ease = _getEaseValue(label);
-          await viewModel.answerCard(ease, context);
-          setState(() {
-            showDetails = false;
-          });
-          // 新しいカードのword_voiceを再生
-          final newWord = viewModel.currentCard?.word;
-          if (newWord != null) {
-            _playVoice(newWord.wordVoice);
-          }
-        },
-        style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: color,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero, // 角丸なし
-            ),
-            elevation: 0,
-            padding: EdgeInsets.zero),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              imagePath,
-              width: 60, // アイコンのサイズ
-              height: 40,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _reportError() async {
+    const url =
+        'https://docs.google.com/forms/d/e/1FAIpQLSeXGO79qrbByjJU0adealF6E_m18NcrXgHFl5FKbOnnpbS-Ng/viewform'; // 飛びたいURLを指定
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
-  Widget _buildButton(BuildContext context, String label, Color color,
-      DataViewModel viewModel) {
+  // int _getEaseValue(String label) {
+  //   switch (label) {
+  //     case '覚え直す':
+  //       return 1;
+  //     case '微妙':
+  //       return 2;
+  //     case 'OK':
+  //       return 3;
+  //     case '余裕':
+  //       return 4;
+  //     default:
+  //       return 1;
+  //   }
+  // }
+
+  // Widget _buildButton(BuildContext context, String label, Color color,
+  //     DataViewModel viewModel) {
+  //   return ElevatedButton(
+  //     onPressed: () async {
+  //       int ease = _getEaseValue(label);
+  //       await viewModel.answerCard(ease, context);
+  //       setState(() {
+  //         showDetails = false;
+  //       });
+  //       // 新しいカードのword_voiceを再生
+  //       final newWord = viewModel.currentCard?.word;
+  //       if (newWord != null) {
+  //         _playVoice(newWord.wordVoice);
+  //       }
+  //     },
+  //     style: ElevatedButton.styleFrom(
+  //       foregroundColor: Colors.white,
+  //       backgroundColor: color,
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(8),
+  //       ),
+  //       elevation: 0,
+  //       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+  //     ),
+  //     child: Text(label),
+  //   );
+  // }
+}
+
+class CustomSearchButton extends StatelessWidget {
+  final String label;
+  final Function onPressed;
+
+  CustomSearchButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () async {
         int ease = _getEaseValue(label);
