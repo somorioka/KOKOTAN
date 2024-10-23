@@ -50,10 +50,12 @@ class _TopPageState extends State<TopPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _widgetOptions,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.white, // 背景色を変更
         type: BottomNavigationBarType.fixed,
         unselectedItemColor: Colors.grey,
         items: const <BottomNavigationBarItem>[
@@ -74,13 +76,23 @@ class _TopPageState extends State<TopPage> {
             label: 'コラム',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: '設定',
+            icon: Icon(Icons.more_horiz),
+            label: 'メニュー',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Color.fromARGB(255, 32, 195, 148),
+        selectedItemColor: Color.fromARGB(255, 60, 177, 180),
         onTap: _onItemTapped,
+        selectedLabelStyle: TextStyle(
+          fontFamily: 'ZenMaruGothic', // カスタムフォントを適用
+          fontWeight: FontWeight.w700, // 太字
+          fontSize: 14, // サイズ変更
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontFamily: 'ZenMaruGothic',
+          fontWeight: FontWeight.w400, // 標準の太さ
+          fontSize: 12,
+        ),
       ),
     );
   }
