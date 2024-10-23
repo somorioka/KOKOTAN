@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/pages/deck_list_page.dart';
 import 'package:kokotan/pages/flashcard_screen.dart';
 import 'package:kokotan/pages/otsukare.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Consumer<DataViewModel>(builder: (context, viewModel, child) {
-      if (viewModel.scheduler == null) {
-        return Center(
-          child: CircularProgressIndicator(), // Schedulerが初期化されるのを待つ
-        );
-      }
+    return FutureBuilder(
+      // DataViewModel の initializeData() がダウンロード処理
+      future:
+          Provider.of<DataViewModel>(context, listen: false).initializeData(),
+      builder: (context, snapshot) {
       return Scaffold(
           appBar: AppBar(
             title: const Text('ホーム'),
