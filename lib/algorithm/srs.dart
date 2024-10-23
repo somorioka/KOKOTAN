@@ -201,6 +201,23 @@ class Card {
         lapses = 0,
         left = 0;
 
+  // コピーコンストラクタを追加
+  Card copy() {
+    return Card(
+      word, // Wordクラスが複雑であれば、これもコピーする必要があるかも
+      id: id,
+    )
+      ..due = this.due
+      ..crt = this.crt
+      ..type = this.type
+      ..queue = this.queue
+      ..ivl = this.ivl
+      ..factor = this.factor
+      ..reps = this.reps
+      ..lapses = this.lapses
+      ..left = this.left;
+  }
+
   static int _generateUniqueId() {
     int t = _intTimeMs();
     while (_intTimeMs() == t) {
