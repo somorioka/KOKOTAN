@@ -594,9 +594,12 @@ class Scheduler {
             card.queue == 1 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
-    print('学習キューのカード枚数 : ${_lrnQueue.length}');
-    _lrnQueue.sort((a, b) => a.due.compareTo(b.due));
-    _lrnQueue = _lrnQueue.take(reportLimit).toList();
+
+    lrnQueue.sort((a, b) => a.due.compareTo(b.due)); // 期限順に並べ替え
+    lrnQueue = lrnQueue.take(reportLimit).toList();
+
+    lrnQueue.shuffle(); // ここでシャッフル。期限順に並べた意味はなくなる
+
     print('fillLrnを完了しました');
     return lrnQueue.isNotEmpty;
   }
@@ -866,12 +869,12 @@ class Scheduler {
     int ivl2 = _constrainedIvl((card.ivl * hardFactor).toInt(), conf, hardMin);
     if (ease == 2) return ivl2;
 
-    int ivl3 =
-        _constrainedIvl(((card.ivl + delay ~/ 2) * fct).toInt(), conf, ivl2);
+    int ivl3 = _constrainedIvl(
+        ((card.ivl + delayInDays ~/ 2) * fct).toInt(), conf, ivl2);
     if (ease == 3) return ivl3;
 
     int ivl4 = _constrainedIvl(
-        ((card.ivl + delay) * fct * conf["ease4"]).toInt(), conf, ivl3);
+        ((card.ivl + delayInDays) * fct * conf["ease4"]).toInt(), conf, ivl3);
     return ivl4;
   }
 
@@ -884,8 +887,15 @@ class Scheduler {
   }
 
   // ここでの設定がどうかしている
-  int _daysLate(Card card) {
-    return max(0, today! - card.due); //dueの値がおかしいときがある
+  int daysLate(Card card) {
+    // todayがnullの場合、getTodayInDays()を呼び出して初期化する
+    today ??= getTodayInDays();
+
+    // todayがnullでないことを確認し、millisecondsを計算
+    int todayMilliseconds = today! * 24 * 60 * 60 * 1000;
+
+    // card.dueがnullや異常な値でないか確認するロジックを追加（必要であればここもチェック）
+    return max(0, today! - card.due);
   }
 
   void _updateRevIvl(Card card, int ease) {
