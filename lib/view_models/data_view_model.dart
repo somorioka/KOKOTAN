@@ -387,4 +387,142 @@ class DataViewModel extends ChangeNotifier {
     _searchResults = results;
     notifyListeners();
   }
+
+  // currentCardを設定するメソッド
+  void setCurrentCard(srs.Card card) {
+    currentCard = card;
+    notifyListeners(); // 状態が変更されたことを通知
+  }
+
+  // 編集されたWordデータをcurrentCardに反映
+  void updateWord(
+      String word,
+      String pronunciation,
+      String mainMeaning,
+      String subMeaning,
+      String sentence,
+      String sentenceJp,
+      String englishDefinition,
+      String etymology,
+      String memo,
+      String? imageUrl) {
+    print('updateWordを発動しました');
+    if (currentCard != null) {
+      currentCard!.word = srs.Word(
+        id: currentCard!.word.id,
+        word: word,
+        pronunciation: pronunciation.isNotEmpty ? pronunciation : null,
+        mainMeaning: mainMeaning,
+        subMeaning: subMeaning.isNotEmpty ? subMeaning : null,
+        sentence: sentence,
+        sentenceJp: sentenceJp,
+        wordVoice: currentCard!.word.wordVoice,
+        sentenceVoice: currentCard!.word.sentenceVoice,
+        englishDefinition: englishDefinition,
+        etymology: etymology,
+        memo: memo,
+        imageUrl: imageUrl,
+      );
+      updateCurrentCard();
+    } else {
+      print('currentCardがnullだったのでupdateCurrentCardを発動しませんでした');
+    }
+  }
+
+  // currentCardをデータベースに保存
+  Future<void> updateCurrentCard() async {
+    print('updateCurrentCardを発動しました');
+    if (currentCard != null) {
+      await dbHelper.updateCard(currentCard!);
+      notifyListeners();
+    }
+  }
+
+//   void addCardToHistory(srs.Card card) {
+//     // 履歴に同じIDのカードが既に存在するか確認
+//     bool alreadyExists =
+//         _cardHistory.any((historyCard) => historyCard.id == card.id);
+
+//     if (alreadyExists) {
+//       print('同じカードが履歴に存在するため、追加しません');
+//       return; // 同じカードが存在する場合は何もしない
+//     }
+
+//     // カードのディープコピーを手動で作成
+//     final copiedCard = srs.Card(
+//       card.word, // Wordクラスはそのままコピー（変更しないならそのまま）
+//       id: card.id, // IDもそのままコピー
+//     )
+//       ..due = card.due
+//       ..crt = card.crt
+//       ..type = card.type
+//       ..queue = card.queue
+//       ..ivl = card.ivl
+//       ..factor = card.factor
+//       ..reps = card.reps
+//       ..lapses = card.lapses
+//       ..left = card.left;
+
+//     // コピーしたカードを履歴に追加
+//     _cardHistory.add(copiedCard);
+
+//     // 履歴の長さが10枚を超えたら、古い履歴を削除
+//     if (_cardHistory.length > 10) {
+//       _cardHistory.removeAt(0); // 一番古い履歴を削除
+//     }
+
+//     // リスナーに変更を通知
+//     notifyListeners();
+//   }
+
+//   Future<srs.Card?> getPreviousCard() async {
+//   if (_cardHistory.isNotEmpty) {
+//     // 履歴から前のカードを取得
+//     final previousCard = _cardHistory.removeLast();
+
+//     // データベース上の元のカードを取得（カードのIDで検索）
+//     final originalCard = await dbHelper.queryCardById(previousCard.id);
+
+//     if (originalCard != null) {
+//       // データベースの元のカードの情報を、履歴のカードの状態で更新
+//       originalCard.due = previousCard.due;
+//       originalCard.crt = previousCard.crt;
+//       originalCard.type = previousCard.type;
+//       originalCard.queue = previousCard.queue;
+//       originalCard.ivl = previousCard.ivl;
+//       originalCard.factor = previousCard.factor;
+//       originalCard.reps = previousCard.reps;
+//       originalCard.lapses = previousCard.lapses;
+//       originalCard.left = previousCard.left;
+
+//       // 更新したカードをデータベースに保存
+//       await dbHelper.updateCard(originalCard);
+//     }
+
+//     // 現在のカードとして previousCard を反映
+//     currentCard = previousCard;
+
+//     // キューの中身をクリア
+//     scheduler!.newQueue = [];
+//     scheduler!.lrnQueue = [];
+//     scheduler!.revQueue = [];
+
+//     // キューを補充
+//     scheduler!.fillAll();
+
+//     notifyListeners(); // UI更新を通知
+//     return previousCard;
+//   }
+//   return null; // 履歴がない場合はnullを返す
+// }
+}
+
+// ヘルプURLを開くためのメソッド
+Future<void> launchHelpURL() async {
+  const url =
+      'https://clumsy-surfboard-249.notion.site/06461862055f482d97fdb8c64eaeb56e?pvs=4';
+  final Uri uri = Uri.parse(url); // Uriを生成
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    throw 'Could not launch $url';
+  }
 }
