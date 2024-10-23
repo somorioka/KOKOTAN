@@ -844,4 +844,10 @@ class Scheduler {
     int ivl = max(1, max(conf['minInt'], (card.ivl * conf['mult']).toInt()));
     return ivl;
   }
+
+  // srs.dart 内に設定を受け取るメソッドを追加
+  void updateDeckLimits({required int newLimit, required int reviewLimit}) {
+    col.deckConf['new']['perDay'] = newLimit;
+    col.deckConf['rev']['perDay'] = reviewLimit;
+  }
 }
