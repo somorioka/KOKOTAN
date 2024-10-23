@@ -172,7 +172,6 @@ class DataViewModel extends ChangeNotifier {
 
   Future<void> _importExcelToDatabase(File file, {int limit = 20}) async {
     print('_importExcelToDatabaseを実行しています');
-    final dbHelper = DatabaseHelper.instance;
     final directory = await getApplicationDocumentsDirectory();
     int wordCount = 0;
 
@@ -180,77 +179,156 @@ class DataViewModel extends ChangeNotifier {
       var bytes = file.readAsBytesSync();
       var excel = Excel.decodeBytes(bytes);
 
+      final db = await dbHelper.database; // データベースをawaitで取得する
+
       for (var table in excel.tables.keys) {
         var sheet = excel.tables[table];
         for (var row in sheet!.rows) {
           if (row[0]?.value.toString() == 'wordid') {
-            continue; // Skip the header row
+            continue; // ヘッダー行をスキップ
           }
 
           int wordId = int.tryParse(row[0]?.value.toString() ?? '') ?? 0;
 
-          // 既にデータベースに存在する単語をスキップ
-          if (await dbHelper.doesWordExist(wordId)) {
-            continue;
-          }
+          // 音声ファイルのパスを生成
+          String wordVoicePath = '${directory.path}/${row[0]?.value}_word.mp3';
+          String sentenceVoicePath =
+              '${directory.path}/${row[0]?.value}_sentence.mp3';
 
-          if (wordCount >= limit) break;
+          // 音声ファイルの存在確認
+          File wordVoiceFile = File(wordVoicePath);
+          File sentenceVoiceFile = File(sentenceVoicePath);
 
-          // 音声ファイルのダウンロードと保存
+          print('このwordIdのファイルをチェックします: $wordId');
+
+          // ファイルの存在を確認
+          bool wordFileExists = wordVoiceFile.existsSync();
+          bool sentenceFileExists = sentenceVoiceFile.existsSync();
+
+          // ファイルのサイズも確認
+          int wordFileSize = wordFileExists ? wordVoiceFile.lengthSync() : 0;
+          int sentenceFileSize =
+              sentenceFileExists ? sentenceVoiceFile.lengthSync() : 0;
+
+          // データベースにその `wordId` が存在するか確認
+          bool wordExists = await dbHelper.doesWordExist(wordId);
+
+          // トランザクションを使用してデータベース操作を行う
+          await db.transaction((txn) async {
+            // 1. WordIDが存在しない場合、新規にデータを挿入
+            if (!wordExists) {
+              print('WordIDが存在しないため、新規に挿入します。:$wordId');
+
           String wordVoiceUrl =
               row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
           String sentenceVoiceUrl =
               row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
-          String wordVoicePath = '';
-          String sentenceVoicePath = '';
 
           if (wordVoiceUrl.isNotEmpty) {
-            wordVoicePath = await _downloadAndSaveFile(
+                wordVoicePath = await _downloadAndSaveFileWithRetry(
                 wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
           }
 
           if (sentenceVoiceUrl.isNotEmpty) {
-            sentenceVoicePath = await _downloadAndSaveFile(sentenceVoiceUrl,
-                '${row[0]?.value}_sentence.mp3', directory.path);
+                sentenceVoicePath = await _downloadAndSaveFileWithRetry(
+                    sentenceVoiceUrl,
+                    '${row[0]?.value}_sentence.mp3',
+                    directory.path);
           }
 
+              // 新しい単語データを挿入
           srs.Word word = srs.Word(
-            id: row.length > 0
-                ? (int.tryParse(row[0]?.value.toString() ?? '') ?? 0)
-                : 0,
+                id: wordId,
             word: row.length > 1 ? (row[1]?.value?.toString() ?? '') : '',
             pronunciation:
                 row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
             mainMeaning:
                 row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
-            subMeaning: row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
-            sentence: row.length > 6 ? (row[6]?.value?.toString() ?? '') : '',
-            sentenceJp: row.length > 8 ? (row[8]?.value?.toString() ?? '') : '',
-            wordVoice: wordVoicePath, // ローカルの音声ファイルパスを保存
-            sentenceVoice: sentenceVoicePath, // ローカルの音声ファイルパスを保存
-          );
+                subMeaning:
+                    row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
+                sentence:
+                    row.length > 6 ? (row[6]?.value?.toString() ?? '') : '',
+                sentenceJp:
+                    row.length > 8 ? (row[8]?.value?.toString() ?? '') : '',
+                wordVoice: wordVoicePath,
+                sentenceVoice: sentenceVoicePath,
+              );
 
-          if (word.id == 0 ||
-              word.word.isEmpty ||
-              word.mainMeaning.isEmpty ||
-              word.sentence.isEmpty ||
-              word.sentenceJp.isEmpty) {
-            continue;
-          }
+              await txn.insert(DatabaseHelper.wordTable,
+                  word.toMap()); // クラス名を使用して静的メンバーにアクセス
+              // カードを作成し挿入
+              srs.Card card = srs.Card(word);
+              await txn.insert(
+                  DatabaseHelper.cardTable, card.toMap()); // クラス名を使用
+            } else {
+              // 2. WordIDが存在し、音声ファイルがない場合、音声ファイルのみ更新
+              if (!wordFileExists ||
+                  wordFileSize == 0 ||
+                  !sentenceFileExists ||
+                  sentenceFileSize == 0) {
+                print('音声ファイルが壊れているか、存在しません。再ダウンロードします。:$wordId');
 
-          await dbHelper.insertWord(word);
+                String wordVoiceUrl =
+                    row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
+                String sentenceVoiceUrl =
+                    row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
 
-          srs.Card card = srs.Card(word); // カスタムのCardクラスを使用
-          await dbHelper.insertCard(card);
+                if (wordVoiceUrl.isNotEmpty) {
+                  wordVoicePath = await _downloadAndSaveFileWithRetry(
+                      wordVoiceUrl,
+                      '${row[0]?.value}_word.mp3',
+                      directory.path);
+                }
+
+                if (sentenceVoiceUrl.isNotEmpty) {
+                  sentenceVoicePath = await _downloadAndSaveFileWithRetry(
+                      sentenceVoiceUrl,
+                      '${row[0]?.value}_sentence.mp3',
+                      directory.path);
+                }
+
+                // 音声ファイルのパスを更新
+                await txn.update(
+                    DatabaseHelper.wordTable,
+                    {
+                      // クラス名を使用
+                      'word_voice': wordVoicePath,
+                      'sentence_voice': sentenceVoicePath,
+                    },
+                    where: '${DatabaseHelper.columnId} = ?',
+                    whereArgs: [wordId]); // クラス名を使用
+              } else {
+                // 3. WordIDも音声ファイルも存在する場合はスキップ
+                print('単語も音声ファイルも既に存在するため、スキップします:$wordId');
+                return;
+              }
+            }
 
           wordCount++;
-          // 進捗率を更新
+            print('Word count: $wordCount, Limit: $limit');
+
+            // 進捗ログ
+            print('進捗: ${(wordCount / limit * 100).toStringAsFixed(2)}%');
+
           _downloadProgress = wordCount / limit;
           notifyListeners();
 
-          if (wordCount >= limit) break;
+            if (wordCount >= limit) {
+              print('Limit reached. Exiting transaction.');
+              return; // トランザクション内でreturnし、外側のループも終了させる
+            }
+          });
+
+          // limit に達したら外側の for ループも終了
+          if (wordCount >= limit) {
+            break;
         }
-        if (wordCount >= limit) break;
+        }
+
+        // limit に達したらテーブルのループを終了
+        if (wordCount >= limit) {
+          break;
+        }
       }
       print('_importExcelToDatabaseが完了しました');
     } catch (e) {
