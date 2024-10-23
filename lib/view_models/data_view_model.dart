@@ -7,8 +7,12 @@ import 'package:kokotan/pages/otsukare.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert'; // JSONを扱うために必要
 
 class DataViewModel extends ChangeNotifier {
+  final dbHelper = DatabaseHelper.instance; // クラス全体で1度だけインスタンス化
+
   List<srs.Word> _words = [];
   List<srs.Card> _cards = [];
   List<srs.Word> _searchResults = [];
@@ -131,6 +135,7 @@ class DataViewModel extends ChangeNotifier {
   // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
   int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
   // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
+  int get totalCardCount => newCardCount + learningCardCount + reviewCardCount;
 
   //エクセルからデータをダウンロード
   Future<void> downloadAndImportExcel() async {
@@ -444,7 +449,6 @@ class DataViewModel extends ChangeNotifier {
   Future<void> fetchWordsAndInitializeScheduler() async {
     print('fetchWordsAndInitializeSchedulerを実行しています');
 
-    final dbHelper = DatabaseHelper.instance;
     final wordRows = await dbHelper.queryAllWords();
     final cardRows = await dbHelper.queryAllCards();
 
@@ -473,14 +477,33 @@ class DataViewModel extends ChangeNotifier {
     await scheduler!.initializeScheduler(onDueUpdated: (card) {
       dbHelper.updateCard(card); // データベースを更新
     });
+    scheduler!.updateDeckLimits(
+      newLimit: getNewCardLimit(),
+      reviewLimit: getReviewCardLimit(),
+    );
+    scheduler!.updateNewCardRatio(); //再起動でnewCardModulusを初期化
     scheduler!.fillAll();
     currentCard = await scheduler!.getCard();
     notifyListeners();
     print('fetchWordsAndInitializeSchedulerが完了しました');
   }
 
+  Future<void> refreshList() async {
+    // データの再読み込み処理
+    _words = await fetchUpdatedWords();
+    _searchResults = _words;
+    notifyListeners(); // リスト更新を通知
+  }
+
+  Future<List<srs.Word>> fetchUpdatedWords() async {
+    // データベースから最新の単語リストを取得
+    final wordRows = await dbHelper.queryAllWords();
+    List<srs.Word> words =
+        wordRows.map((row) => srs.Word.fromMap(row)).toList();
+    return words;
+  }
+
   Future<Map<String, int>> fetchCardQueueDistribution() async {
-    final dbHelper = DatabaseHelper.instance;
     final cardRows = await dbHelper.queryAllCards();
 
     int newCount = 0;
