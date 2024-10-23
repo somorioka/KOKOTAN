@@ -679,14 +679,20 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                 String? voicePath;
 
                 if (showDetails) {
-                  voicePath = word?.sentenceVoice; // 裏面ではsentence_voiceを再生
+                          voicePath =
+                              word?.sentenceVoice; // 裏面ではsentence_voiceを再生
                 } else {
                   voicePath = word?.wordVoice; // 表面ではword_voiceを再生
                 }
 
-                _playVoice(voicePath);
+                        _playVoice(voicePath, viewModel);
               },
               child: Icon(Icons.volume_up),
+            ),
+                    SizedBox(width: 16),
+                  ],
+                ),
+              ],
             ),
             bottomNavigationBar: showDetails
                 ? BottomAppBar(
@@ -696,65 +702,100 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       children: <Widget>[
                         _buildCustomButton(
                           context,
-                          '覚え直す',
+                          1,
                           'assets/images/oboenaosu.png',
-                          Color.fromARGB(255, 255, 91, 91),
+                          Color(0xFFB61C1C),
                           viewModel,
                         ),
                         _buildCustomButton(
                           context,
-                          '微妙',
+                          2,
                           'assets/images/bimyou.png',
-                          Color.fromARGB(255, 111, 243, 197),
+                          Color.fromARGB(255, 40, 113, 114),
                           viewModel,
                         ),
                         _buildCustomButton(
                           context,
-                          'OK',
+                          3,
                           'assets/images/OK.png',
-                          Color.fromARGB(255, 83, 209, 161),
+                          Color.fromARGB(255, 52, 150, 153),
                           viewModel,
                         ),
                         _buildCustomButton(
                           context,
-                          '余裕',
+                          4,
                           'assets/images/yoyuu.png',
-                          Color.fromARGB(255, 33, 176, 175),
+                          Color.fromARGB(255, 60, 176, 180),
                           viewModel,
                         ),
                       ],
                     ),
                   )
                 : BottomAppBar(
-                    color: Colors.blueGrey[50], // 背景色を設定
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    color: Colors.white, // 背景色を設定
+                    padding: EdgeInsets.symmetric(vertical: 3),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         Column(
                           children: [
-                            Text('未学習'),
+                              Text(
+                                '新規',
+                                style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w500, // Bold
+                                    fontSize: 16,
+                                    color: Color(0xFF333333)),
+                              ),
                             Text(
                               viewModel.newCardCount.toString(),
-                              style: TextStyle(fontSize: 20),
+                                style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w700, // Bold
+                                    fontSize: 24,
+                                    color: Color(0xFF333333)),
                             ),
                           ],
                         ),
                         Column(
                           children: [
-                            Text('覚え中'),
+                              Text(
+                                '学習中',
+                                style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w500, // Bold
+                                    fontSize: 16,
+                                    color: Color(0xFF333333)),
+                              ),
                             Text(
                               viewModel.learningCardCount.toString(),
-                              style: TextStyle(fontSize: 20),
+                                style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w700, // Bold
+                                    fontSize: 24,
+                                    color: Color(0xFF333333)),
                             ),
                           ],
                         ),
                         Column(
                           children: [
-                            Text('復習'),
+                              Text(
+                                '復習',
+                                style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w500, // Bold
+                                    fontSize: 16,
+                                    color: Color(0xFF333333)),
+                              ),
                             Text(
                               viewModel.reviewCardCount.toString(),
-                              style: TextStyle(fontSize: 20),
+                                style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w700, // Bold
+                                    fontSize: 24,
+                                    color: Color(0xFF333333)),
                             ),
                           ],
                         ),
@@ -762,13 +803,25 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                     ),
                   ),
           ),
+          ),
         );
       },
     );
   }
 
-  void showSettingsModal(BuildContext context) {
-    showDialog(
+  Future<void> showSettingsModal(BuildContext context) async {
+    // ViewModelから現在のカード枚数を取得
+    final viewModel = Provider.of<DataViewModel>(context, listen: false);
+
+    // テキストコントローラに現在の設定を反映
+    final newCardLimitController = TextEditingController(
+      text: viewModel.getNewCardLimit().toString(),
+    );
+    final reviewCardLimitController = TextEditingController(
+      text: viewModel.getReviewCardLimit().toString(),
+    );
+
+    await showDialog(
       context: context,
       builder: (context) {
         return Consumer<DataViewModel>(
@@ -919,6 +972,109 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     );
   }
 
+  Widget _buildCustomButton(BuildContext context, int ease, String imagePath,
+      Color color, DataViewModel viewModel) {
+    // easeをlabelに変換
+    String label = _getLabelFromEase(ease);
+
+    // cardProperties を取得
+    Map<String, dynamic>? cardProperties = viewModel.prepareCardAnswer(ease);
+
+    //ボタンに表示する日数
+    String ivlText = viewModel.calculateTimeUntilNextReview(
+        viewModel.currentCard!, cardProperties!, ease);
+
+    return Expanded(
+      // ボタンの幅を均等にする
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3.0), // 左右に少し隙間を追加
+        child: ElevatedButton(
+          onPressed: () async {
+            if (cardProperties != null) {
+              await viewModel.answerCard(cardProperties, ease, context);
+            }
+            setState(() {
+              showDetails = false;
+            });
+
+            final newWord = viewModel.currentCard?.word;
+            if (newWord != null) {
+              _playVoice(newWord.wordVoice, viewModel);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: color,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14), // 角を少し丸める
+            ),
+            elevation: 3, // 影を追加
+            padding: const EdgeInsets.symmetric(vertical: 0), // ボタンの内側の余白
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'ZenMaruGothic',
+                  fontWeight: FontWeight.w700, // Bold
+                  fontSize: 20,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 0), // シャドウの位置
+                      blurRadius: 4.0, // ぼかしの範囲
+                      color: Colors.black.withOpacity(0.5), // シャドウの色
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$ivlText', // 計算されたテキストを表示
+                style: TextStyle(
+                  fontFamily: 'ZenMaruGothic',
+                  fontWeight: FontWeight.w500, // Bold
+                  fontSize: 16,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 0), // シャドウの位置
+                      blurRadius: 4.0, // ぼかしの範囲
+                      color: Colors.black.withOpacity(0.5), // シャドウの色
+                    ),
+                  ],
+                ),
+              ),
+              // const SizedBox(height: 2),
+              // Image.asset(
+              //   imagePath,
+              //   width: 40,
+              //   height: 40,
+              // ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // easeの値をlabelに変換する関数
+  String _getLabelFromEase(int ease) {
+    switch (ease) {
+      case 1:
+        return '覚え直す';
+      case 2:
+        return '　微妙　';
+      case 3:
+        return '　OK　';
+      case 4:
+        return '　余裕　';
+      default:
+        return '覚え直す'; // デフォルトは覚え直す
+    }
+  }
+
+  //URL集
   void _searchImage(String keyword) async {
     final _url = Uri.parse('https://www.google.com/search?tbm=isch&q=$keyword');
     if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
