@@ -94,6 +94,7 @@ class DatabaseHelper {
           ''');
   }
 
+  // データの挿入
   Future<int> insertWord(Word word) async {
     Database db = await instance.database;
     return await db.insert(wordTable, word.toMap());
@@ -104,20 +105,7 @@ class DatabaseHelper {
     return await db.insert(cardTable, card.toMap());
   }
 
-  Future<List<Map<String, dynamic>>> queryAllWords() async {
-    Database db = await instance.database;
-    final rows = await db.query(wordTable);
-    print('Queried ${rows.length} rows'); // デバッグメッセージ追加
-    return rows;
-  }
-
-  Future<List<Map<String, dynamic>>> queryAllCards() async {
-    Database db = await instance.database;
-    final rows = await db.query(cardTable);
-    print('Queried ${rows.length} rows'); // デバッグメッセージ追加
-    return rows;
-  }
-
+  // データの更新
   Future<int> updateWord(Word word) async {
     Database db = await instance.database;
     return await db.update(
