@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:kokotan/pages/word_edit_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
@@ -14,14 +15,16 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
   TextEditingController field = TextEditingController();
   bool haspasted = false;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer _audioPlayer = AudioPlayer();
+
+
 
   String getCardQueueLabel(int queue) {
     switch (queue) {
       case 0:
-        return "未学習";
+        return "新規";
       case 1:
-        return "覚え中";
+        return "学習中";
       case 2:
         return "復習";
       default:
@@ -29,17 +32,18 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
-  // void pasteFromClipboard() {
-  //   FlutterClipboard.paste().then((value) {
-  //     setState(() {
-  //       field.text = value;
-  //       haspasted = true;
-  //     });
-  //   }).catchError((e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Error pasting from Clipboard')));
-  //   });
-  // }
+  Color getCardQueueColor(int queue) {
+    switch (queue) {
+      case 0: // 新規
+        return Colors.blue;
+      case 1: // 学習中
+        return Colors.red;
+      case 2: // 復習
+        return Colors.green;
+      default: // その他
+        return Colors.grey;
+    }
+  }
 
   // 音声再生のメソッド
   Future<void> _playVoice(String? voicePath) async {
