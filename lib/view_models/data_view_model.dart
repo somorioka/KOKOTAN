@@ -11,13 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class DataViewModel extends ChangeNotifier {
   List<srs.Word> _words = [];
   List<srs.Card> _cards = [];
-  bool _isLoading = false;
   List<srs.Word> _searchResults = [];
   srs.Scheduler? scheduler;
   srs.Card? currentCard;
   double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
-  bool _allDataDownloaded = false;
-  bool _20DataDownloaded = false; //最初の20枚のデータがダウンロードされたか？
+  bool _isAllDataDownloaded = false;
+  bool _is20DataDownloaded = false; //最初の20枚のデータがダウンロードされたか？
 
   DataViewModel() {
     _initialize();
@@ -76,15 +75,17 @@ class DataViewModel extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-    await _loadDataDownloadedFlag(); // ここでデータダウンロードフラグを非同期に読み込む
+    _prefs = await SharedPreferences.getInstance();
+    _loadLimitSettings();
+    await _loadAllDataDownloadedFlag(); // ここでデータダウンロードフラグを非同期に読み込む
   }
 
-  Future<void> _loadDataDownloadedFlag() async {
+  Future<void> _loadAllDataDownloadedFlag() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    _allDataDownloaded = prefs.getBool('allDataDownloaded') ?? false;
+    _isAllDataDownloaded = prefs.getBool('allDataDownloaded') ?? false;
   }
 
-  Future<void> _saveDataDownloadedFlag(bool value) async {
+  Future<void> _saveAllDataDownloadedFlag(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('allDataDownloaded', value);
   }
@@ -96,15 +97,15 @@ class DataViewModel extends ChangeNotifier {
 
   Future<void> _load20DataDownloadedFlag() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    _20DataDownloaded = prefs.getBool('20DataDownloaded') ?? false;
+    _is20DataDownloaded = prefs.getBool('20DataDownloaded') ?? false;
   }
 
   Future<void> initializeData() async {
     print('initializeDataを実行しています');
     await _load20DataDownloadedFlag(); // ここで20枚データダウンロードフラグも読み込む
-    print('_20DataDownloaded:$_20DataDownloaded');
+    print('_20DataDownloaded:$_is20DataDownloaded');
 
-    if (_20DataDownloaded) {
+    if (_is20DataDownloaded) {
       // 20枚のデータがダウンロード済みの場合のみ、スケジューラを初期化
     await fetchWordsAndInitializeScheduler();
     // バックグラウンドで残りのデータをダウンロード
@@ -116,7 +117,8 @@ class DataViewModel extends ChangeNotifier {
 
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
-  bool get isLoading => _isLoading;
+  bool get is20DataDownloaded => _is20DataDownloaded;
+  bool get isAllDataDownloaded => _isAllDataDownloaded;
 
   List<srs.Word> get searchResults => _searchResults;
   srs.Card? get card => currentCard;
@@ -133,7 +135,6 @@ class DataViewModel extends ChangeNotifier {
   //エクセルからデータをダウンロード
   Future<void> downloadAndImportExcel() async {
     print('downloadAndImportExcelを実行しています');
-    _isLoading = true;
 
     notifyListeners();
 
@@ -152,9 +153,9 @@ class DataViewModel extends ChangeNotifier {
         print('20枚分のデータがダウンロードされました');
 
         //20枚のデータがダウンロードされたことを保存
-        _20DataDownloaded = true;
-        await _save20DataDownloadedFlag(_20DataDownloaded);
-        print('_20DataDownloaded:$_20DataDownloaded');
+        _is20DataDownloaded = true;
+        await _save20DataDownloadedFlag(_is20DataDownloaded);
+        print('_20DataDownloaded:$_is20DataDownloaded');
         print("エクセルから20枚分のデータをダウンロードしました");
 
         await fetchWordsAndInitializeScheduler();
@@ -164,7 +165,6 @@ class DataViewModel extends ChangeNotifier {
     } catch (e) {
       print('Error during download and import: $e');
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
     print('downloadAndImportExcelが完了しました');
