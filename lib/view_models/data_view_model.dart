@@ -23,6 +23,58 @@ class DataViewModel extends ChangeNotifier {
     _initialize();
   }
 
+  // 新規カードと復習カードの設定を更新
+  Future<void> updateCardSettings({
+    int? newCardLimitPermanent, // 永続的な新規カード設定
+    int? reviewCardLimitPermanent, // 永続的な復習カード設定
+  }) async {
+    if (newCardLimitPermanent != null) {
+      newCardLimit = newCardLimitPermanent;
+      await _prefs?.setInt('newCardLimit', newCardLimit); // 永続化
+    }
+
+    if (reviewCardLimitPermanent != null) {
+      reviewCardLimit = reviewCardLimitPermanent;
+      await _prefs?.setInt('reviewCardLimit', reviewCardLimit); // 永続化
+    }
+
+    // デッキ設定を更新
+    scheduler?.updateDeckLimits(
+      newLimit: getNewCardLimit(),
+      reviewLimit: getReviewCardLimit(),
+    );
+
+    await scheduler?.reset((srs.Card card) {
+      dbHelper.updateCard(card);
+    });
+
+    notifyListeners();
+  }
+
+  // 新規カードの上限を取得
+  int getNewCardLimit() {
+    return newCardLimit;
+  }
+
+  // 復習カードの上限を取得
+  int getReviewCardLimit() {
+    return reviewCardLimit;
+  }
+
+  int newCardLimit = srs.deckDefaultConf['new']['perDay']; // 初期値をデフォルト設定から取得
+  int reviewCardLimit = srs.deckDefaultConf['rev']['perDay']; // 初期値をデフォルト設定から取得
+
+  SharedPreferences? _prefs;
+  // SharedPreferencesから設定をロードする
+  Future<void> _loadLimitSettings() async {
+    _prefs = await SharedPreferences.getInstance();
+    newCardLimit =
+        _prefs?.getInt('newCardLimit') ?? srs.deckDefaultConf['new']['perDay'];
+    reviewCardLimit = _prefs?.getInt('reviewCardLimit') ??
+        srs.deckDefaultConf['rev']['perDay'];
+    notifyListeners();
+  }
+
   Future<void> _initialize() async {
     await _loadDataDownloadedFlag(); // ここでデータダウンロードフラグを非同期に読み込む
   }
