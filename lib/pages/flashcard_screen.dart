@@ -46,17 +46,23 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   }
 
   // 音声再生のメソッド
-  Future<void> _playVoice(String? voicePath) async {
+  Future<void> _playVoice(String? voicePath, DataViewModel viewModel) async {
     if (voicePath != null && voicePath.isNotEmpty) {
       final file = File(voicePath);
       if (await file.exists()) {
+        final fileSize = await file.length();
+        print('Playing file from path: $voicePath, size: $fileSize bytes');
         try {
-          await _audioPlayer.play(DeviceFileSource(voicePath)); // デバイスのファイルを再生
+          await _audioPlayer.stop(); // 再生前に停止
+          await _audioPlayer.dispose(); // プレイヤーを完全にリセット
+          _audioPlayer = AudioPlayer(); // 新しいインスタンスを作成
+          await _audioPlayer.play(DeviceFileSource(voicePath)); // ファイルを再生
         } catch (e) {
           print('Error playing audio: $e');
         }
       } else {
         print('File not found at path: $voicePath');
+        await viewModel.reDownloadAndImportExcel();
       }
     } else {
       print('音声ファイルが見つかりません');
