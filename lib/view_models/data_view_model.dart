@@ -258,36 +258,106 @@ class DataViewModel extends ChangeNotifier {
     }
   }
 
+// リトライ機能を持つダウンロード関数
+  Future<String> _downloadAndSaveFileWithRetry(
+      String url, String fileName, String dir,
+      {int retries = 3}) async {
+    for (int attempt = 0; attempt < retries; attempt++) {
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final file = File('$dir/$fileName');
+          await file.writeAsBytes(response.bodyBytes);
+          print('File downloaded and saved to: $file.path');
+          return file.path;
+        } else {
+          print('Failed to download file: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('Error downloading file: $e');
+      }
+      print('Retrying download ($attempt/$retries)...');
+    }
+    throw Exception('Failed to download file after $retries retries.');
+  }
+
+  Future<void> reDownloadAndImportExcel() async {
+    print('reDownloadAndImportExcelを発動しています');
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/sa_ver01.xlsx');
+    // データダウンロードフラグをfalseに設定
+    _isAllDataDownloaded = false;
+
+    // フラグの値をSharedPreferencesに保存
+    await _saveAllDataDownloadedFlag(_isAllDataDownloaded);
+
+    // すべてのデータをインポートする
+    downloadRemainingDataInBackground();
+
+    print('reDownloadAndImportExcelが完了しました');
+  }
+
   Future<String> _downloadAndSaveFile(
       String url, String fileName, String dir) async {
+    try {
+      // ディレクトリが存在するか確認し、なければ作成
+      final directory = Directory(dir);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+        print('Directory created at: $dir');
+      } else {
+        print('Directory exists at: $dir');
+      }
+
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final file = File('$dir/$fileName');
       await file.writeAsBytes(response.bodyBytes);
+
+        // ファイルサイズの確認
+        final fileSize = await file.length();
+        print('File downloaded and saved to: ${file.path}');
+        print('File size: $fileSize bytes');
+
+        // ファイルの存在確認
+        if (await file.exists()) {
+          print('File exists at: ${file.path}');
+        } else {
+          print('File does not exist at: ${file.path}');
+        }
+
       return file.path;
     } else {
+        print('Failed to download file: ${response.statusCode}');
       throw Exception('Failed to download file');
+      }
+    } catch (e) {
+      print('Error downloading file: $e');
+      return ''; // 空のパスを返す
     }
   }
 
   Future<void> downloadRemainingDataInBackground() async {
-    if (_allDataDownloaded) {
+    if (_isAllDataDownloaded) {
       print('全てのデータがダウンロードされています');
       return;
     }
+
     print('残りのデータをバックグラウンドでダウンロードします');
 
     // すべてのデータをインポートするように設定 (limit=無制限)
     final directory = await getApplicationDocumentsDirectory();
     final file = File('${directory.path}/sa_ver01.xlsx');
+
     if (await file.exists()) {
       // 既に存在するExcelファイルからデータを取り込む
-      await _importExcelToDatabase(file, limit: 1484);
+      await _importExcelToDatabase(file, limit: 10000);
+
       print('全てのデータがダウンロードされました');
 
-      // フラグをtrueに設定
-      await _saveDataDownloadedFlag(true);
-      _allDataDownloaded = true;
+      // ここでダウンロードが完了してからフラグをtrueに設定
+      await _saveAllDataDownloadedFlag(true); // ここでフラグを保存
+      _isAllDataDownloaded = true; // ここでフラグを更新
     } else {
       print('Error: Excel file not found for background import.');
     }
