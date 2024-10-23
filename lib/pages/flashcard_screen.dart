@@ -495,90 +495,100 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                       // 類義語を検索のセクション
                                       const Text(
                                         '英英辞書',
-                                        style: TextStyle(
+                                    style: const TextStyle(
+                                        fontFamily: 'ZenMaruGothic',
+                                        fontWeight: FontWeight.w500, // Bold
                                             fontSize: 18,
-                                            fontWeight: FontWeight.bold),
+                                        color: Color(0xFF333333)),
                                       ),
-                                      SizedBox(
-                                        width: 100,
-                                        child: ElevatedButton(
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: CustomSearchButton(
+                                          label: 'Cambridge',
                                           onPressed: () {
-                                            _searchCambidge(word.word);
+                                            _searchCambidge(
+                                                word.word); // クロージャーでラップ
                                           },
-                                          child: const Text(
-                                            'Cambridge',
-                                            style: TextStyle(fontSize: 9),
-                                          ),
                                         ),
                                       ),
-                                      ElevatedButton(
+
+                                      const SizedBox(width: 10), // ボタン間にスペースを追加
+                                      Expanded(
+                                        child: CustomSearchButton(
+                                          label: 'Oxford',
                                         onPressed: () {
-                                          _searchOxford(word.word);
+                                            _searchOxford(
+                                                word.word); // クロージャーでラップ
                                         },
-                                        child: Text('Oxford'),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 10),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      // 類義語を検索のセクション
-                                      const Text(
-                                        'その他　',
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      SizedBox(
-                                        width: 100,
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            _searchGogen(word.word);
-                                          },
-                                          child: Text('語源'),
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 100,
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            _searchThesaurus(word.word);
-                                          },
-                                          child: Text('類義語'),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
+
+                                  // その他セクション
+                                  const Text(
+                                    'その他',
+                                    style: const TextStyle(
+                                        fontFamily: 'ZenMaruGothic',
+                                        fontWeight: FontWeight.w500, // Bold
+                                        fontSize: 18,
+                                        color: Color(0xFF333333)),
+                                  ),
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text(
-                                        '　　　　',
-                                        style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      SizedBox(
-                                        width: 100,
-                                        child: ElevatedButton(
+                                      Expanded(
+                                        child: CustomSearchButton(
+                                          label: '語源',
                                           onPressed: () {
-                                            _searchSkell(word.word);
+                                            _searchGogen(
+                                                word.word); // クロージャーでラップ
                                           },
-                                          child: Text('コーパス',
-                                              style: TextStyle(fontSize: 13)),
+                                        ),
+                                        ),
+
+                                      const SizedBox(width: 10), // ボタン間にスペースを追加
+                                      Expanded(
+                                        child: CustomSearchButton(
+                                          label: '類義語',
+                                          onPressed: () {
+                                            _searchThesaurus(
+                                                word.word); // クロージャーでラップ
+                                          },
                                         ),
                                       ),
-                                      SizedBox(
-                                        width: 100,
-                                        child: ElevatedButton(
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // その他の検索セクション
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: CustomSearchButton(
+                                          label: 'コーパス',
                                           onPressed: () {
-                                            _searchTensai(word.word);
+                                            _searchSkell(
+                                                word.word); // クロージャーでラップ
                                           },
-                                          child: Text('天才\n英単語'),
+                                        ),
+                                        ),
+
+                                      const SizedBox(width: 10), // ボタン間にスペースを追加
+                                      Expanded(
+                                        child: CustomSearchButton(
+                                          label: '天才英単語',
+                                          onPressed: () {
+                                            _searchTensai(
+                                                word.word); // クロージャーでラップ
+                                          },
                                         ),
                                       ),
                                     ],
@@ -586,84 +596,25 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                 ],
                               ),
                             ),
-                            // DropRegion(
-                            //   onDropOver: (event) => DropOperation.move,
-                            //   formats: Formats.standardFormats,
-                            //   onPerformDrop: (event) async {
-                            //     final item = event.session.items.first;
-                            //     final reader = item.dataReader!;
-                            //     if (reader.canProvide(Formats.jpeg)) {
-                            //       reader.getFile(Formats.jpeg, (file) {
-                            //         file.readAll().then((data) {
-                            //           setState(() {
-                            //             _imageData = data;
-                            //           });
-                            //         });
-                            //       }, onError: (error) {
-                            //         print('Error reading image: $error');
-                            //       });
-                            //     }
-                            //   },
-                            //   child: _imageData == null
-                            //       ? Container(
-                            //           padding: EdgeInsets.all(20),
-                            //           decoration: BoxDecoration(
-                            //             border: Border.all(
-                            //                 color: Colors.blue, width: 2),
-                            //             borderRadius: BorderRadius.circular(8),
-                            //           ),
-                            //           child: Column(
-                            //             mainAxisSize: MainAxisSize.min,
-                            //             children: <Widget>[
-                            //               Image.asset(
-                            //                   'assets/images/add-picture.png',
-                            //                   width: 50,
-                            //                   height: 50),
-                            //               Text('ここに画像をドロップ！',
-                            //                   style: TextStyle(fontSize: 16)),
-                            //             ],
-                            //           ),
-                            //         )
-                            //       : Image.memory(_imageData!),
-                            // ),
-                            // SizedBox(height: 20),
-                            // if (haspasted)
-                            //   Container(
-                            //     width: double.infinity,
-                            //     padding: EdgeInsets.all(15),
-                            //     decoration: BoxDecoration(
-                            //       color:
-                            //           Color.fromARGB(255, 254, 254, 244), // 背景色
-                            //       border: Border.all(
-                            //           color: Color.fromARGB(255, 248, 210, 154),
-                            //           width: 2), // 枠線
-                            //       borderRadius: BorderRadius.circular(8), // 角丸
-                            //     ),
-                            //     child: Text(
-                            //       '${field.text}',
-                            //       style: TextStyle(
-                            //           fontSize: 16,
-                            //           fontWeight: FontWeight.bold),
-                            //     ),
-                            //   ),
-                            // SizedBox(height: 20),
-                            // ElevatedButton.icon(
-                            //   icon: Icon(Icons.paste, color: Colors.white),
-                            //   onPressed: pasteFromClipboard,
-                            //   label: Text(
-                            //     'ペースト',
-                            //     style: TextStyle(
-                            //       fontSize: 18,
-                            //       color: Colors.white,
-                            //     ),
-                            //   ),
-                            //   style: ElevatedButton.styleFrom(
-                            //     backgroundColor:
-                            //         Color.fromARGB(255, 127, 127, 127),
-                            //     padding: EdgeInsets.symmetric(
-                            //         horizontal: 20, vertical: 10),
-                            //   ),
-                            // ),
+                            const SizedBox(height: 20), // ボタン間にスペースを追加
+
+                            Align(
+                              alignment: Alignment.bottomLeft, // 左下に配置
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: InkWell(
+                                  onTap: _reportError, // タップ時にURLを開く
+                                  child: Text(
+                                    '間違いを報告する',
+                                    style: const TextStyle(
+                                        fontFamily: 'ZenMaruGothic',
+                                        fontWeight: FontWeight.w500, // Bold
+                                        fontSize: 18,
+                                        color: Colors.blue),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
