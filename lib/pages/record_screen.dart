@@ -3,16 +3,48 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 
-class RecordScreen extends StatelessWidget {
+class RecordScreen extends StatefulWidget {
+  @override
+  _RecordScreenState createState() => _RecordScreenState();
+}
+
+class _RecordScreenState extends State<RecordScreen> {
+  Future<Map<String, int>>? _futureCardData;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData(); // 初期化時にデータを取得
+  }
+
+  void _fetchData() {
+    setState(() {
+      _futureCardData = Provider.of<DataViewModel>(context, listen: false)
+          .fetchCardQueueDistribution();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final viewModel = Provider.of<DataViewModel>(context); // viewModelを取得
+
     return Scaffold(
       appBar: AppBar(
         title: Text('記録'),
+        centerTitle: true, // タイトルを中央に配置
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh), // 更新ボタン
+            onPressed: _fetchData, // ボタンを押したらデータを再フェッチ
+          ),
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: launchHelpURL,
+          ),
+        ],
       ),
       body: FutureBuilder<Map<String, int>>(
-        future: Provider.of<DataViewModel>(context, listen: false)
-            .fetchCardQueueDistribution(),
+        future: _futureCardData, // Futureを参照
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -26,31 +58,74 @@ class RecordScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0), // 余白を追加
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 24.0),
                   child: AspectRatio(
-                    aspectRatio: 1.3, // アスペクト比を設定して高さを調整
-                    child: PieChart(
+                      aspectRatio: 1.0, // グラフを大きく
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          PieChart(
                       PieChartData(
                         sections: showingSections(cardData),
-                      ),
+                              centerSpaceRadius: 100, // 中央スペースを調整
                     ),
                   ),
+                          Positioned(
+                            child: Text(
+                              'スタンダードA',
+                              style: TextStyle(
+                                  fontFamily: 'ZenMaruGothic',
+                                  fontWeight: FontWeight.w700, // Bold
+                                  fontSize: 25,
+                                  color: Color(0xFF333333)),
+                            ),
+                          ),
+                        ],
+                      )),
                 ),
-                const SizedBox(height: 20), // チャートとテキストの間に余白を追加
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 10,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Text('未学習: ${cardData['New']} 枚',
-                          style: TextStyle(fontSize: 16)),
-                      Text('覚え中: ${cardData['Learn']} 枚',
-                          style: TextStyle(fontSize: 16)),
-                      Text('復習: ${cardData['Review']} 枚',
-                          style: TextStyle(fontSize: 16)),
+                        _buildStatusColumn('新規', cardData['New']!, Colors.blue),
+                        _buildStatusColumn(
+                            '学習中', cardData['Learn']!, Colors.red),
+                        _buildStatusColumn(
+                            '復習', cardData['Review']!, Colors.green),
                     ],
                   ),
                 ),
+                ),
+                const SizedBox(height: 24),
+                if (!viewModel.isAllDataDownloaded)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'ダウンロード中…\n右上の更新ボタンを押すと反映されるよ',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.redAccent,
+                        fontStyle: FontStyle.italic,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
               ],
             );
           }
@@ -79,7 +154,7 @@ class RecordScreen extends StatelessWidget {
           );
         case 1:
           return PieChartSectionData(
-            color: Colors.orange,
+            color: Colors.red,
             value: cardData['Learn']!.toDouble(),
             title: '${cardData['Learn']}',
             radius: radius,
@@ -106,4 +181,29 @@ class RecordScreen extends StatelessWidget {
       }
     });
   }
+}
+
+Widget _buildStatusColumn(String label, int count, Color color) {
+  return Column(
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+            fontFamily: 'ZenMaruGothic',
+            fontWeight: FontWeight.w700, // Bold
+            fontSize: 20,
+            color: Color(0xFF333333)),
+      ),
+      SizedBox(height: 8),
+      Text(
+        '$count 枚',
+        style: TextStyle(
+          fontFamily: 'ZenMaruGothic',
+          fontWeight: FontWeight.w700, // Bold
+          fontSize: 20,
+          color: color,
+        ),
+      ),
+    ],
+  );
 }
