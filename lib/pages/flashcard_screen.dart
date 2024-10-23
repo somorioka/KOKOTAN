@@ -74,10 +74,11 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     super.initState();
     // 初回表示時にwordVoiceを再生
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final word =
-          Provider.of<DataViewModel>(context, listen: false).currentCard?.word;
+      final viewModel =
+          Provider.of<DataViewModel>(context, listen: false); // ここでviewModelを取得
+      final word = viewModel.currentCard?.word;
       if (word != null) {
-        _playVoice(word.wordVoice); // 表面の音声を再生
+        _playVoice(word.wordVoice, viewModel); // 表面の音声を再生
       }
     });
   }
