@@ -134,41 +134,121 @@ class _ListScreenState extends State<ListScreen> {
                             )),
                           );
 
-                          return ListTile(
-                            title: Text(word.word),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('id: ${word.id}'),
-                                Text('意味: ${word.mainMeaning}'),
-                                Text('意味(サブ): ${word.subMeaning}'),
-                                Text('例文: ${word.sentence}'),
-                                Text('例文意味: ${word.sentenceJp}'),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Card ID: ${card.id}'),
-                                    Text(
-                                        '次の期限: ${DateTime.fromMillisecondsSinceEpoch(card.due)}'),
-                                    Text('type: ${card.type}'),
-                                    Text('Queue: ${card.queue}'),
-                                    Text('Interval: ${card.ivl}'),
-                                    Text('Factor: ${card.factor}'),
-                                    Text('Repetitions: ${card.reps}'),
-                                    Text('Lapses: ${card.lapses}'),
-                                    Text('left: ${card.left}')
-                                  ],
-                                ),
-                              ],
+                      // ラベルを返すヘルパーメソッド
+                      String _getQueueLabel(int queue) {
+                        switch (queue) {
+                          case 0:
+                            return '新規';
+                          case 1:
+                            return '学習中';
+                          case 2:
+                            return '復習';
+                          default:
+                            return '-'; // 万が一他の値が入ってきた場合のデフォルト
+                        }
+                      }
+
+                      Color getCardQueueColor(int queue) {
+                        switch (queue) {
+                          case 0: // 新規
+                            return Colors.blue;
+                          case 1: // 学習中
+                            return Colors.red;
+                          case 2: // 復習
+                            return Colors.green;
+                          default: // その他
+                            return Colors.grey;
+                        }
+                      }
+
+                      return GestureDetector(
+                        onTap: () {
+                          final viewModel = Provider.of<DataViewModel>(context,
+                              listen: false);
+
+                          // viewModelのcurrentCardをリストで選んだカードに変更
+                          viewModel.setCurrentCard(
+                              card); // viewModel.currentCard をリストで選んだカードに更新
+
+                          // WordEditScreenに遷移
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => WordEditScreen(),
                             ),
-                            onTap: () {
-                              // Implement navigation to card details if needed
-                            },
+                          );
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 16.0, horizontal: 8.0),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom:
+                                  BorderSide(color: Colors.grey[300]!), // 下線を追加
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline:
+                                TextBaseline.alphabetic, // アルファベットのベースラインで揃える
+                            children: [
+                              Expanded(
+                                flex: 2, // 各要素の比率を設定
+                                child: Text(
+                                  word.id.toString(),
+                                  style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w500, // Bold
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 4, // 各要素の比率を設定
+                                child: Text(
+                                  word.word,
+                                  style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w700, // Bold
+                                    fontSize: 24,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  card.queue == 0
+                                      ? '-'
+                                      : '${DateTime.fromMillisecondsSinceEpoch(card.due).year}/${DateTime.fromMillisecondsSinceEpoch(card.due).month}/${DateTime.fromMillisecondsSinceEpoch(card.due).day}', // 年/月/日で表示
+                                  textAlign: TextAlign.center, // 期日を中央寄せ
+                                  style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w500, // Bold
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3, // キューは3文字分の幅を確保
+                                child: Text(
+                                  _getQueueLabel(card.queue), // queueに応じたラベルを取得
+                                  textAlign: TextAlign.right, // 右寄せ
+                                  style: TextStyle(
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w500, // Bold
+                                    fontSize: 18,
+                                    color: getCardQueueColor(card?.queue ?? -1),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                           );
                         },
                       ),
                     ),
                   ],
+            ),
                 );
         },
       ),
