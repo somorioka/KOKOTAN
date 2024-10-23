@@ -129,24 +129,32 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                   if (word != null) ...[
                     Padding(
                       padding:
-                          EdgeInsets.only(top: 8.0, left: 25.0, bottom: 20.0),
+                          EdgeInsets.only(top: 8.0, left: 25.0, bottom: 8.0),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline:
+                            TextBaseline.alphabetic, // アルファベットのベースラインで揃える
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             word.word,
-                            style: const TextStyle(
-                                fontSize: 32, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontFamily: 'ZenMaruGothic',
+                                fontWeight: FontWeight.w700, // Bold
+                                fontSize: 40,
+                                color: Color(0xFF333333)),
                           ),
                           const SizedBox(
                             width: 20,
                           ),
                           Text(
                             getCardQueueLabel(card?.queue ?? -1),
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Color.fromARGB(221, 97, 160, 255)),
+                            style: TextStyle(
+                              fontFamily: 'ZenMaruGothic',
+                              fontWeight: FontWeight.w400, // Bold
+                              fontSize: 20,
+                              color: getCardQueueColor(card?.queue ?? -1),
+                            ),
                           ),
                         ],
                       ),
@@ -163,35 +171,59 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                 Text(
                                   word.mainMeaning,
                                   style: const TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w900),
+                                    fontFamily: 'ZenMaruGothic',
+                                    fontWeight: FontWeight.w700, // Bold
+                                    fontSize: 22,
+                                    color: Colors.red,
+                                  ),
                                   softWrap: true,
                                   overflow: TextOverflow.visible,
                                 ),
                                 Text(
-                                  word.subMeaning!,
+                                  word.subMeaning ?? '',
                                   style: const TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w500),
+                                      fontFamily: 'ZenMaruGothic',
+                                      fontWeight: FontWeight.w500, // Bold
+                                      fontSize: 22,
+                                      color: Color(0xFF333333)),
                                   softWrap: true,
                                   overflow: TextOverflow.visible,
                                 ),
                               ],
                             ),
-                            SizedBox(height: 10),
+                            SizedBox(height: 14),
                             Container(
+                                width: double.infinity, // 横幅を最大限に広げる
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  '${word.sentence}\n${word.sentenceJp}',
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        word.sentence,
                                   style: TextStyle(
-                                      fontSize: 18, color: Colors.black87),
+                                            fontFamily: 'ZenMaruGothic',
+                                            fontWeight:
+                                                FontWeight.w500, // 英語を太字に
+                                            fontSize: 21,
+                                            color: Color(0xFF333333)),
+                                      ),
+                                      const SizedBox(
+                                        height: 8,
+                                      ),
+                                      Text(
+                                        word.sentenceJp,
+                                        style: TextStyle(
+                                            fontFamily: 'ZenMaruGothic',
+                                            fontWeight:
+                                                FontWeight.w400, // 日本語は通常の太さ
+                                            fontSize: 18,
+                                            color: Color(0xFF333333)),
                                 ),
                               ),
                             ),
