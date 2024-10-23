@@ -420,13 +420,13 @@ class Scheduler {
       }
     }
 
-    print('checkDayを完了しました');
+    print('checkDayが完了しました');
   }
 
   // 日付のカットオフを更新する
   void _updateCutoff() {
     // コレクションが作成されてからの経過日数を計算
-    today = _daysSinceCreation();
+    today = getTodayInDays();
     // 日の終了時間を設定
     _dayCutoff = _calculateDayCutoff();
     saveDayCutoff(_dayCutoff);
@@ -442,6 +442,18 @@ class Scheduler {
 
     // 次の日の00:00:00をUNIXタイムスタンプ（秒単位）として返す
     return nextMidnight.millisecondsSinceEpoch ~/ 1000;
+  }
+
+  int getTodayInDays() {
+    DateTime now = clock.now();
+    DateTime today =
+        DateTime(now.year, now.month, now.day); // 今日の日付の00:00:00を取得
+    int unixMilliseconds =
+        today.millisecondsSinceEpoch; // 今日の00:00:00時点のUnixタイムスタンプ（ミリ秒）
+
+    const int millisecondsInADay = 24 * 60 * 60 * 1000; // 1日のミリ秒数
+
+    return unixMilliseconds ~/ millisecondsInADay; // ミリ秒を日数に変換
   }
 
   int _daysSinceCreation() {
