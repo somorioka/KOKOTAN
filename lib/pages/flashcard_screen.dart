@@ -101,20 +101,26 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
           onTap: () {
             setState(() {
               showDetails = true;
-              _playVoice(word?.sentenceVoice); // 裏面が表示されたらsentence_voiceを再生
+              _playVoice(word?.sentenceVoice, viewModel); // viewModelを渡す
+              // viewModel.addCardToHistory(viewModel.currentCard!); // 履歴にカードを追加
             });
           },
           child: Scaffold(
             appBar: AppBar(
-              title: Text('Flash Card'),
-              // actions: <Widget>[
-              //   IconButton(
-              //     icon: Icon(Icons.settings),
-              //     onPressed: () {
-              //       showSettingsModal(context);
-              //     },
-              //   ),
-              // ],
+              title: Text('スタンダードA'),
+              centerTitle: true, // タイトルを中央に配置
+              actions: [
+                if (Provider.of<DataViewModel>(context, listen: true)
+                    .isAllDataDownloaded)
+                  IconButton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => showSettingsModal(context), // ダイアログを表示
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.help_outline), // ヘルプアイコンを残す
+                  onPressed: launchHelpURL,
+                ),
+              ],
             ),
             body: SingleChildScrollView(
               child: Column(
