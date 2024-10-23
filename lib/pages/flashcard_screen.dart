@@ -531,47 +531,145 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
       builder: (context) {
         return Consumer<DataViewModel>(
           builder: (context, viewModel, child) {
-            // モーダル内で新規カードの上限を保持する変数
+            return StatefulBuilder(
+              builder: (context, setState) {
+                // デフォルト値を設定 (tempがあればtempの値を優先)
+                newCardLimitController.text = viewModel.newCardLimit.toString();
+                reviewCardLimitController.text =
+                    viewModel.reviewCardLimit.toString();
             return AlertDialog(
-              title: Text('新規カード枚数上限'),
+                  title: const Text('1日にできるカードの上限'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
+                      // 今日だけの新規カード設定（横並び）
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '新規カード',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 80, // テキストフィールドの幅を調整
+                            child: TextField(
+                              controller: newCardLimitController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.right, // テキストを右寄せ
                     decoration: InputDecoration(
-                      labelText: '今日だけ',
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(), // ボーダーを追加
+                                hintText: '入力',
                     ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('枚', style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                      //sizebox
+
+                      // // チェックボックス（新規カード）
+                      // CheckboxListTile(
+                      //   contentPadding: EdgeInsets.zero, // コンテンツのパディングを調整
+                      //   title: const Text(
+                      //     '   今日だけこの設定を使う',
+                      //     style: TextStyle(fontSize: 14), // テキストサイズを小さく
+                      //     overflow: TextOverflow.ellipsis, // テキストを1行に収める
+                      //   ),
+                      //   value: viewModel
+                      //       .isNewCardTempLimit, // SharedPreferences から読み込んだ値
+                      //   onChanged: (bool? value) {
+                      //     setState(() {
+                      //       viewModel.isNewCardTempLimit = value ?? false;
+                      //     });
+                      //   },
+                      // ),
+                      // SizedBox(
+                      //   height: 10,
+                      // ),
+                      // 今日だけの復習カード設定（横並び）
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '復習カード',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 80, // テキストフィールドの幅を調整
+                            child: TextField(
+                              controller: reviewCardLimitController,
                     keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      // 入力を一時変数に保存
-                    },
-                  ),
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'ずっと',
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) {
-                      // 入力を一時変数に保存
-                    },
-                  ),
+                              textAlign: TextAlign.right, // テキストを右寄せ
+                              decoration: InputDecoration(
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(), // ボーダーを追加
+                                hintText: '入力',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('枚', style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                      // // チェックボックス（復習カード）
+                      // CheckboxListTile(
+                      //   contentPadding: EdgeInsets.zero, // コンテンツのパディングを調整
+                      //   title: const Text(
+                      //     '   今日だけこの設定を使う',
+                      //     style: TextStyle(fontSize: 14), // テキストサイズを小さく
+                      //     overflow: TextOverflow.ellipsis, // テキストを1行に収める
+                      //   ),
+                      //   value: viewModel
+                      //       .isReviewCardTempLimit, // SharedPreferences から読み込んだ値
+                      //   onChanged: (bool? value) {
+                      //     setState(() {
+                      //       viewModel.isReviewCardTempLimit = value ?? false;
+                      //     });
+                      //   },
+                      // ),
                 ],
               ),
               actions: <Widget>[
                 TextButton(
-                  child: Text('Cancel'),
+                      child: const Text('キャンセル'),
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
-                  child: Text('保存'),
-                  onPressed: () {
-                    // 保存時に viewModel に値を設定し、UI を更新
-                    Navigator.pop(context);
+                      child: const Text('保存'),
+                      onPressed: () async {
+                        int? newCardLimitPermanent;
+                        int? reviewCardLimitPermanent;
+
+                        // 新規カードの上限値を取得
+                        newCardLimitPermanent =
+                            int.tryParse(newCardLimitController.text) ??
+                                viewModel.getNewCardLimit();
+
+// 復習カードの上限値を取得
+                        reviewCardLimitPermanent =
+                            int.tryParse(reviewCardLimitController.text) ??
+                                viewModel.getReviewCardLimit();
+
+                        // 設定を更新
+                        await viewModel.updateCardSettings(
+                          newCardLimitPermanent: newCardLimitPermanent,
+                          reviewCardLimitPermanent: reviewCardLimitPermanent,
+                        );
+
+                        Navigator.pop(context); // ダイアログを閉じる
                   },
                 ),
               ],
+                );
+              },
             );
           },
         );
