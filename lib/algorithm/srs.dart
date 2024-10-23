@@ -149,6 +149,10 @@ class Word {
       'sentence_jp': sentenceJp,
       'word_voice': wordVoice,
       'sentence_voice': sentenceVoice,
+      'english_definition': englishDefinition, // 新しいプロパティ
+      'etymology': etymology, // 新しいプロパティ
+      'memo': memo, // 新しいプロパティ
+      'image_url': imageUrl, // 新しいプロパティ
     };
   }
 
@@ -163,6 +167,10 @@ class Word {
       sentenceJp: map['sentence_jp'],
       wordVoice: map['word_voice'],
       sentenceVoice: map['sentence_voice'],
+      englishDefinition: map['english_definition'], // 新しいプロパティ
+      etymology: map['etymology'], // 新しいプロパティ
+      memo: map['memo'], // 新しいプロパティ
+      imageUrl: map['image_url'], // 新しいプロパティ
     );
   }
 }
