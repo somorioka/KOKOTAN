@@ -364,7 +364,6 @@ class Scheduler {
     assert(card.queue >= 0 && card.queue <= 4);
 
     card.reps += 1;
-    _removeCardFromQueue(card);
 
     if (card.queue == 0) {
       // 新規キューから来た場合、学習キューへ移動
