@@ -18,7 +18,18 @@ class _ListScreenState extends State<ListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Flashcards'),
+        title: Text('単語リスト'),
+        centerTitle: true, // タイトルを中央に配置
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: viewModel.refreshList, // 更新ボタン
+          ),
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: launchHelpURL,
+          ),
+        ],
       ),
       body: Consumer<DataViewModel>(
         builder: (context, viewModel, child) {
