@@ -357,12 +357,148 @@ class DataViewModel extends ChangeNotifier {
     };
   }
 
-  Future<void> answerCard(int ease, BuildContext context) async {
+  // prepareCardAnswer関数内での使用
+  Map<String, dynamic>? prepareCardAnswer(int ease) {
+    // scheduler と currentCard が null でないことを確認
     if (scheduler != null && currentCard != null) {
-      scheduler!.answerCard(currentCard!, ease);
+      // currentCardをMapに変換してコピーを作成
+      Map<String, dynamic> cardMap = currentCard!.toMap();
+
+      // srs名前空間からCardクラスを呼び出す
+      srs.Card currentCardCopy = srs.Card.fromMap(cardMap, currentCard!.word);
+
+      // currentCardCopyをanswerCardで操作
+      scheduler!.answerCard(currentCardCopy, ease);
+
+      // JSON形式で保存するプロパティをまとめる
+      Map<String, dynamic> cardProperties = {
+        'id': currentCardCopy.id,
+        'due': currentCardCopy.due,
+        'crt': currentCardCopy.crt,
+        'type': currentCardCopy.type,
+        'queue': currentCardCopy.queue,
+        'ivl': currentCardCopy.ivl,
+        'factor': currentCardCopy.factor,
+        'reps': currentCardCopy.reps,
+        'lapses': currentCardCopy.lapses,
+        'left': currentCardCopy.left,
+      };
+
+      // easeに応じたキー名を生成
+      String easeKey = 'easeState$ease';
+
+      // JSON形式に変換
+      String jsonCardProperties = jsonEncode(cardProperties);
+
+      // 計算結果を返す
+      return cardProperties;
+    } else {
+      // scheduler か currentCard が null の場合は null を返す
+      print("scheduler or currentCard is null, cannot proceed.");
+      return null;
+    }
+  }
+
+  String calculateTimeUntilNextReview(
+      srs.Card currentCard, Map<String, dynamic> cardProperties, int ease) {
+    // currentCard から type と left を取得
+    int type = currentCard.type;
+    int left = currentCard.left % 1000; // left を 1000 で割った余りを使用
+    int ivl = cardProperties['ivl']; // ivl は cardProperties から取得
+
+    print('Debug - card.type: $type, card.left: $left, ease: $ease, ivl: $ivl');
+
+    // ivlが30日を超えた場合は「ヶ月」で表示
+    String formatIvl(int ivl) {
+      if (ivl > 30) {
+        double months = ivl / 30;
+        return '${months.toStringAsFixed(1)}ヶ月後'; // 小数点第一位まで「ヶ月」で表示
+      } else {
+        return '$ivl日後'; // 30日以下の場合はそのまま日で表示
+      }
+    }
+
+    // card.type と ease に基づいて時間を計算
+    if (type == 0) {
+      switch (ease) {
+        case 1:
+          return '1分後';
+        case 2:
+          return '6分後';
+        case 3:
+          return '10分後';
+        case 4:
+          return formatIvl(ivl); // ivlをフォーマットして表示
+      }
+    } else if (type == 1) {
+      if (left == 2) {
+        // leftの値が 2 の場合
+        switch (ease) {
+          case 1:
+            return '1分後';
+          case 2:
+            return '6分後';
+          case 3:
+            return '10分後';
+          case 4:
+            return formatIvl(ivl); // ivlをフォーマットして表示
+        }
+      } else if (left == 1) {
+        // leftの値が 1 の場合
+        switch (ease) {
+          case 1:
+            return '1分後';
+          case 2:
+            return '10分後';
+          case 3:
+            return '1日後';
+          case 4:
+            return formatIvl(ivl); // ivlをフォーマットして表示
+        }
+      }
+    } else if (type == 2) {
+      switch (ease) {
+        case 1:
+          return '10分後';
+        case 2:
+        case 3:
+        case 4:
+          return formatIvl(ivl); // ivlをフォーマットして表示
+      }
+    } else if (type == 3) {
+      switch (ease) {
+        case 1:
+          return '10分後';
+        case 2:
+          return '15分後';
+        case 3:
+        case 4:
+          return formatIvl(ivl); // ivlをフォーマットして表示
+      }
+    }
+
+    // 万が一どれにも該当しない場合は "N/A" を返す
+    return 'N/A';
+  }
+
+  Future<void> answerCard(Map<String, dynamic> cardProperties, int ease,
+      BuildContext context) async {
+    if (scheduler != null && currentCard != null) {
+      scheduler!.removeCardFromQueue(currentCard!);
+      // cardPropertiesがnullでない場合、currentCardのプロパティを更新
+      if (cardProperties != null) {
+        currentCard!.ivl = cardProperties['ivl'];
+        currentCard!.factor = cardProperties['factor'];
+        currentCard!.due = cardProperties['due'];
+        currentCard!.crt = cardProperties['crt'];
+        currentCard!.queue = cardProperties['queue'];
+        currentCard!.type = cardProperties['type'];
+        currentCard!.reps = cardProperties['reps'];
+        currentCard!.lapses = cardProperties['lapses'];
+        currentCard!.left = cardProperties['left'];
+      }
 
       // カード情報を更新
-      final dbHelper = DatabaseHelper.instance;
       await dbHelper.updateCard(currentCard!);
       if (newCardCount == 0 && learningCardCount == 0 && reviewCardCount == 0) {
         Navigator.of(context).pushReplacement(
