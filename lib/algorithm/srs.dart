@@ -373,7 +373,7 @@ class Scheduler {
       card.left = _startingLeft(card);
     }
 
-    if (card.queue == 1 || card.queue == 3) {
+    if (card.queue == 1) {
       _answerLrnCard(card, ease);
     } else if (card.queue == 2) {
       _answerRevCard(card, ease);
