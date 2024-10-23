@@ -20,6 +20,12 @@ class DatabaseHelper {
   static const columnSentenceVoice = 'sentence_voice';
   static const columnSentenceJp = 'sentence_jp';
 
+  // 新しいカラム
+  static const columnEnglishDefinition = 'english_definition'; // 英英
+  static const columnEtymology = 'etymology'; // 語源
+  static const columnMemo = 'memo'; // メモ
+  static const columnImageUrl = 'image_url'; // 画像URL
+
   // Card table columns
   static const cardColumnId = 'id';
   static const cardColumnWordId = 'word_id';
@@ -60,7 +66,13 @@ class DatabaseHelper {
             $columnSubMeaning TEXT,
             $columnSentence TEXT,
             $columnSentenceVoice TEXT,
-            $columnSentenceJp TEXT
+        $columnSentenceJp TEXT,
+
+        -- 新しいカラム
+        $columnEnglishDefinition TEXT,
+        $columnEtymology TEXT,
+        $columnMemo TEXT,
+        $columnImageUrl TEXT
           )
           ''');
 
