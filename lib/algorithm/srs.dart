@@ -412,8 +412,12 @@ class Scheduler {
     int _dayCutoff = (await getDayCutoff()) ?? 0;
     final currentTime = clock.now().millisecondsSinceEpoch ~/ 1000; // 秒単位で取得
 
+    // 日付が変わった場合
     if (currentTime > _dayCutoff) {
       await reset(onDueUpdated); // コールバックがある場合だけ渡す
+      if (onDayChanged != null) {
+        onDayChanged(); // 日付が変わったときのコールバックを呼び出す
+      }
     }
 
     print('checkDayを完了しました');
