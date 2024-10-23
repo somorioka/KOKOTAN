@@ -326,16 +326,28 @@ class Scheduler {
 
     int perDayLimit = col.deckConf['new']['perDay'] as int;
 
+    // すべてのデッキに対して処理を実行
     for (var deck in col.decks.values) {
+      // queue == 0 のカード（新規カード）をすべて取得
       List<Card> newCards =
           deck.cards.where((card) => card.queue == 0).toList();
 
+      // すべての新規カードのdueを初期値に戻す（例: -1を初期値とする場合）
+      for (var card in newCards) {
+        card.due = 9727332272713; // ここでdueを初期値にリセット
+        if (onDueUpdated != null) {
+          onDueUpdated(card); // コールバックがあれば呼び出す
+        }
+      }
+
+      // 新規カードをソートして、一日の制限枚数に合わせて制限を適用
       if (newCards.isNotEmpty) {
         newCards.sort((a, b) => a.id.compareTo(b.id));
         List<Card> limitedCards = newCards.take(perDayLimit).toList();
 
+        // 制限されたカードのdueを0に設定（今日の学習対象にする）
         for (var card in limitedCards) {
-          card.due = 0;
+          card.due = 0; // 今日の対象カードはdueを0にする
           if (onDueUpdated != null) {
             onDueUpdated(card); // コールバックがある場合のみ実行
           }
