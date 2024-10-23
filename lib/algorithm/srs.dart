@@ -404,8 +404,9 @@ class Scheduler {
     return prefs.getInt('dayCutoff');
   }
 
-  // 日付が変わったかどうかを確認し、リセットする
-  Future<void> _checkDay({Function(Card)? onDueUpdated}) async {
+  // 日付が変わったかどうかを確認し、リセット処理を実行
+  Future<void> checkDay(
+      {Function(Card)? onDueUpdated, Function? onDayChanged}) async {
     print('checkDayを実行しています');
 
     int _dayCutoff = (await getDayCutoff()) ?? 0;
