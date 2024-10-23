@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kokotan/Algorithm/srs.dart' as srs;
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
+import 'word_edit_screen.dart'; // 編集画面のインポート
 
 class ListScreen extends StatefulWidget {
   @override
@@ -13,6 +14,8 @@ class _ListScreenState extends State<ListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = Provider.of<DataViewModel>(context); // viewModelを取得
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Flashcards'),
