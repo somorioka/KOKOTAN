@@ -591,7 +591,7 @@ class Scheduler {
     final cutoff = currentTime + (col.colConf['collapseTime'] as int);
     lrnQueue = col.decks.values
         .expand((deck) => deck.cards.where((card) =>
-            card.type == 1 && card.type == 3 &&
+            card.queue == 1 &&
             (collapse ? card.due < cutoff : card.due < currentTime)))
         .toList();
     print('学習キューのカード枚数 : ${_lrnQueue.length}');
