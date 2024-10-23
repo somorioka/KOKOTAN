@@ -192,9 +192,17 @@ class DatabaseHelper {
     Database db = await instance.database;
     var result = await db.query(
       wordTable,
-      where: 'id = ?',
+      where: '$columnId = ?',
       whereArgs: [wordId],
     );
+
+    // デバッグ用: 結果があればそれを出力
+    if (result.isNotEmpty) {
+      print('このwordIDの単語の存在を確認したよ: ${result.first}');
+    } else {
+      print('このwordIDの単語は見当たらない: $wordId');
+    }
+
     return result.isNotEmpty;
   }
 }
