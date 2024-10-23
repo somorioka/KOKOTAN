@@ -116,16 +116,26 @@ class Word {
   String wordVoice; // 音声ファイルのURL
   String sentenceVoice; // 音声ファイルのURL
 
+  // 新しいプロパティを追加
+  String? englishDefinition; // 英英
+  String? etymology; // 語源
+  String? memo; // その他なんでもメモ
+  String? imageUrl; // 画像URL
+
   Word({
     required this.id,
     required this.word,
-    this.pronunciation, // オプショナル
+    this.pronunciation,
     required this.mainMeaning,
-    this.subMeaning, // オプショナル
+    this.subMeaning,
     required this.sentence,
     required this.sentenceJp,
     required this.wordVoice,
     required this.sentenceVoice,
+    this.englishDefinition, // 新しいプロパティ
+    this.etymology, // 新しいプロパティ
+    this.memo, // 新しいプロパティ
+    this.imageUrl, // 新しいプロパティ
   });
 
   Map<String, dynamic> toMap() {
