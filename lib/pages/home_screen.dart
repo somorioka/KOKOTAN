@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
             actions: [
               IconButton(
                 icon: const Icon(Icons.help_outline),
-                onPressed: () {},
+                onPressed: launchHelpURL,
               ),
             ],
           ),
