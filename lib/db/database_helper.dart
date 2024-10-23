@@ -126,6 +126,68 @@ class DatabaseHelper {
     );
   }
 
+  // Word の音声パスを更新するメソッド
+  Future<void> updateWordVoicePaths(
+      int wordId, String wordVoicePath, String sentenceVoicePath) async {
+    Database db = await instance.database;
+
+    await db.update(
+      wordTable,
+      {
+        columnWordVoice: wordVoicePath,
+        columnSentenceVoice: sentenceVoicePath,
+      },
+      where: '$columnId = ?',
+      whereArgs: [wordId],
+    );
+  }
+
+  // 全データの取得
+  Future<List<Map<String, dynamic>>> queryAllWords() async {
+    Database db = await instance.database;
+    final rows = await db.query(wordTable);
+    print('Queried ${rows.length} rows'); // デバッグメッセージ追加
+    return rows;
+  }
+
+  Future<List<Map<String, dynamic>>> queryAllCards() async {
+    Database db = await instance.database;
+    final rows = await db.query(cardTable);
+    print('Queried ${rows.length} rows'); // デバッグメッセージ追加
+    return rows;
+  }
+
+  // IDを使ってカードを取得
+  Future<Card?> queryCardById(int id) async {
+    Database db = await instance.database;
+
+    // カード情報を取得
+    final cardResult = await db.query(
+      cardTable,
+      where: '$cardColumnId = ?',
+      whereArgs: [id],
+    );
+
+    if (cardResult.isNotEmpty) {
+      // カードに紐づくWord情報を取得
+      final wordId = cardResult.first[cardColumnWordId];
+      final wordResult = await db.query(
+        wordTable,
+        where: '$columnId = ?',
+        whereArgs: [wordId],
+      );
+
+      if (wordResult.isNotEmpty) {
+        // Wordとカードのデータを使ってCardを作成
+        Word word = Word.fromMap(wordResult.first); // WordのfromMapを使用
+        return Card.fromMap(cardResult.first, word); // CardのfromMapを使用
+      }
+    }
+
+    return null; // カードまたはWordが見つからなければnullを返す
+  }
+
+  // 特定の単語が存在するか確認
   Future<bool> doesWordExist(int wordId) async {
     Database db = await instance.database;
     var result = await db.query(
