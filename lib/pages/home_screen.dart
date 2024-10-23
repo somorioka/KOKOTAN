@@ -24,29 +24,49 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          body: (viewModel.isLoading)
+          body: Consumer<DataViewModel>(builder: (context, viewModel, child) {
+            return (viewModel.is20DataDownloaded == false)
               ? Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      '単語帳データをダウンロードしています',
-                      style: TextStyle(fontSize: 18),
+                        '単語帳データを20枚だけ先に\nダウンロードしています',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF333333)),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 30),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                        child: LinearProgressIndicator(
+                          value: viewModel.downloadProgress,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.blueAccent,
+                          ),
+                        ),
                     ),
                     const SizedBox(height: 20),
-                    LinearProgressIndicator(
-                      value: viewModel.downloadProgress, // プログレスバーを表示
-                    ),
-                    const SizedBox(height: 20),
-                    Text("${(viewModel.downloadProgress * 100).toInt()}%"),
+                      Text(
+                        "${(viewModel.downloadProgress * 100).toInt()}%",
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF333333)),
+                      ),
                   ],
                 )
               : Column(
                   children: [
+                      const SizedBox(height: 16),
                     Container(
                         height: 241,
                         width: 361,
-                        child: Image.asset('assets/images/home_humor1.png')),
-                    const SizedBox(height: 32),
+                        child: Image.asset('assets/images/home_humor1.png'),
+                      ),
+                      const SizedBox(height: 16),
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.all(8.0),
@@ -54,14 +74,18 @@ class HomeScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           return Card(
                             child: ListTile(
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 15.0,
+                                    horizontal: 15), // 縦のパディングを追加
                               tileColor:
                                   const Color.fromARGB(255, 251, 251, 251),
-                              // trailing: Icon(item['icon'] as IconData),
                               title: const Text(
                                 "スタンダードA",
                                 style: TextStyle(
-                                  fontSize: 18,
-                                ),
+                                      fontFamily: 'ZenMaruGothic',
+                                      fontWeight: FontWeight.w700, // Bold
+                                      fontSize: 20,
+                                      color: Color(0xFF333333)),
                               ),
                               trailing: SizedBox(
                                 width: 160,
@@ -77,14 +101,20 @@ class HomeScreen extends StatelessWidget {
                                           const Text(
                                             '今日できるカード',
                                             style: TextStyle(
+                                                  fontFamily: 'ZenMaruGothic',
+                                                  fontWeight:
+                                                      FontWeight.w400, // Bold
                                               fontSize: 14,
-                                            ),
+                                                  color: Color(0xFF333333)),
                                           ),
                                           Text(
-                                            "あと${viewModel.newCardCount.toString()}枚",
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                            ),
+                                              "あと${viewModel.totalCardCount.toString()}枚",
+                                              style: TextStyle(
+                                                  fontFamily: 'ZenMaruGothic',
+                                                  fontWeight:
+                                                      FontWeight.w400, // Bold
+                                                  fontSize: 18,
+                                                  color: Color(0xFF333333)),
                                           ),
                                         ],
                                       ),
@@ -92,14 +122,8 @@ class HomeScreen extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     const Icon(
                                       Icons.chevron_right,
-                                      size: 18, // アイコンのサイズを調整
+                                        size: 18,
                                     ),
-                                    // const Text(
-                                    //   '>',
-                                    //   style: TextStyle(
-                                    //       fontSize: 18,
-                                    //       fontWeight: FontWeight.w400),
-                                    // ),
                                   ],
                                 ),
                               ),
@@ -122,27 +146,36 @@ class HomeScreen extends StatelessWidget {
                         },
                       ),
                     ),
-                    SizedBox(
-                      width: 200,
+                      const SizedBox(height: 16),
+                      const SizedBox(height: 16),
+                      // "単語帳を追加する"ボタン
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
                       child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(
-                                1, 240, 240, 240), // ボタンの背景色を指定
-                            foregroundColor: Colors.white, // テキストやアイコンの色を指定
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DeckListPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            '単語帳を追加する',
+                            style: TextStyle(
+                                fontFamily: 'ZenMaruGothic',
+                                fontWeight: FontWeight.w400, // Bold
+                                fontSize: 16,
+                                color: Color(0xFF333333)),
                           ),
-                          onPressed: () {},
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add),
-                              SizedBox(width: 8),
-                              Text("単語帳を追加"),
-                            ],
-                          )),
+                        ),
                     ),
                     const SizedBox(height: 16),
                   ],
-                ));
-    });
+                  );
+          }),
+        );
+      },
+    );
   }
 }
