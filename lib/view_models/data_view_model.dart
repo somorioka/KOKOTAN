@@ -3,7 +3,9 @@ import 'package:kokotan/Algorithm/srs.dart' as srs;
 import 'package:kokotan/db/database_helper.dart';
 import 'dart:io';
 import 'package:excel/excel.dart';
+import 'package:kokotan/model/deck_list.dart';
 import 'package:kokotan/pages/otsukare.dart';
+import 'package:kokotan/model/deck_list.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,67 +23,176 @@ class DataViewModel extends ChangeNotifier {
   double _downloadProgress = 0.0; // 追加: ダウンロード進捗を保持
   bool _isAllDataDownloaded = false;
   bool _is20DataDownloaded = false; //最初の20枚のデータがダウンロードされたか？
+  Map<String, Map<String, dynamic>> deckData = InitialDeckData;
+  Map<int, double> downloadProgressMap = {};
+
+  Map<int, int> todayNewCardsCount = {}; // デッキIDごとに新規カードの処理数を格納
+  Map<int, int> todayReviewCardsCount = {}; // デッキIDごとにレビューカードの処理数を格納
 
   DataViewModel() {
     _initialize();
   }
 
-  // 新規カードと復習カードの設定を更新
-  Future<void> updateCardSettings({
-    int? newCardLimitPermanent, // 永続的な新規カード設定
-    int? reviewCardLimitPermanent, // 永続的な復習カード設定
-  }) async {
-    if (newCardLimitPermanent != null) {
-      newCardLimit = newCardLimitPermanent;
-      await _prefs?.setInt('newCardLimit', newCardLimit); // 永続化
+  // ダウンロード状態を更新
+  void updateDownloadStatus(String deckID, DownloadStatus status) {
+    if (deckData.containsKey(deckID)) {
+      deckData[deckID]!['isDownloaded'] = status;
+      notifyListeners(); // UIに通知
+    }
+  }
+
+  DownloadStatus getDownloadStatus(String deckID) {
+    return deckData[deckID]?['isDownloaded'] ?? DownloadStatus.notDownloaded;
+  }
+
+  String? getDownloadingDeckID() {
+    // 初期データのリストを走査して、ダウンロード中のデッキIDを探す
+    for (String deckID in deckData.keys) {
+      if (getDownloadStatus(deckID) == DownloadStatus.downloading) {
+        return deckID; // ダウンロード中のデッキIDを返す
+      }
+    }
+    return null; // ダウンロード中のデッキが見つからない場合はnullを返す
+  }
+
+  Future<void> initializeDeckData() async {
+    // ロードしたデータが空またはnullの場合、InitialDeckDataをコピーして設定
+    Map<String, Map<String, dynamic>>? loadedData = await loadDeckData();
+
+    if (loadedData.isEmpty) {
+      // データがない場合、InitialDeckDataをdeckDataにコピー
+      deckData = Map<String, Map<String, dynamic>>.from(InitialDeckData);
+      await saveDeckData(deckData); // 初期データを保存
+      print("initializeDeckData: デフォルトのInitialDeckDataを保存しました");
+    } else {
+      // データがある場合、ロードしたデータを使用
+      deckData = loadedData;
     }
 
-    if (reviewCardLimitPermanent != null) {
-      reviewCardLimit = reviewCardLimitPermanent;
-      await _prefs?.setInt('reviewCardLimit', reviewCardLimit); // 永続化
-    }
+    print("initializeDeckData: 最終的なdeckData = $deckData"); // デバッグログで確認
+  }
 
-    // デッキ設定を更新
-    scheduler?.updateDeckLimits(
-      newLimit: getNewCardLimit(),
-      reviewLimit: getReviewCardLimit(),
-    );
-
-    await scheduler?.reset((srs.Card card) {
-      dbHelper.updateCard(card);
+  Future<void> saveDeckData(Map<String, Map<String, dynamic>> data) async {
+    // まず、DownloadStatus を文字列に変換したデータを作成
+    Map<String, Map<String, dynamic>> dataToSave = data.map((key, value) {
+      var newValue = Map<String, dynamic>.from(value);
+      // DownloadStatus を文字列に変換
+      newValue['isDownloaded'] =
+          (value['isDownloaded'] as DownloadStatus).toString().split('.').last;
+      return MapEntry(key, newValue);
     });
 
+    // 変換したデータを JSON 形式で SharedPreferences に保存
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String jsonData = jsonEncode(dataToSave);
+    await prefs.setString('deckData', jsonData);
+  }
+
+  Future<Map<String, Map<String, dynamic>>> loadDeckData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? jsonData = prefs.getString('deckData');
+    if (jsonData != null) {
+      // JSON 形式から Map にデコード
+      Map<String, dynamic> decodedData = jsonDecode(jsonData);
+      return decodedData.map((key, value) {
+        var newValue = Map<String, dynamic>.from(value);
+        // isDownloaded を DownloadStatus に変換
+        newValue['isDownloaded'] = DownloadStatus.values.firstWhere(
+            (e) => e.toString().split('.').last == value['isDownloaded']);
+        return MapEntry(key, newValue);
+      });
+    }
+    return {}; // データがない場合は空のマップを返す
+  }
+
+  // 新規カードと復習カードの設定を更新
+  Future<void> updateCardSettings({
+    int? newCardLimit, // 永続的な新規カード設定
+    int? reviewCardLimit, // 永続的な復習カード設定
+    required int deckID, // required修飾子を追加
+  }) async {
+    if (newCardLimit != null) {
+      deckData[deckID.toString()]?["newPerDayLimit"] = newCardLimit;
+    }
+    if (reviewCardLimit != null) {
+      deckData[deckID.toString()]?["reviewPerDayLimit"] = reviewCardLimit;
+    }
+
+    saveDeckData(deckData);
+
+    //なんかassignのやつ
+    await scheduler!.assignDueToNewCardByDeckID(
+        deckID, dbHelper.updateCard, deckData); // updateCardをコールバックとして渡す
+    scheduler!.fillNew(alwaysRun: true);
+    scheduler!.fillRev(alwaysRun: true, deckData: deckData);
+
     notifyListeners();
   }
-
-  // 新規カードの上限を取得
-  int getNewCardLimit() {
-    return newCardLimit;
-  }
-
-  // 復習カードの上限を取得
-  int getReviewCardLimit() {
-    return reviewCardLimit;
-  }
-
-  int newCardLimit = srs.deckDefaultConf['new']['perDay']; // 初期値をデフォルト設定から取得
-  int reviewCardLimit = srs.deckDefaultConf['rev']['perDay']; // 初期値をデフォルト設定から取得
 
   SharedPreferences? _prefs;
-  // SharedPreferencesから設定をロードする
-  Future<void> _loadLimitSettings() async {
-    _prefs = await SharedPreferences.getInstance();
-    newCardLimit =
-        _prefs?.getInt('newCardLimit') ?? srs.deckDefaultConf['new']['perDay'];
-    reviewCardLimit = _prefs?.getInt('reviewCardLimit') ??
-        srs.deckDefaultConf['rev']['perDay'];
-    notifyListeners();
-  }
+
+// // ダウンロード状況を保存する関数
+//   Future<void> saveDeckData(Map<String, Map<String, dynamic>> deckData) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+
+//     // MapをJSON形式のStringに変換
+//     Map<String, dynamic> jsonReadyData = deckData.map((key, value) {
+//       return MapEntry(key, {
+//         ...value,
+//         'isDownloaded': value['isDownloaded'].toString(), // EnumをStringに変換
+//       });
+//     });
+//     String jsonString = json.encode(jsonReadyData);
+
+//     await prefs.setString('deckData', jsonString);
+//   }
+
+  // Future<Map<String, Map<String, dynamic>>> loadDeckData() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String? jsonString = prefs.getString('deckData');
+
+  //   if (jsonString != null) {
+  //     // JSONデータをデコードし、型を明確に指定
+  //     Map<String, dynamic> decodedData =
+  //         Map<String, dynamic>.from(json.decode(jsonString));
+
+  //     // `isDownloaded`のEnum変換を含めて構造を再構築
+  //     Map<String, Map<String, dynamic>> deckData =
+  //         decodedData.map((key, value) {
+  //       return MapEntry(
+  //         key,
+  //         {
+  //           ...Map<String, dynamic>.from(value),
+  //           'isDownloaded': DownloadStatus.values.firstWhere(
+  //             (e) => e.toString() == value['isDownloaded'],
+  //             orElse: () => DownloadStatus.notDownloaded,
+  //           ),
+  //         },
+  //       );
+  //     });
+
+  //     return deckData;
+  //   } else {
+  //     return {}; // データがない場合は空のMapを返す
+  //   }
+  // }
+
+  // // SharedPreferencesから設定をロードする
+  // Future<void> _loadLimitSettings() async {
+  //   _prefs = await SharedPreferences.getInstance();
+  //   newCardLimit =
+  //       _prefs?.getInt('newCardLimit') ?? srs.deckDefaultConf['new']['perDay'];
+  //   reviewCardLimit = _prefs?.getInt('reviewCardLimit') ??
+  //       srs.deckDefaultConf['rev']['perDay'];
+  //   notifyListeners();
+  // }
 
   Future<void> _initialize() async {
     _prefs = await SharedPreferences.getInstance();
-    _loadLimitSettings();
+    // _loadLimitSettings();
+
     await _loadAllDataDownloadedFlag(); // ここでデータダウンロードフラグを非同期に読み込む
+    await initializeDeckData(); // deckDataにロード済みデータまたはデフォルトをセット
   }
 
   Future<void> _loadAllDataDownloadedFlag() async {
@@ -106,15 +217,9 @@ class DataViewModel extends ChangeNotifier {
 
   Future<void> initializeData() async {
     print('initializeDataを実行しています');
-    await _load20DataDownloadedFlag(); // ここで20枚データダウンロードフラグも読み込む
-    print('_20DataDownloaded:$_is20DataDownloaded');
-
-    if (_is20DataDownloaded) {
-      // 20枚のデータがダウンロード済みの場合のみ、スケジューラを初期化
     await fetchWordsAndInitializeScheduler();
     // バックグラウンドで残りのデータをダウンロード
-    downloadRemainingDataInBackground();
-  }
+    downloadRemainingData();
 
     print('initializeDataが完了しました');
   }
@@ -129,43 +234,58 @@ class DataViewModel extends ChangeNotifier {
   srs.Word? get currentWord => currentCard?.word;
   double get downloadProgress => _downloadProgress; // プログレスを取得
 
-  int get newCardCount => scheduler?.newQueueCount ?? 20;
-  // learningCardCountだけは学習queueタイプの総数で数える
-  int get learningCardCount => _cards.where((card) => card.queue == 1).length;
-  // int get learningCardCount => scheduler?.learningQueueCount ?? 0;
-  int get reviewCardCount => scheduler?.reviewQueueCount ?? 0;
-  // int get reviewCardCount => _cards.where((card) => card.queue == 2).length;
-  int get totalCardCount => newCardCount + learningCardCount + reviewCardCount;
+  // newQueueのカード数を取得
+  int newCardCountByDeckID(int deckID) {
+    return scheduler!.newQueue.where((card) => card.did == deckID).length;
+  }
+
+  int newCardCountByDeckIDforRecord(int deckID) {
+    return _cards.where((card) => card.did == deckID && card.queue == 0).length;
+  }
+
+  // lrnQueueのカード数を取得
+  int learningCardCountByDeckID(int deckID) {
+    return _cards.where((card) => card.did == deckID && card.queue == 1).length;
+  }
+
+  // revQueueのカード数を取得
+  int reviewCardCountByDeckID(int deckID) {
+    return scheduler!.revQueue.where((card) => card.did == deckID).length;
+  }
+
+  int reviewCardCountByDeckIDforRecord(int deckID) {
+    return _cards.where((card) => card.did == deckID && card.queue == 2).length;
+  }
+
+  int totalCardCountByDeckID(int deckID) {
+    int newCardCount = newCardCountByDeckID(deckID);
+    int learningCardCount = learningCardCountByDeckID(deckID);
+    int reviewCardCount = reviewCardCountByDeckID(deckID);
+
+    return newCardCount + learningCardCount + reviewCardCount;
+  }
 
   //エクセルからデータをダウンロード
-  Future<void> downloadAndImportExcel() async {
+  Future<void> downloadInitialData() async {
     print('downloadAndImportExcelを実行しています');
 
-    notifyListeners();
-
     try {
-      const url =
-          'https://kokomirai.jp/wp-content/uploads/2024/08/sa_ver01.xlsx';
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final bytes = response.bodyBytes;
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/sa_ver01.xlsx');
-        await file.writeAsBytes(bytes);
+      // メソッドを呼び出して結果を受け取る
+      var result = await downloadDeckFile();
+
+      if (result != null) {
+        print('デッキID: ${result['deckID']}');
+        print('ファイルパス: ${result['file'].path}');
+        int deckID = int.parse(result['deckID']);
+        File file = result['file'];
 
         //20枚のデータをダウンロード
-        await _importExcelToDatabase(file);
+        await _importExcelToDatabase(file, deckID);
         print('20枚分のデータがダウンロードされました');
-
-        //20枚のデータがダウンロードされたことを保存
-        _is20DataDownloaded = true;
-        await _save20DataDownloadedFlag(_is20DataDownloaded);
-        print('_20DataDownloaded:$_is20DataDownloaded');
-        print("エクセルから20枚分のデータをダウンロードしました");
 
         await fetchWordsAndInitializeScheduler();
       } else {
-        print('Error downloading file: ${response.statusCode}');
+        print('Error downloading file');
       }
     } catch (e) {
       print('Error during download and import: $e');
@@ -175,7 +295,8 @@ class DataViewModel extends ChangeNotifier {
     print('downloadAndImportExcelが完了しました');
   }
 
-  Future<void> _importExcelToDatabase(File file, {int limit = 20}) async {
+  Future<void> _importExcelToDatabase(File file, int deckID,
+      {int limit = 20}) async {
     print('_importExcelToDatabaseを実行しています');
     final directory = await getApplicationDocumentsDirectory();
     int wordCount = 0;
@@ -183,72 +304,56 @@ class DataViewModel extends ChangeNotifier {
     try {
       var bytes = file.readAsBytesSync();
       var excel = Excel.decodeBytes(bytes);
-
       final db = await dbHelper.database; // データベースをawaitで取得する
 
       for (var table in excel.tables.keys) {
         var sheet = excel.tables[table];
         for (var row in sheet!.rows) {
-          if (row[0]?.value.toString() == 'wordid') {
-            continue; // ヘッダー行をスキップ
-          }
+          if (row[0]?.value.toString() == 'wordid') continue; // ヘッダー行をスキップ
 
           int wordId = int.tryParse(row[0]?.value.toString() ?? '') ?? 0;
-
-          // 音声ファイルのパスを生成
           String wordVoicePath = '${directory.path}/${row[0]?.value}_word.mp3';
           String sentenceVoicePath =
               '${directory.path}/${row[0]?.value}_sentence.mp3';
 
-          // 音声ファイルの存在確認
+          // ファイルとサイズの存在確認
           File wordVoiceFile = File(wordVoicePath);
           File sentenceVoiceFile = File(sentenceVoicePath);
-
-          print('このwordIdのファイルをチェックします: $wordId');
-
-          // ファイルの存在を確認
           bool wordFileExists = wordVoiceFile.existsSync();
           bool sentenceFileExists = sentenceVoiceFile.existsSync();
-
-          // ファイルのサイズも確認
           int wordFileSize = wordFileExists ? wordVoiceFile.lengthSync() : 0;
           int sentenceFileSize =
               sentenceFileExists ? sentenceVoiceFile.lengthSync() : 0;
 
-          // データベースにその `wordId` が存在するか確認
-          bool wordExists = await dbHelper.doesWordExist(wordId);
+          // データベースに存在確認
+          bool cardExists = await dbHelper.doesCardExistWithWord(wordId);
 
-          // トランザクションを使用してデータベース操作を行う
           await db.transaction((txn) async {
-            // 1. WordIDが存在しない場合、新規にデータを挿入
-            if (!wordExists) {
+            if (!cardExists) {
               print('WordIDが存在しないため、新規に挿入します。:$wordId');
+              String wordVoiceUrl =
+                  row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
+              String sentenceVoiceUrl =
+                  row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
 
-          String wordVoiceUrl =
-              row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
-          String sentenceVoiceUrl =
-              row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
-
-          if (wordVoiceUrl.isNotEmpty) {
+              if (wordVoiceUrl.isNotEmpty) {
                 wordVoicePath = await _downloadAndSaveFileWithRetry(
-                wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
-          }
-
-          if (sentenceVoiceUrl.isNotEmpty) {
+                    wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
+              }
+              if (sentenceVoiceUrl.isNotEmpty) {
                 sentenceVoicePath = await _downloadAndSaveFileWithRetry(
                     sentenceVoiceUrl,
                     '${row[0]?.value}_sentence.mp3',
                     directory.path);
-          }
+              }
 
-              // 新しい単語データを挿入
-          srs.Word word = srs.Word(
+              srs.Word word = srs.Word(
                 id: wordId,
-            word: row.length > 1 ? (row[1]?.value?.toString() ?? '') : '',
-            pronunciation:
-                row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
-            mainMeaning:
-                row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
+                word: row.length > 1 ? (row[1]?.value?.toString() ?? '') : '',
+                pronunciation:
+                    row.length > 3 ? (row[3]?.value?.toString() ?? '') : '',
+                mainMeaning:
+                    row.length > 4 ? (row[4]?.value?.toString() ?? '') : '',
                 subMeaning:
                     row.length > 5 ? (row[5]?.value?.toString() ?? '') : '',
                 sentence:
@@ -259,85 +364,128 @@ class DataViewModel extends ChangeNotifier {
                 sentenceVoice: sentenceVoicePath,
               );
 
-              await txn.insert(DatabaseHelper.wordTable,
-                  word.toMap()); // クラス名を使用して静的メンバーにアクセス
-              // カードを作成し挿入
-              srs.Card card = srs.Card(word);
-              await txn.insert(
-                  DatabaseHelper.cardTable, card.toMap()); // クラス名を使用
-            } else {
-              // 2. WordIDが存在し、音声ファイルがない場合、音声ファイルのみ更新
-              if (!wordFileExists ||
-                  wordFileSize == 0 ||
-                  !sentenceFileExists ||
-                  sentenceFileSize == 0) {
-                print('音声ファイルが壊れているか、存在しません。再ダウンロードします。:$wordId');
+              await txn.insert(DatabaseHelper.wordTable, word.toMap());
+              srs.Card card = srs.Card(word, deckID);
+              await txn.insert(DatabaseHelper.cardTable, card.toMap());
+            } else if (!wordFileExists ||
+                wordFileSize == 0 ||
+                !sentenceFileExists ||
+                sentenceFileSize == 0) {
+              print('音声ファイルが壊れているか、存在しません。再ダウンロードします。:$wordId');
+              String wordVoiceUrl =
+                  row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
+              String sentenceVoiceUrl =
+                  row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
 
-                String wordVoiceUrl =
-                    row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
-                String sentenceVoiceUrl =
-                    row.length > 7 ? (row[7]?.value?.toString() ?? '') : '';
-
-                if (wordVoiceUrl.isNotEmpty) {
-                  wordVoicePath = await _downloadAndSaveFileWithRetry(
-                      wordVoiceUrl,
-                      '${row[0]?.value}_word.mp3',
-                      directory.path);
-                }
-
-                if (sentenceVoiceUrl.isNotEmpty) {
-                  sentenceVoicePath = await _downloadAndSaveFileWithRetry(
-                      sentenceVoiceUrl,
-                      '${row[0]?.value}_sentence.mp3',
-                      directory.path);
-                }
-
-                // 音声ファイルのパスを更新
-                await txn.update(
-                    DatabaseHelper.wordTable,
-                    {
-                      // クラス名を使用
-                      'word_voice': wordVoicePath,
-                      'sentence_voice': sentenceVoicePath,
-                    },
-                    where: '${DatabaseHelper.columnId} = ?',
-                    whereArgs: [wordId]); // クラス名を使用
-              } else {
-                // 3. WordIDも音声ファイルも存在する場合はスキップ
-                print('単語も音声ファイルも既に存在するため、スキップします:$wordId');
-                return;
+              if (wordVoiceUrl.isNotEmpty) {
+                wordVoicePath = await _downloadAndSaveFileWithRetry(
+                    wordVoiceUrl, '${row[0]?.value}_word.mp3', directory.path);
               }
-            }
+              if (sentenceVoiceUrl.isNotEmpty) {
+                sentenceVoicePath = await _downloadAndSaveFileWithRetry(
+                    sentenceVoiceUrl,
+                    '${row[0]?.value}_sentence.mp3',
+                    directory.path);
+              }
 
-          wordCount++;
-            print('Word count: $wordCount, Limit: $limit');
-
-            // 進捗ログ
-            print('進捗: ${(wordCount / limit * 100).toStringAsFixed(2)}%');
-
-          _downloadProgress = wordCount / limit;
-          notifyListeners();
-
-            if (wordCount >= limit) {
-              print('Limit reached. Exiting transaction.');
-              return; // トランザクション内でreturnし、外側のループも終了させる
+              await txn.update(
+                  DatabaseHelper.wordTable,
+                  {
+                    'word_voice': wordVoicePath,
+                    'sentence_voice': sentenceVoicePath,
+                  },
+                  where: '${DatabaseHelper.columnId} = ?',
+                  whereArgs: [wordId]);
+            } else {
+              print('単語も音声ファイルも既に存在するため、スキップします:$wordId');
+              return;
             }
           });
 
-          // limit に達したら外側の for ループも終了
-          if (wordCount >= limit) {
-            break;
-        }
-        }
+          wordCount++;
+          downloadProgressMap[deckID] = wordCount / limit;
+          notifyListeners();
 
-        // limit に達したらテーブルのループを終了
-        if (wordCount >= limit) {
-          break;
+          if (wordCount >= limit) {
+            print('Limit reached. Breaking outer loops.');
+            break;
+          }
         }
+        if (wordCount >= limit) break;
       }
       print('_importExcelToDatabaseが完了しました');
     } catch (e) {
       print('Error importing Excel data: $e');
+    }
+  }
+
+  // デッキIDとダウンロードされたファイルを返すメソッド
+  Future<Map<String, dynamic>?> downloadDeckFile() async {
+// ダウンロード中のデッキIDを取得
+    String? downloadingDeckID = getDownloadingDeckID();
+
+    if (downloadingDeckID != null) {
+      try {
+        // isDownloaded が downloading のデッキを探す
+        String? fileUrl = deckData[downloadingDeckID]?['fileUrl'];
+        String? deckID = downloadingDeckID;
+
+        if (fileUrl == null || deckID == null) {
+          print('ダウンロード中のデッキが見つかりません');
+          return null;
+        }
+
+        // ファイルをダウンロード
+        final response = await http.get(Uri.parse(fileUrl!));
+        if (response.statusCode == 200) {
+          print('ファイルが正常に取得されました');
+
+          final bytes = response.bodyBytes;
+          final directory = await getApplicationDocumentsDirectory();
+          print('保存ディレクトリ: ${directory.path}');
+
+          final file = File('${directory.path}/$deckID.xlsx');
+          await file.writeAsBytes(bytes);
+
+          print('ダウンロードが完了しました: $fileUrl');
+
+          return {
+            'deckID': deckID,
+            'file': file,
+          };
+        } else {
+          print('ファイルのダウンロード中にエラーが発生しました: ${response.statusCode}');
+          return null;
+        }
+      } catch (e) {
+        print('エラーが発生しました: $e');
+        return null;
+      }
+    }
+  }
+
+  Future<void> updateCardsList() async {
+    try {
+      // カードデータを取得
+      final cardRows = await dbHelper.queryAllCards();
+
+      // デバッグメッセージ
+      print('Updating _cards with ${cardRows.length} entries');
+
+      // 各行をカードオブジェクトに変換してリストに追加
+      _cards = cardRows.map((row) {
+        int wordId = row['word_id'];
+
+        // 対応するWordオブジェクトを見つけてからCardを作成
+        srs.Word word = _words.firstWhere((w) => w.id == wordId,
+            orElse: () => srs.Word.empty());
+        return srs.Card.fromMap(row, word);
+      }).toList();
+
+      // 更新後にリスナーに通知
+      notifyListeners();
+    } catch (e) {
+      print('Error updating _cards: $e');
     }
   }
 
@@ -364,20 +512,24 @@ class DataViewModel extends ChangeNotifier {
     throw Exception('Failed to download file after $retries retries.');
   }
 
+  // 再ダウンロードとインポートメソッド
   Future<void> reDownloadAndImportExcel() async {
-    print('reDownloadAndImportExcelを発動しています');
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/sa_ver01.xlsx');
-    // データダウンロードフラグをfalseに設定
-    _isAllDataDownloaded = false;
+    print('[reDownloadAndImportExcel] メソッドが発動しました');
 
-    // フラグの値をSharedPreferencesに保存
-    await _saveAllDataDownloadedFlag(_isAllDataDownloaded);
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      print('[reDownloadAndImportExcel] Documentsディレクトリ: ${directory.path}');
 
-    // すべてのデータをインポートする
-    downloadRemainingDataInBackground();
+      final file = File('${directory.path}/sa_ver01.xlsx');
+      print('[reDownloadAndImportExcel] ファイルパス: ${file.path}');
 
-    print('reDownloadAndImportExcelが完了しました');
+      await downloadRemainingData();
+      print('[reDownloadAndImportExcel] データダウンロードが完了しました');
+    } catch (e) {
+      print('[reDownloadAndImportExcel] エラーが発生しました: $e');
+    }
+
+    print('[reDownloadAndImportExcel] メソッドが完了しました');
   }
 
   Future<String> _downloadAndSaveFile(
@@ -392,10 +544,10 @@ class DataViewModel extends ChangeNotifier {
         print('Directory exists at: $dir');
       }
 
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final file = File('$dir/$fileName');
-      await file.writeAsBytes(response.bodyBytes);
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final file = File('$dir/$fileName');
+        await file.writeAsBytes(response.bodyBytes);
 
         // ファイルサイズの確認
         final fileSize = await file.length();
@@ -409,10 +561,10 @@ class DataViewModel extends ChangeNotifier {
           print('File does not exist at: ${file.path}');
         }
 
-      return file.path;
-    } else {
+        return file.path;
+      } else {
         print('Failed to download file: ${response.statusCode}');
-      throw Exception('Failed to download file');
+        throw Exception('Failed to download file');
       }
     } catch (e) {
       print('Error downloading file: $e');
@@ -420,29 +572,32 @@ class DataViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadRemainingDataInBackground() async {
-    if (_isAllDataDownloaded) {
+  Future<void> downloadRemainingData() async {
+    if (deckData['isDownloaded'] == DownloadStatus.downloaded) {
       print('全てのデータがダウンロードされています');
       return;
     }
 
     print('残りのデータをバックグラウンドでダウンロードします');
 
-    // すべてのデータをインポートするように設定 (limit=無制限)
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/sa_ver01.xlsx');
+    //resultがnullになるまで繰り返す
+    while (true) {
+      var result = await downloadDeckFile();
+      if (result != null) {
+        int deckID = int.parse(result['deckID']);
+        File file = result['file'];
 
-    if (await file.exists()) {
-      // 既に存在するExcelファイルからデータを取り込む
-      await _importExcelToDatabase(file, limit: 10000);
+        // 既に存在するExcelファイルからデータを取り込む
+        await _importExcelToDatabase(file, deckID, limit: 10000);
+        print('${deckData[deckID.toString()]!['deckName']}の全てのデータがダウンロードされました');
 
-      print('全てのデータがダウンロードされました');
-
-      // ここでダウンロードが完了してからフラグをtrueに設定
-      await _saveAllDataDownloadedFlag(true); // ここでフラグを保存
-      _isAllDataDownloaded = true; // ここでフラグを更新
-    } else {
-      print('Error: Excel file not found for background import.');
+        // ダウンロード完了後、ステータスを更新。保存する必要もあり
+        deckData['$deckID']!['isDownloaded'] = DownloadStatus.downloaded;
+        saveDeckData(deckData);
+      } else {
+        print('すべてのデータがダウンロード済みになっています');
+        break; // resultがnullの場合、ループを終了
+      }
     }
   }
 
@@ -456,6 +611,8 @@ class DataViewModel extends ChangeNotifier {
         wordRows.map((row) => srs.Word.fromMap(row)).toList();
     List<srs.Card> cards = cardRows.map((row) {
       int wordId = row['word_id'];
+      int deckId = row['deck_id']; // デッキIDを取得
+
       srs.Word word = words.firstWhere((w) => w.id == wordId);
       return srs.Card.fromMap(row, word);
     }).toList();
@@ -474,16 +631,19 @@ class DataViewModel extends ChangeNotifier {
     }
 
     scheduler = srs.Scheduler(collection);
-    await scheduler!.initializeScheduler(onDueUpdated: (card) {
-      dbHelper.updateCard(card); // データベースを更新
-    });
-    scheduler!.updateDeckLimits(
-      newLimit: getNewCardLimit(),
-      reviewLimit: getReviewCardLimit(),
+    await scheduler!.initializeScheduler(
+      onDueUpdated: (card) {
+        dbHelper.updateCard(card); // データベースを更新
+      },
+      deckData: deckData, // deckDataを渡す
     );
+
+    // scheduler!.updateDeckLimits(
+    //   newLimit: getNewCardLimit(),
+    //   reviewLimit: getReviewCardLimit(),
+    // );
     scheduler!.updateNewCardRatio(); //再起動でnewCardModulusを初期化
-    scheduler!.fillAll();
-    currentCard = await scheduler!.getCard();
+    scheduler!.fillAll(deckData);
     notifyListeners();
     print('fetchWordsAndInitializeSchedulerが完了しました');
   }
@@ -501,6 +661,51 @@ class DataViewModel extends ChangeNotifier {
     List<srs.Word> words =
         wordRows.map((row) => srs.Word.fromMap(row)).toList();
     return words;
+  }
+
+  Future<Map<String, Map<String, int>>> futureCardData =
+      Future.value({}); // 空のマップで初期化
+
+  Future<Map<String, Map<String, int>>>
+      fetchAllDecksCardQueueDistribution() async {
+    final cardRows = await dbHelper.queryAllCards(); // すべてのカードをデータベースから取得
+    if (cardRows.isEmpty) return {}; // データがない場合、空のマップを返す
+
+    Map<String, Map<String, int>> deckDistribution = {};
+
+    for (var card in cardRows) {
+      String deckID = card['deck_id'].toString();
+      deckDistribution.putIfAbsent(
+          deckID, () => {'New': 0, 'Learn': 0, 'Review': 0});
+
+      if (card['queue'] == 0) {
+        deckDistribution[deckID]!['New'] =
+            deckDistribution[deckID]!['New']! + 1;
+      } else if (card['queue'] == 1) {
+        deckDistribution[deckID]!['Learn'] =
+            deckDistribution[deckID]!['Learn']! + 1;
+      } else if (card['queue'] == 2) {
+        deckDistribution[deckID]!['Review'] =
+            deckDistribution[deckID]!['Review']! + 1;
+      }
+    }
+
+    return deckDistribution;
+  }
+
+  void updateFutureCardData() {
+    futureCardData = fetchAllDecksCardQueueDistribution();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners(); // ビルド後にリスナーに通知
+    });
+  }
+
+  // Streamでデータを定期的に取得
+  Stream<Map<String, Map<String, int>>> get cardDataStream async* {
+    while (true) {
+      await Future.delayed(Duration(seconds: 1)); // 定期的に更新
+      yield await fetchAllDecksCardQueueDistribution(); // 新しいデータをyield
+    }
   }
 
   Future<Map<String, int>> fetchCardQueueDistribution() async {
@@ -653,10 +858,20 @@ class DataViewModel extends ChangeNotifier {
   }
 
   Future<void> answerCard(Map<String, dynamic> cardProperties, int ease,
-      BuildContext context) async {
+      BuildContext context, int deckID) async {
     if (scheduler != null && currentCard != null) {
       scheduler!.removeCardFromQueue(currentCard!);
       // cardPropertiesがnullでない場合、currentCardのプロパティを更新
+
+      if (currentCard!.queue == 0) {
+        deckData[deckID.toString()]!["todayNewCardsCount"] += 1;
+        saveDeckData(deckData);
+      }
+
+      if (currentCard!.queue == 2) {
+        deckData[deckID.toString()]!["todayReviewCardsCount"] += 1;
+        saveDeckData(deckData);
+      }
       if (cardProperties != null) {
         currentCard!.ivl = cardProperties['ivl'];
         currentCard!.factor = cardProperties['factor'];
@@ -671,17 +886,17 @@ class DataViewModel extends ChangeNotifier {
 
       // カード情報を更新
       await dbHelper.updateCard(currentCard!);
-      if (newCardCount == 0 && learningCardCount == 0 && reviewCardCount == 0) {
+      if (totalCardCountByDeckID(deckID) == 0) {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => OtsukareScreen()));
       }
-      currentCard = await getCard();
+      currentCard = await getCard(deckID);
       notifyListeners();
     }
   }
 
-  Future<srs.Card?> getCard() async {
-    return await scheduler?.getCard(); // await で非同期の結果を待つ
+  Future<srs.Card?> getCard(int deckID) async {
+    return await scheduler?.getCard(deckID, deckData); // await で非同期の結果を待つ
   }
 
   void search(String query) {
@@ -701,8 +916,8 @@ class DataViewModel extends ChangeNotifier {
     notifyListeners(); // 状態が変更されたことを通知
   }
 
-  // 編集されたWordデータをcurrentCardに反映
-  void updateWord(
+// 編集されたWordデータをcurrentCardに反映
+  Future<void> updateWordInCurrentCard(
       String word,
       String pronunciation,
       String mainMeaning,
@@ -712,7 +927,8 @@ class DataViewModel extends ChangeNotifier {
       String englishDefinition,
       String etymology,
       String memo,
-      String? imageUrl) {
+      String? imageUrl) async {
+    // 非同期関数にする
     print('updateWordを発動しました');
     if (currentCard != null) {
       currentCard!.word = srs.Word(
@@ -730,19 +946,39 @@ class DataViewModel extends ChangeNotifier {
         memo: memo,
         imageUrl: imageUrl,
       );
-      updateCurrentCard();
+      await updateCurrentCard(); // 非同期処理を待機
     } else {
       print('currentCardがnullだったのでupdateCurrentCardを発動しませんでした');
     }
+    return; // 関数の最後にreturnを追加
   }
 
   // currentCardをデータベースに保存
   Future<void> updateCurrentCard() async {
     print('updateCurrentCardを発動しました');
     if (currentCard != null) {
+      await dbHelper.updateWord(currentCard!.word);
       await dbHelper.updateCard(currentCard!);
       notifyListeners();
     }
+  }
+
+  Future<void> initialAssignDueToNewCard(int deckID) async {
+    await scheduler!.assignDueToNewCardByDeckID(
+        deckID, dbHelper.updateCard, deckData); // updateCardをコールバックとして渡す
+    scheduler!.fillNew(alwaysRun: true);
+  }
+
+  // ダウンロード済みのデッキリストを取得する関数
+  List<Map<String, dynamic>> getAvailableDecks() {
+    return deckData.values
+        .where((deck) => deck["isDownloaded"] != DownloadStatus.notDownloaded)
+        .toList();
+  }
+
+  // 最初のダウンロード済みデッキのdeckIDを取得する関数
+  int? getFirstDeckID(List<Map<String, dynamic>> availableDecks) {
+    return int.tryParse(availableDecks.first['deckID']);
   }
 
 //   void addCardToHistory(srs.Card card) {

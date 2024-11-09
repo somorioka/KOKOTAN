@@ -1,23 +1,29 @@
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:kokotan/model/deck_list.dart';
 import 'package:kokotan/pages/word_edit_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
+import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'dart:typed_data';
 
 class FlashCardScreen extends StatefulWidget {
+  final int deckID;
+  FlashCardScreen(this.deckID, {Key? key})
+      : super(key: key); // コンストラクタでdeckIDを受け取る
+
   @override
   _FlashCardScreenState createState() => _FlashCardScreenState();
 }
 
 class _FlashCardScreenState extends State<FlashCardScreen> {
   bool showDetails = false; // 詳細を表示するかどうかのフラグ
+
   TextEditingController field = TextEditingController();
   bool haspasted = false;
   AudioPlayer _audioPlayer = AudioPlayer();
-
-
 
   String getCardQueueLabel(int queue) {
     switch (queue) {
@@ -45,7 +51,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
     }
   }
 
-  // 音声再生のメソッド
+// 音声再生のメソッド
   Future<void> _playVoice(String? voicePath, DataViewModel viewModel) async {
     if (voicePath != null && voicePath.isNotEmpty) {
       final file = File(voicePath);
@@ -107,11 +113,13 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
           },
           child: Scaffold(
             appBar: AppBar(
-              title: Text('スタンダードA'),
+              title: Text(
+                  viewModel.deckData[(widget.deckID).toString()]?['deckName']),
               centerTitle: true, // タイトルを中央に配置
               actions: [
-                if (Provider.of<DataViewModel>(context, listen: true)
-                    .isAllDataDownloaded)
+                if (viewModel.deckData[(widget.deckID).toString()]![
+                        'isDownloaded'] ==
+                    DownloadStatus.downloaded)
                   IconButton(
                     icon: const Icon(Icons.settings),
                     onPressed: () => showSettingsModal(context), // ダイアログを表示
@@ -159,466 +167,541 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                         ],
                       ),
                     ),
-                    Visibility(
-                      visible: showDetails,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 25.0, right: 25.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Wrap(
-                              children: [
-                                Text(
-                                  word.mainMeaning,
-                                  style: const TextStyle(
+                    if (!showDetails)
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 200),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.touch_app,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 10),
+                              Text(
+                                "Tap!",
+                                style: TextStyle(
                                     fontFamily: 'ZenMaruGothic',
                                     fontWeight: FontWeight.w700, // Bold
-                                    fontSize: 22,
-                                    color: Colors.red,
-                                  ),
-                                  softWrap: true,
-                                  overflow: TextOverflow.visible,
-                                ),
-                                Text(
-                                  word.subMeaning ?? '',
-                                  style: const TextStyle(
-                                      fontFamily: 'ZenMaruGothic',
-                                      fontWeight: FontWeight.w500, // Bold
-                                      fontSize: 22,
-                                      color: Color(0xFF333333)),
-                                  softWrap: true,
-                                  overflow: TextOverflow.visible,
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 14),
-                            Container(
-                                width: double.infinity, // 横幅を最大限に広げる
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(5),
+                                    fontSize: 20,
+                                    color: Color(0xFF333333)),
                               ),
-                              child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        word.sentence,
-                                  style: TextStyle(
-                                            fontFamily: 'ZenMaruGothic',
-                                            fontWeight:
-                                                FontWeight.w500, // 英語を太字に
-                                            fontSize: 21,
-                                            color: Color(0xFF333333)),
-                                      ),
-                                      const SizedBox(
-                                        height: 8,
-                                      ),
-                                      Text(
-                                        word.sentenceJp,
-                                        style: TextStyle(
-                                            fontFamily: 'ZenMaruGothic',
-                                            fontWeight:
-                                                FontWeight.w400, // 日本語は通常の太さ
-                                            fontSize: 18,
-                                            color: Color(0xFF333333)),
-                                ),
-                                    ],
-                                  ),
-                                )),
-                            // ここから追加要素
-                            if (word.imageUrl != null &&
-                                word.imageUrl!.isNotEmpty)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16.0),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.file(
-                                    File(word.imageUrl!), // !を使う前にnullチェック
-                                    width: double.infinity,
-                                    fit: BoxFit.cover, // カード全体に収まるように表示
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Center(
-                                        child: Text(
-                                          '画像を表示できません',
-                                          style: TextStyle(color: Colors.red),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-
-                            if (word.englishDefinition != null &&
-                                word.englishDefinition!.isNotEmpty)
-                            Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Card(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 2,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Text(
-                                          word.englishDefinition!,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Color(0xFF333333),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: -8,
-                                      left: -8,
-                                      child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blueAccent,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          '英英',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            if (word.etymology != null &&
-                                word.etymology!.isNotEmpty)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Visibility(
+                        visible: showDetails,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.only(left: 25.0, right: 25.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Wrap(
                                 children: [
-                                    Card(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 2,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Text(
-                                          word.etymology!,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Color(0xFF333333),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
+                                  Text(
+                                    word.mainMeaning,
+                                    style: const TextStyle(
+                                      fontFamily: 'ZenMaruGothic',
+                                      fontWeight: FontWeight.w700, // Bold
+                                      fontSize: 22,
+                                      color: Colors.red,
                                     ),
-                                    Positioned(
-                                      top: -8,
-                                      left: -8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blueAccent,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          '語源',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                      ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            if (word.memo != null && word.memo!.isNotEmpty)
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Card(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 2,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Text(
-                                          word.memo!,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Color(0xFF333333),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: -8,
-                                      left: -8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blueAccent,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          'メモ',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        ),
-                                      ),
-                                    ],
+                                    softWrap: true,
+                                    overflow: TextOverflow.visible,
                                   ),
-                              ),
-                            const SizedBox(
-                              height: 20,
-                            ),
-                            Divider(
-                              color: Colors.grey, // 線の色
-                              thickness: 1, // 線の太さ
-                              indent: 10, // 左側の余白
-                              endIndent: 10, // 右側の余白
-                            ),
-
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 15.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                  // 画像検索のセクション
-                                      const Text(
-                                    '画像検索',
+                                  Text(
+                                    word.subMeaning ?? '',
                                     style: const TextStyle(
                                         fontFamily: 'ZenMaruGothic',
                                         fontWeight: FontWeight.w500, // Bold
-                                            fontSize: 18,
+                                        fontSize: 22,
                                         color: Color(0xFF333333)),
-                                      ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: '単語',
-                                          onPressed: () {
-                                            _searchImage(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                        ),
-
-                                      const SizedBox(width: 10), // ボタン間にスペースを追加
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: '例文',
-                                          onPressed: () {
-                                            _searchSentence(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // // 辞書を引くのセクション
-                                  // const Text(
-                                  //   '英和辞書',
-                                  //   style: const TextStyle(
-                                  //     fontFamily: 'ZenMaruGothic',
-                                  //     fontWeight: FontWeight.w500, // Bold
-                                  //     fontSize: 18,
-                                  //   ),
-                                  // ),
-                                  // Row(
-                                  //   mainAxisAlignment:
-                                  //       MainAxisAlignment.spaceBetween,
-                                  //   children: [
-                                  //     Expanded(
-                                  //       child: CustomSearchButton(
-                                  //         label: 'weblio',
-                                  //         color: Colors.red,
-                                  //         onPressed: () {
-                                  //           _searchWeblio(
-                                  //               word.word); // クロージャーでラップ
-                                  //         },
-                                  //       ),
-                                  //     ),
-
-                                  //     const SizedBox(width: 10), // ボタン間にスペースを追加
-                                  //     Expanded(
-                                  //       child: CustomSearchButton(
-                                  //         label: '英辞郎',
-                                  //         color: Colors.red,
-                                  //         onPressed: () {
-                                  //           _searchEijiro(
-                                  //               word.word); // クロージャーでラップ
-                                  //         },
-                                  //       ),
-                                  //     ),
-                                  //   ],
-                                  // ),
-                                  // const SizedBox(height: 10),
-
-                                      // 類義語を検索のセクション
-                                      const Text(
-                                        '英英辞書',
-                                    style: const TextStyle(
-                                        fontFamily: 'ZenMaruGothic',
-                                        fontWeight: FontWeight.w500, // Bold
-                                            fontSize: 18,
-                                        color: Color(0xFF333333)),
-                                      ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: 'Cambridge',
-                                          onPressed: () {
-                                            _searchCambidge(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                      ),
-
-                                      const SizedBox(width: 10), // ボタン間にスペースを追加
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: 'Oxford',
-                                        onPressed: () {
-                                            _searchOxford(
-                                                word.word); // クロージャーでラップ
-                                        },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // その他セクション
-                                  const Text(
-                                    'その他',
-                                    style: const TextStyle(
-                                        fontFamily: 'ZenMaruGothic',
-                                        fontWeight: FontWeight.w500, // Bold
-                                        fontSize: 18,
-                                        color: Color(0xFF333333)),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: '語源',
-                                          onPressed: () {
-                                            _searchGogen(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                        ),
-
-                                      const SizedBox(width: 10), // ボタン間にスペースを追加
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: '類義語',
-                                          onPressed: () {
-                                            _searchThesaurus(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // その他の検索セクション
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: 'コーパス',
-                                          onPressed: () {
-                                            _searchSkell(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                        ),
-
-                                      const SizedBox(width: 10), // ボタン間にスペースを追加
-                                      Expanded(
-                                        child: CustomSearchButton(
-                                          label: '天才英単語',
-                                          onPressed: () {
-                                            _searchTensai(
-                                                word.word); // クロージャーでラップ
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                                    softWrap: true,
+                                    overflow: TextOverflow.visible,
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(height: 20), // ボタン間にスペースを追加
+                              SizedBox(height: 14),
+                              Container(
+                                  width: double.infinity, // 横幅を最大限に広げる
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          word.sentence,
+                                          style: TextStyle(
+                                              fontFamily: 'ZenMaruGothic',
+                                              fontWeight:
+                                                  FontWeight.w500, // 英語を太字に
+                                              fontSize: 21,
+                                              color: Color(0xFF333333)),
+                                        ),
+                                        const SizedBox(
+                                          height: 8,
+                                        ),
+                                        Text(
+                                          word.sentenceJp,
+                                          style: TextStyle(
+                                              fontFamily: 'ZenMaruGothic',
+                                              fontWeight:
+                                                  FontWeight.w400, // 日本語は通常の太さ
+                                              fontSize: 18,
+                                              color: Color(0xFF333333)),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
+                              SizedBox(
+                                height: 10,
+                              ),
+                              // ここから追加要素
+                              if (word.imageUrl != null &&
+                                  word.imageUrl!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.file(
+                                      File(word.imageUrl!), // !を使う前にnullチェック
+                                      width: double.infinity,
+                                      fit: BoxFit.cover, // カード全体に収まるように表示
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return const Center(
+                                          child: Text(
+                                            '画像を表示できません',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
 
-                            Align(
-                              alignment: Alignment.bottomLeft, // 左下に配置
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: InkWell(
-                                  onTap: _reportError, // タップ時にURLを開く
-                                  child: Text(
-                                    '間違いを報告する',
-                                    style: const TextStyle(
-                                        fontFamily: 'ZenMaruGothic',
-                                        fontWeight: FontWeight.w500, // Bold
-                                        fontSize: 18,
-                                        color: Colors.blue),
+                              if (word.englishDefinition != null &&
+                                  word.englishDefinition!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 10.0),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: double.infinity, // 横幅を最大限に広げる
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey), // 外枠をグレーに
+                                          borderRadius:
+                                              BorderRadius.circular(12), // 角を丸く
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(
+                                              12.0), // 内側の余白を設定
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                word.englishDefinition!,
+                                                style: const TextStyle(
+                                                  fontFamily: 'ZenMaruGothic',
+                                                  fontSize: 16,
+                                                  color: Color(0xFF333333),
+                                                  fontWeight: FontWeight
+                                                      .w600, // テキストの太さを少し太めに
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: -11,
+                                        left: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Color.fromARGB(
+                                                255, 60, 177, 180),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            '英英',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              if (word.etymology != null &&
+                                  word.etymology!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 10.0),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: double.infinity, // 横幅を最大限に広げる
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey), // 外枠をグレーに
+                                          borderRadius:
+                                              BorderRadius.circular(12), // 角を丸く
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(
+                                              12.0), // 内側の余白を設定
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                word.etymology!,
+                                                style: const TextStyle(
+                                                  fontFamily: 'ZenMaruGothic',
+                                                  fontSize: 16,
+                                                  color: Color(0xFF333333),
+                                                  fontWeight: FontWeight
+                                                      .w600, // テキストの太さを少し太めに
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: -11,
+                                        left: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Color.fromARGB(
+                                                255, 60, 177, 180),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            '語源',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              if (word.memo != null && word.memo!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 10.0),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: double.infinity, // 横幅を最大限に広げる
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey), // 外枠をグレーに
+                                          borderRadius:
+                                              BorderRadius.circular(12), // 角を丸く
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(
+                                              12.0), // 内側の余白を設定
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                word.memo!,
+                                                style: const TextStyle(
+                                                  fontFamily: 'ZenMaruGothic',
+                                                  fontSize: 16,
+                                                  color: Color(0xFF333333),
+                                                  fontWeight: FontWeight
+                                                      .w600, // テキストの太さを少し太めに
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: -11,
+                                        left: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Color.fromARGB(
+                                                255, 60, 177, 180),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: const Text(
+                                            'メモ',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              const SizedBox(
+                                height: 20,
+                              ),
+                              Divider(
+                                color: Colors.grey, // 線の色
+                                thickness: 1, // 線の太さ
+                                indent: 10, // 左側の余白
+                                endIndent: 10, // 右側の余白
+                              ),
+
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 15.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // 画像検索のセクション
+                                    const Text(
+                                      '画像検索',
+                                      style: const TextStyle(
+                                          fontFamily: 'ZenMaruGothic',
+                                          fontWeight: FontWeight.w500, // Bold
+                                          fontSize: 18,
+                                          color: Color(0xFF333333)),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: '単語',
+                                            onPressed: () {
+                                              _searchImage(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+
+                                        const SizedBox(
+                                            width: 10), // ボタン間にスペースを追加
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: '例文',
+                                            onPressed: () {
+                                              _searchSentence(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+
+                                    // // 辞書を引くのセクション
+                                    // const Text(
+                                    //   '英和辞書',
+                                    //   style: const TextStyle(
+                                    //     fontFamily: 'ZenMaruGothic',
+                                    //     fontWeight: FontWeight.w500, // Bold
+                                    //     fontSize: 18,
+                                    //   ),
+                                    // ),
+                                    // Row(
+                                    //   mainAxisAlignment:
+                                    //       MainAxisAlignment.spaceBetween,
+                                    //   children: [
+                                    //     Expanded(
+                                    //       child: CustomSearchButton(
+                                    //         label: 'weblio',
+                                    //         color: Colors.red,
+                                    //         onPressed: () {
+                                    //           _searchWeblio(
+                                    //               word.word); // クロージャーでラップ
+                                    //         },
+                                    //       ),
+                                    //     ),
+
+                                    //     const SizedBox(width: 10), // ボタン間にスペースを追加
+                                    //     Expanded(
+                                    //       child: CustomSearchButton(
+                                    //         label: '英辞郎',
+                                    //         color: Colors.red,
+                                    //         onPressed: () {
+                                    //           _searchEijiro(
+                                    //               word.word); // クロージャーでラップ
+                                    //         },
+                                    //       ),
+                                    //     ),
+                                    //   ],
+                                    // ),
+                                    // const SizedBox(height: 10),
+
+                                    // 類義語を検索のセクション
+                                    const Text(
+                                      '英英辞書',
+                                      style: const TextStyle(
+                                          fontFamily: 'ZenMaruGothic',
+                                          fontWeight: FontWeight.w500, // Bold
+                                          fontSize: 18,
+                                          color: Color(0xFF333333)),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: 'Cambridge',
+                                            onPressed: () {
+                                              _searchCambidge(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+
+                                        const SizedBox(
+                                            width: 10), // ボタン間にスペースを追加
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: 'Oxford',
+                                            onPressed: () {
+                                              _searchOxford(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+
+                                    // その他セクション
+                                    const Text(
+                                      'その他',
+                                      style: const TextStyle(
+                                          fontFamily: 'ZenMaruGothic',
+                                          fontWeight: FontWeight.w500, // Bold
+                                          fontSize: 18,
+                                          color: Color(0xFF333333)),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: '語源',
+                                            onPressed: () {
+                                              _searchGogen(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+
+                                        const SizedBox(
+                                            width: 10), // ボタン間にスペースを追加
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: '類義語',
+                                            onPressed: () {
+                                              _searchThesaurus(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+
+                                    // その他の検索セクション
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: 'コーパス',
+                                            onPressed: () {
+                                              _searchSkell(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+
+                                        const SizedBox(
+                                            width: 10), // ボタン間にスペースを追加
+                                        Expanded(
+                                          child: CustomSearchButton(
+                                            label: '天才英単語',
+                                            onPressed: () {
+                                              _searchTensai(
+                                                  word.word); // クロージャーでラップ
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20), // ボタン間にスペースを追加
+
+                              Align(
+                                alignment: Alignment.bottomLeft, // 左下に配置
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: InkWell(
+                                    onTap: _reportError, // タップ時にURLを開く
+                                    child: Text(
+                                      '間違いを報告する',
+                                      style: const TextStyle(
+                                          fontFamily: 'ZenMaruGothic',
+                                          fontWeight: FontWeight.w500, // Bold
+                                          fontSize: 18,
+                                          color: Colors.blue),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ],
               ),
@@ -675,20 +758,20 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       foregroundColor:
                           const Color.fromARGB(255, 125, 125, 125), // アイコンの色を変更
 
-              onPressed: () {
-                String? voicePath;
+                      onPressed: () {
+                        String? voicePath;
 
-                if (showDetails) {
+                        if (showDetails) {
                           voicePath =
                               word?.sentenceVoice; // 裏面ではsentence_voiceを再生
-                } else {
-                  voicePath = word?.wordVoice; // 表面ではword_voiceを再生
-                }
+                        } else {
+                          voicePath = word?.wordVoice; // 表面ではword_voiceを再生
+                        }
 
                         _playVoice(voicePath, viewModel);
-              },
-              child: Icon(Icons.volume_up),
-            ),
+                      },
+                      child: Icon(Icons.volume_up),
+                    ),
                     SizedBox(width: 16),
                   ],
                 ),
@@ -736,11 +819,11 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                     padding: EdgeInsets.symmetric(vertical: 3),
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Column(
-                          children: [
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Column(
+                            children: [
                               Text(
                                 '新規',
                                 style: TextStyle(
@@ -749,18 +832,20 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                     fontSize: 16,
                                     color: Color(0xFF333333)),
                               ),
-                            Text(
-                              viewModel.newCardCount.toString(),
+                              Text(
+                                viewModel
+                                    .newCardCountByDeckID(widget.deckID)
+                                    .toString(),
                                 style: TextStyle(
                                     fontFamily: 'ZenMaruGothic',
                                     fontWeight: FontWeight.w700, // Bold
                                     fontSize: 24,
                                     color: Color(0xFF333333)),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          children: [
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
                               Text(
                                 '学習中',
                                 style: TextStyle(
@@ -769,18 +854,20 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                     fontSize: 16,
                                     color: Color(0xFF333333)),
                               ),
-                            Text(
-                              viewModel.learningCardCount.toString(),
+                              Text(
+                                viewModel
+                                    .learningCardCountByDeckID(widget.deckID)
+                                    .toString(),
                                 style: TextStyle(
                                     fontFamily: 'ZenMaruGothic',
                                     fontWeight: FontWeight.w700, // Bold
                                     fontSize: 24,
                                     color: Color(0xFF333333)),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          children: [
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: [
                               Text(
                                 '復習',
                                 style: TextStyle(
@@ -789,20 +876,22 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                     fontSize: 16,
                                     color: Color(0xFF333333)),
                               ),
-                            Text(
-                              viewModel.reviewCardCount.toString(),
+                              Text(
+                                viewModel
+                                    .reviewCardCountByDeckID(widget.deckID)
+                                    .toString(),
                                 style: TextStyle(
                                     fontFamily: 'ZenMaruGothic',
                                     fontWeight: FontWeight.w700, // Bold
                                     fontSize: 24,
                                     color: Color(0xFF333333)),
-                            ),
-                          ],
-                        ),
-                      ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-          ),
           ),
         );
       },
@@ -815,11 +904,12 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
 
     // テキストコントローラに現在の設定を反映
     final newCardLimitController = TextEditingController(
-      text: viewModel.getNewCardLimit().toString(),
-    );
+        text: viewModel.deckData[(widget.deckID).toString()]!['newPerDayLimit']
+            .toString());
+
     final reviewCardLimitController = TextEditingController(
-      text: viewModel.getReviewCardLimit().toString(),
-    );
+        text: viewModel.deckData[(widget.deckID).toString()]!['newPerDayLimit']
+            .toString());
 
     await showDialog(
       context: context,
@@ -828,22 +918,36 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
           builder: (context, viewModel, child) {
             return StatefulBuilder(
               builder: (context, setState) {
-                // デフォルト値を設定 (tempがあればtempの値を優先)
-                newCardLimitController.text = viewModel.newCardLimit.toString();
-                reviewCardLimitController.text =
-                    viewModel.reviewCardLimit.toString();
-            return AlertDialog(
-                  title: const Text('1日にできるカードの上限'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+                // デフォルト値を設定
+                newCardLimitController.text = viewModel
+                    .deckData[(widget.deckID).toString()]!['newPerDayLimit']
+                    .toString();
+                reviewCardLimitController.text = viewModel
+                    .deckData[(widget.deckID).toString()]!['reviewPerDayLimit']
+                    .toString();
+                return AlertDialog(
+                  title: const Text(
+                    '1日にできるカードの上限',
+                    style: TextStyle(
+                        fontFamily: 'ZenMaruGothic',
+                        fontWeight: FontWeight.w700, // Bold
+                        fontSize: 20,
+                        color: Color(0xFF333333)),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       // 今日だけの新規カード設定（横並び）
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               '新規カード',
-                              style: TextStyle(fontSize: 20),
+                              style: TextStyle(
+                                  fontFamily: 'ZenMaruGothic',
+                                  fontWeight: FontWeight.w700, // Bold
+                                  fontSize: 20,
+                                  color: Color(0xFF333333)),
                             ),
                           ),
                           SizedBox(
@@ -852,20 +956,26 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                               controller: newCardLimitController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.right, // テキストを右寄せ
-                    decoration: InputDecoration(
+                              decoration: InputDecoration(
                                 contentPadding: EdgeInsets.symmetric(
                                     vertical: 8, horizontal: 8),
                                 border: OutlineInputBorder(), // ボーダーを追加
                                 hintText: '入力',
-                    ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('枚', style: TextStyle(fontSize: 16)),
+                          const Text(
+                            '枚',
+                            style: TextStyle(
+                                fontFamily: 'ZenMaruGothic',
+                                fontWeight: FontWeight.w700, // Bold
+                                fontSize: 20,
+                                color: Color(0xFF333333)),
+                          ),
                         ],
                       ),
-                      //sizebox
-
+                      SizedBox(height: 20),
                       // // チェックボックス（新規カード）
                       // CheckboxListTile(
                       //   contentPadding: EdgeInsets.zero, // コンテンツのパディングを調整
@@ -898,7 +1008,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                             width: 80, // テキストフィールドの幅を調整
                             child: TextField(
                               controller: reviewCardLimitController,
-                    keyboardType: TextInputType.number,
+                              keyboardType: TextInputType.number,
                               textAlign: TextAlign.right, // テキストを右寄せ
                               decoration: InputDecoration(
                                 contentPadding: EdgeInsets.symmetric(
@@ -909,7 +1019,14 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('枚', style: TextStyle(fontSize: 16)),
+                          const Text(
+                            '枚',
+                            style: TextStyle(
+                                fontFamily: 'ZenMaruGothic',
+                                fontWeight: FontWeight.w700, // Bold
+                                fontSize: 20,
+                                color: Color(0xFF333333)),
+                          ),
                         ],
                       ),
                       // // チェックボックス（復習カード）
@@ -928,41 +1045,53 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                       //     });
                       //   },
                       // ),
-                ],
-              ),
-              actions: <Widget>[
-                TextButton(
-                      child: const Text('キャンセル'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                TextButton(
-                      child: const Text('保存'),
+                    ],
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text(
+                        'キャンセル',
+                        style: TextStyle(
+                            fontFamily: 'ZenMaruGothic',
+                            fontWeight: FontWeight.w700, // Bold
+                            fontSize: 20,
+                            color: Color(0xFF333333)),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    TextButton(
+                      child: const Text(
+                        '保存',
+                        style: TextStyle(
+                            fontFamily: 'ZenMaruGothic',
+                            fontWeight: FontWeight.w700, // Bold
+                            fontSize: 20,
+                            color: Color(0xFF333333)),
+                      ),
                       onPressed: () async {
-                        int? newCardLimitPermanent;
-                        int? reviewCardLimitPermanent;
+                        int? newCardLimit;
+                        int? reviewCardLimit;
 
                         // 新規カードの上限値を取得
-                        newCardLimitPermanent =
-                            int.tryParse(newCardLimitController.text) ??
-                                viewModel.getNewCardLimit();
+                        newCardLimit =
+                            int.tryParse(newCardLimitController.text) ?? 20;
 
-// 復習カードの上限値を取得
-                        reviewCardLimitPermanent =
-                            int.tryParse(reviewCardLimitController.text) ??
-                                viewModel.getReviewCardLimit();
+                        // 復習カードの上限値を取得
+                        reviewCardLimit =
+                            int.tryParse(reviewCardLimitController.text) ?? 200;
 
                         // 設定を更新
                         await viewModel.updateCardSettings(
-                          newCardLimitPermanent: newCardLimitPermanent,
-                          reviewCardLimitPermanent: reviewCardLimitPermanent,
-                        );
+                            newCardLimit: newCardLimit,
+                            reviewCardLimit: reviewCardLimit,
+                            deckID: widget.deckID);
 
                         Navigator.pop(context); // ダイアログを閉じる
-                  },
-                ),
-              ],
+                      },
+                    ),
+                  ],
                 );
               },
             );
@@ -991,7 +1120,8 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
         child: ElevatedButton(
           onPressed: () async {
             if (cardProperties != null) {
-              await viewModel.answerCard(cardProperties, ease, context);
+              await viewModel.answerCard(
+                  cardProperties, ease, context, widget.deckID);
             }
             setState(() {
               showDetails = false;

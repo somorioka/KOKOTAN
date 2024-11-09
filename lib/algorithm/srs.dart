@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/material.dart';
+import 'package:kokotan/model/deck_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 新規カードの表示順設定
@@ -138,6 +140,25 @@ class Word {
     this.imageUrl, // 新しいプロパティ
   });
 
+  // 空のWordインスタンスを作成するためのファクトリーコンストラクタ
+  factory Word.empty() {
+    return Word(
+      id: 0,
+      word: '',
+      pronunciation: null,
+      mainMeaning: '',
+      subMeaning: null,
+      sentence: '',
+      sentenceJp: '',
+      wordVoice: '',
+      sentenceVoice: '',
+      englishDefinition: null,
+      etymology: null,
+      memo: null,
+      imageUrl: null,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -178,6 +199,7 @@ class Word {
 /// カードクラス
 class Card {
   int id;
+  int did;
   Word word;
   int due;
   int crt;
@@ -189,7 +211,7 @@ class Card {
   int lapses;
   int left;
 
-  Card(this.word, {int? id})
+  Card(this.word, this.did, {int? id})
       : id = id ?? _generateUniqueId(),
         due = 9727332272713, //dueの初期値をめっちゃ未来にした
         crt = _intTime(),
@@ -200,23 +222,6 @@ class Card {
         reps = 0,
         lapses = 0,
         left = 0;
-
-  // コピーコンストラクタを追加
-  Card copy() {
-    return Card(
-      word, // Wordクラスが複雑であれば、これもコピーする必要があるかも
-      id: id,
-    )
-      ..due = this.due
-      ..crt = this.crt
-      ..type = this.type
-      ..queue = this.queue
-      ..ivl = this.ivl
-      ..factor = this.factor
-      ..reps = this.reps
-      ..lapses = this.lapses
-      ..left = this.left;
-  }
 
   static int _generateUniqueId() {
     int t = _intTimeMs();
@@ -237,6 +242,7 @@ class Card {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'deck_id': did,
       'word_id': word.id,
       'due': due,
       'crt': crt,
@@ -253,6 +259,7 @@ class Card {
   static Card fromMap(Map<String, dynamic> map, Word word) {
     return Card(
       word,
+      map['deck_id'],
       id: map['id'],
     )
       ..due = map['due']
@@ -287,9 +294,12 @@ class Scheduler {
     _dayCutoff = 0;
   }
 
-  Future<void> initializeScheduler(
-      {required Function(Card) onDueUpdated}) async {
-    await checkDay(onDueUpdated: onDueUpdated); // コールバックを渡す
+// initializeScheduler メソッドの定義
+  Future<void> initializeScheduler({
+    required Function(Card) onDueUpdated,
+    required Map<String, Map<String, dynamic>> deckData, // required 追加
+  }) async {
+    await checkDay(onDueUpdated: onDueUpdated, deckData: deckData); // コールバックを渡す
   }
 
   int get newQueueCount => newQueue.length;
@@ -297,9 +307,10 @@ class Scheduler {
   int get reviewQueueCount => revQueue.length;
 
   // カードの取得
-  Future<Card?> getCard() async {
-    await checkDay();
-    Card? card = _getCard();
+  Future<Card?> getCard(
+      int deckID, Map<String, Map<String, dynamic>> deckData) async {
+    await checkDay(deckData: deckData);
+    Card? card = _getCard(deckID, deckData);
     if (card != null) {
       reps += 1;
     }
@@ -307,55 +318,107 @@ class Scheduler {
   }
 
   // 1日1回のキューリセット
-  Future<void> reset(Function(Card)? onDueUpdated) async {
+  Future<void> reset(Function(Card)? onDueUpdated,
+      Map<String, Map<String, dynamic>> deckData) async {
     print('resetを実行しています');
     _updateCutoff();
     _resetLrn();
     _resetRev();
     _resetNew();
 
-    await assignDueToNewCards(onDueUpdated); // コールバックを渡すか、nullなら無視
+    await assignDueToNewCards(onDueUpdated, deckData); // コールバックを渡すか、nullなら無視
 
     fillNew();
-    fillRev();
+    fillRev(deckData: deckData);
     print('resetが完了しました');
   }
 
-  Future<void> assignDueToNewCards(Function(Card)? onDueUpdated) async {
+  Future<void> assignDueToNewCards(Function(Card)? onDueUpdated,
+      Map<String, Map<String, dynamic>> deckData) async {
     print('--- assignDueToNewCardsを実行しています ---');
 
-    int perDayLimit = col.deckConf['new']['perDay'] as int;
+    int deckCount = InitialDeckData.length;
 
-    // すべてのデッキに対して処理を実行
-    for (var deck in col.decks.values) {
-      // queue == 0 のカード（新規カード）をすべて取得
-      List<Card> newCards =
-          deck.cards.where((card) => card.queue == 0).toList();
+    // デッキIDが1から100の範囲で処理を実行
+    for (int deckID = 1; deckID <= deckCount; deckID++) {
+      int newPerDayLimit = deckData[deckID.toString()]!['newPerDayLimit'];
+      var deck = col.decks['Default Deck']; // deckIDを文字列に変換して取得
+      if (deck == null) {
+        print('指定されたデッキIDが見つかりません: $deckID');
+        continue; // デッキが存在しない場合は次のデッキIDに進む
+      }
+      // 指定したdeckIDで queue == 0 のカード（新規カード）をフィルタリング
+      List<Card> newCards = deck.cards
+          .where((card) => card.queue == 0 && card.did == deckID)
+          .toList();
 
-      // すべての新規カードのdueを初期値に戻す（例: -1を初期値とする場合）
+      // すべての新規カードのdueを初期値にリセット
       for (var card in newCards) {
-        card.due = 9727332272713; // ここでdueを初期値にリセット
+        card.due = 9727332272713; // 初期値としてリセット
         if (onDueUpdated != null) {
-          onDueUpdated(card); // コールバックがあれば呼び出す
+          onDueUpdated(card); // コールバックがあれば実行
         }
       }
 
-      // 新規カードをソートして、一日の制限枚数に合わせて制限を適用
+      // 新規カードをID順にソートし、制限枚数分だけ取得
       if (newCards.isNotEmpty) {
         newCards.sort((a, b) => a.id.compareTo(b.id));
-        List<Card> limitedCards = newCards.take(perDayLimit).toList();
+        List<Card> limitedCards = newCards.take(newPerDayLimit).toList();
 
         // 制限されたカードのdueを0に設定（今日の学習対象にする）
         for (var card in limitedCards) {
           card.due = 0; // 今日の対象カードはdueを0にする
           if (onDueUpdated != null) {
-            onDueUpdated(card); // コールバックがある場合のみ実行
+            onDueUpdated(card); // コールバックがあれば実行
           }
         }
       }
     }
-
     print('--- assignDueToNewCardsが完了しました ---');
+  }
+
+  Future<void> assignDueToNewCardByDeckID(
+      int deckID,
+      Function(Card) onDueUpdated, // コールバック関数
+      Map<String, Map<String, dynamic>> deckData) async {
+    int newPerDayLimit = deckData[deckID.toString()]!['newPerDayLimit'];
+    int todayLimit =
+        (newPerDayLimit - deckData[deckID.toString()]!["todayNewCardsCount"])
+            .toInt();
+
+    // デフォルトデッキを取得
+    var deck = col.decks['Default Deck'];
+    if (deck == null) {
+      print('指定されたデッキIDが見つかりません: $deckID');
+      return;
+    }
+
+    // 指定したdeckIDで queue == 0 のカード（新規カード）をフィルタリング
+    List<Card> newCards = deck.cards
+        .where((card) => card.queue == 0 && card.did == deckID)
+        .toList();
+
+    // すべての新規カードのdueを初期値にリセット
+    for (var card in newCards) {
+      card.due = 9727332272713; // 初期値としてリセット
+      if (onDueUpdated != null) {
+        onDueUpdated(card); // コールバックがあれば実行
+      }
+    }
+
+    // 新規カードをID順にソートし、制限枚数分だけ取得
+    if (newCards.isNotEmpty) {
+      newCards.sort((a, b) => a.id.compareTo(b.id));
+      List<Card> limitedCards = newCards.take(todayLimit).toList();
+
+      // 制限されたカードのdueを0に設定（今日の学習対象にする）
+      for (var card in limitedCards) {
+        card.due = 0; // 今日の対象カードはdueを0にする
+        if (onDueUpdated != null) {
+          onDueUpdated(card); // コールバックがあれば実行
+        }
+      }
+    }
   }
 
   // カードへの回答
@@ -406,7 +469,9 @@ class Scheduler {
 
   // 日付が変わったかどうかを確認し、リセット処理を実行
   Future<void> checkDay(
-      {Function(Card)? onDueUpdated, Function? onDayChanged}) async {
+      {Function(Card)? onDueUpdated,
+      Function? onDayChanged,
+      required Map<String, Map<String, dynamic>> deckData}) async {
     print('checkDayを実行しています');
 
     int _dayCutoff = (await getDayCutoff()) ?? 0;
@@ -414,7 +479,7 @@ class Scheduler {
 
     // 日付が変わった場合
     if (currentTime > _dayCutoff) {
-      await reset(onDueUpdated); // コールバックがある場合だけ渡す
+      await reset(onDueUpdated, deckData); // コールバックがある場合だけ渡す
       if (onDayChanged != null) {
         onDayChanged(); // 日付が変わったときのコールバックを呼び出す
       }
@@ -528,40 +593,40 @@ class Scheduler {
     return false;
   }
 
-  Card? _getCard() {
+  Card? _getCard(int deckID, Map<String, Map<String, dynamic>> deckData) {
     // 次にレビューするカードを返す。カードがない場合はnullを返す。
     // 学習カードの期限が来ているか？
-    Card? c = getLrnCard();
+    Card? c = getLrnCard(deckID: deckID);
     if (c != null) {
       return c;
     }
 
     // 新しいカードを優先するか、新しいカードの時間か？
     if (_timeForNewCard()) {
-      c = _getNewCard();
+      c = _getNewCard(deckID);
       if (c != null) {
         return c;
       }
     }
 
     // レビューするカードの期限が来ているか？
-    c = _getRevCard();
+    c = _getRevCard(deckID, deckData);
     if (c != null) {
       return c;
     }
 
     // 新しいカードが残っているか？
-    c = _getNewCard();
+    c = _getNewCard(deckID);
     if (c != null) {
       return c;
     }
 
     // collapseまたは終了
-    c = getLrnCard(collapse: true);
+    c = getLrnCard(collapse: true, deckID: deckID);
     return c;
   }
 
-  Card? getLrnCard({bool collapse = false}) {
+  Card? getLrnCard({bool collapse = false, required int deckID}) {
     if (collapse) {
       // collapseがtrueの場合のみ、collapseTime以内のカードを考慮
       _maybeResetLrn(force: true);
@@ -570,7 +635,11 @@ class Scheduler {
       _maybeResetLrn(force: false);
     }
     if (fillLrn(collapse: collapse)) {
-      return lrnQueue.last; // キューから削除せず最後のカードを返す
+      try {
+        return lrnQueue.firstWhere((card) => card.did == deckID);
+      } catch (e) {
+        print('e');
+      }
     }
     return null;
   }
@@ -604,59 +673,76 @@ class Scheduler {
     return lrnQueue.isNotEmpty;
   }
 
-  Card? _getNewCard() {
+  Card? _getNewCard(int deckID) {
     if (fillNew()) {
-      return newQueue.last; // キューから削除せず最後のカードを返す
+      try {
+        return newQueue.firstWhere((card) => card.did == deckID);
+      } catch (e) {
+        print('e');
+      }
     }
     return null;
   }
 
-  bool fillNew() {
+  bool fillNew({bool alwaysRun = false}) {
     print('fillNewを実行しています');
-    if (newQueue.isNotEmpty) {
+    if (newQueue.isNotEmpty && !alwaysRun) {
       return true;
     }
     //dueが現在時刻以下、かつqueueが0
     newQueue = col.decks.values
         .expand((deck) =>
             deck.cards.where((card) => card.queue == 0 && card.due <= 1))
-          .toList();
+        .toList();
     newQueue.sort((a, b) => a.due.compareTo(b.due));
 
     if (newQueue.isNotEmpty) {
-        return true;
+      return true;
     }
     print('fillNewが完了しました');
     return false;
   }
 
-  Card? _getRevCard() {
-    if (fillRev()) {
-      return revQueue.last; // キューから削除せず最後のカードを返す
+  Card? _getRevCard(int deckID, Map<String, Map<String, dynamic>> deckData) {
+    if (fillRev(deckData: deckData)) {
+      try {
+        return revQueue.firstWhere((card) => card.did == deckID);
+      } catch (e) {
+        print('e');
+      }
     }
     return null;
   }
 
-  bool fillRev() {
+  bool fillRev(
+      {bool alwaysRun = false,
+      required Map<String, Map<String, dynamic>> deckData}) {
     print('fillRevを実行しています');
 
-    if (revQueue.isNotEmpty) {
+    if (revQueue.isNotEmpty && !alwaysRun) {
       return true;
     }
-    final limit = min(queueLimit, col.deckConf['rev']['perDay'] as int);
 
-    // 今日の終了時刻を取得
-    final now = clock.now();
-    final todayEnd = DateTime(now.year, now.month, now.day)
-        .add(const Duration(days: 1))
-        .millisecondsSinceEpoch;
+    for (var deckID in deckData.keys) {
+      int reviewPerDayLimit = deckData[deckID.toString()]!['reviewPerDayLimit'];
+      int todayLimit = (reviewPerDayLimit -
+              deckData[deckID.toString()]!['todayReviewCardsCount'])
+          .toInt();
+      final limit = min(queueLimit, todayLimit);
 
-    revQueue = col.decks.values
-        .expand((deck) => deck.cards.where((card) =>
-            card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
-        .toList();
-    revQueue.sort((a, b) => a.due.compareTo(b.due));
-    revQueue = revQueue.take(limit).toList();
+      // 今日の終了時刻を取得
+      final now = clock.now();
+      final todayEnd = DateTime(now.year, now.month, now.day)
+          .add(const Duration(days: 1))
+          .millisecondsSinceEpoch;
+
+      revQueue = col.decks.values
+          .expand((deck) => deck.cards.where((card) =>
+              card.queue == 2 && card.due <= todayEnd)) // 今日の終了時刻までのカードを選択
+          .toList();
+      revQueue.sort((a, b) => a.due.compareTo(b.due));
+      revQueue = revQueue.take(limit).toList();
+    }
 
     if (revQueue.isNotEmpty) {
       final rand = Random(today);
@@ -667,12 +753,12 @@ class Scheduler {
     return false;
   }
 
-  void fillAll() {
+  void fillAll(Map<String, Map<String, dynamic>> deckData) {
     print('fillAllを実行しています');
 
     fillNew();
     fillLrn();
-    fillRev();
+    fillRev(deckData: deckData);
     print('fillAllが完了しました');
   }
 
@@ -916,11 +1002,5 @@ class Scheduler {
   int _lapseIvl(Card card, Map<String, dynamic> conf) {
     int ivl = max(1, max(conf['minInt'], (card.ivl * conf['mult']).toInt()));
     return ivl;
-  }
-
-  // srs.dart 内に設定を受け取るメソッドを追加
-  void updateDeckLimits({required int newLimit, required int reviewLimit}) {
-    col.deckConf['new']['perDay'] = newLimit;
-    col.deckConf['rev']['perDay'] = reviewLimit;
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kokotan/pages/deck_downloading_page.dart';
 import 'package:kokotan/pages/top_page.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
+import 'package:kokotan/model/deck_list.dart';
 
 class DeckListPage extends StatefulWidget {
   @override
@@ -13,46 +15,23 @@ class DeckListPageState extends State<DeckListPage> {
   Widget build(BuildContext context) {
     final viewModel = Provider.of<DataViewModel>(context); // viewModelを取得
 
-    // ダミーデータ
-    List<Map<String, dynamic>> vocabularies = [
-      {
-        'title': 'ベーシック',
-        'description': 'この単語帳には1000語の単語が含まれています。',
-        'level': '入試基礎レベル',
-        'isReady': false,
-        'isDownloaded': false, // ダウンロード済みかどうか
-      },
-      {
-        'title': 'スタンダードA',
-        'description':
-            'この単語帳は、シス単basic & ターゲット1400にも、シス単 & ターゲット1900にも登場する1504単語を収録しています。入試の基礎固めはバッチリです。',
-        'level': 'MARCH・地方国公立レベル',
-        'isReady': true,
-        'isDownloaded': viewModel.is20DataDownloaded, //初回リリース用の応急処置
-      },
-      {
-        'title': 'スタンダードB',
-        'description': 'この単語帳には500語の単語が含まれています。',
-        'level': '早慶・旧帝大レベル',
-        'isReady': false,
-        'isDownloaded': false,
-      },
-      {
-        'title': 'アドバンス',
-        'description': 'この単語帳には500語の単語が含まれています。',
-        'level': '早慶上位・東大京大・医学部レベル',
-        'isReady': false,
-        'isDownloaded': false,
-      },
-    ];
+    // デッキリスト（MapのデータをListに変換）
+    List<Map<String, dynamic>> deckListItems =
+        viewModel.deckData.entries.map((entry) {
+      // MapからListに変換しつつデッキIDも追加
+      return {
+        'deckId': entry.key, // デッキIDを追加
+        ...entry.value, // 他のデータを展開
+      };
+    }).toList();
     return Scaffold(
       appBar: AppBar(
         title: Text('単語帳リスト'),
       ),
       body: ListView.builder(
-        itemCount: vocabularies.length,
+        itemCount: InitialDeckData.length,
         itemBuilder: (context, index) {
-          final vocab = vocabularies[index];
+          final vocab = deckListItems[index];
 
           return Card(
             elevation: vocab['isReady'] ? 4.0 : 1.0,
@@ -63,20 +42,21 @@ class DeckListPageState extends State<DeckListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          vocab['title'],
+                          vocab['deckName'],
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: Colors.black,
-                          ),
+                              fontFamily: 'ZenMaruGothic',
+                              fontWeight: FontWeight.w700, // Bold
+                              fontSize: 20,
+                              color: Color(0xFF333333)),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           vocab['level'],
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.blueGrey[600],
-                          ),
+                              fontFamily: 'ZenMaruGothic',
+                              fontWeight: FontWeight.w500, // Bold
+                              fontSize: 14,
+                              color: Color(0xFF333333)),
                         ),
                       ],
                     ),
@@ -89,9 +69,10 @@ class DeckListPageState extends State<DeckListPage> {
                             Text(
                               vocab['description'],
                               style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
+                                  fontFamily: 'ZenMaruGothic',
+                                  fontWeight: FontWeight.w400, // Bold
+                                  fontSize: 16,
+                                  color: Color(0xFF333333)),
                             ),
                             Align(
                               alignment: Alignment.bottomRight,
@@ -101,7 +82,7 @@ class DeckListPageState extends State<DeckListPage> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
-                                          VocabularyListPage(vocab['title']),
+                                          VocabularyListPage(vocab['deckName']),
                                     ),
                                   );
                                 },
@@ -110,10 +91,12 @@ class DeckListPageState extends State<DeckListPage> {
                                   child: Text(
                                     '単語リストを見る',
                                     style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.blueGrey[400],
-                                      decoration: TextDecoration.underline,
-                                    ),
+                                        fontFamily: 'ZenMaruGothic',
+                                        fontWeight: FontWeight.w700, // Bold
+                                        fontSize: 16,
+                                        decoration:
+                                            TextDecoration.underline, // アンダーライン
+                                        color: Colors.blue),
                                   ),
                                 ),
                               ),
@@ -124,41 +107,75 @@ class DeckListPageState extends State<DeckListPage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: ElevatedButton.icon(
-                          onPressed: vocab['isDownloaded']
+                          onPressed: vocab['isDownloaded'] ==
+                                  DownloadStatus.downloaded
                               ? null // ダウンロード済みの場合は無効化
-                              : () {
-                                  setState(() {
-                                    vocab['isDownloaded'] = true; // ダウンロード済みにする
-                                  });
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TopPage(fromOnboarding: true),
-                                    ),
-                                  );
-                                },
+                              : vocab['isDownloaded'] ==
+                                      DownloadStatus.downloading
+                                  ? null // ダウンロード中も無効化
+                                  : () async {
+                                      viewModel.updateDownloadStatus(
+                                          vocab['deckId'],
+                                          DownloadStatus.downloading);
+
+                                      // 状態を保存
+                                      await viewModel
+                                          .saveDeckData(viewModel.deckData);
+
+                                      // ダウンロード進捗ページに遷移
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              DownloadProgressPage(
+                                            deckID: int.parse(vocab['deckId']),
+                                          ),
+                                        ),
+                                      );
+                                    },
+
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: vocab['isDownloaded']
-                                ? Colors.grey // ダウンロード済みの場合の色
-                                : const Color.fromARGB(
-                                    255, 86, 151, 141), // ダウンロード可能な場合の色
+                            backgroundColor: vocab['isDownloaded'] ==
+                                    DownloadStatus.downloaded
+                                ? Colors.grey // ダウンロード済み
+                                : vocab['isDownloaded'] ==
+                                        DownloadStatus.downloading
+                                    ? Colors.blueGrey // ダウンロード中
+                                    : const Color.fromARGB(
+                                        255, 60, 177, 180), // ダウンロード可能な場合の色
                             foregroundColor: Colors.white, // テキストやアイコンの色
+
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12), // 角丸の設定
                             ),
+                            elevation: 6, // 浮き上がっているような影の深さ
                             padding: const EdgeInsets.symmetric(
                               vertical: 12,
                               horizontal: 16,
                             ),
                           ),
-                          icon: Icon(vocab['isDownloaded']
-                              ? Icons.check
-                              : Icons.download), // ダウンロード済みならチェックマーク
+                          icon: vocab['isDownloaded'] ==
+                                  DownloadStatus.downloaded
+                              ? Icon(Icons.check)
+                              : vocab['isDownloaded'] ==
+                                      DownloadStatus.downloading
+                                  ? Icon(Icons.hourglass_empty) // ダウンロード中のアイコン
+                                  : Icon(Icons.download), // ダウンロード可能なアイコン
                           label: Text(
-                              vocab['isDownloaded'] ? 'ダウンロード済み' : 'ダウンロード'),
+                            style: TextStyle(
+                                fontFamily: 'ZenMaruGothic',
+                                fontWeight: FontWeight.w700, // Bold
+                                fontSize: 20,
+                                color: Color.fromARGB(255, 255, 255, 255)),
+                            vocab['isDownloaded'] == DownloadStatus.downloaded
+                                ? 'ダウンロード済み'
+                                : vocab['isDownloaded'] ==
+                                        DownloadStatus.downloading
+                                    ? 'ダウンロード中'
+                                    : 'ダウンロード', // ダウンロード可能な状態
+                          ),
                         ),
-                      ),
+                      )
                     ],
                   )
                 : ListTile(
@@ -166,20 +183,21 @@ class DeckListPageState extends State<DeckListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          vocab['title'],
+                          vocab['deckName'],
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
+                              fontFamily: 'ZenMaruGothic',
+                              fontWeight: FontWeight.w700, // Bold
+                              fontSize: 20,
+                              color: Colors.grey),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           vocab['level'],
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
+                              fontFamily: 'ZenMaruGothic',
+                              fontWeight: FontWeight.w500, // Bold
+                              fontSize: 14,
+                              color: Colors.grey),
                         ),
                       ],
                     ),
@@ -187,7 +205,11 @@ class DeckListPageState extends State<DeckListPage> {
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
                         '準備中',
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(
+                            fontFamily: 'ZenMaruGothic',
+                            fontWeight: FontWeight.w500, // Bold
+                            fontSize: 16,
+                            color: Colors.red),
                       ),
                     ),
                   ),

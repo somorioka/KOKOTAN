@@ -10,8 +10,10 @@ import 'setting_screen.dart';
 
 class TopPage extends StatefulWidget {
   final bool fromOnboarding;
+  final int initialIndex; // 初期インデックスを追加
 
-  const TopPage({super.key, this.fromOnboarding = false});
+  const TopPage(
+      {super.key, this.fromOnboarding = false, this.initialIndex = 0});
 
   @override
   _TopPageState createState() => _TopPageState();
@@ -37,12 +39,14 @@ class _TopPageState extends State<TopPage> {
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex; // 初期インデックスを設定
+
     if (widget.fromOnboarding) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await Provider.of<DataViewModel>(context, listen: false)
-            .downloadAndImportExcel();
-        Provider.of<DataViewModel>(context, listen: false)
-            .downloadRemainingDataInBackground();
+            .downloadInitialData();
+        // Provider.of<DataViewModel>(context, listen: false)
+        //     .downloadRemainingDataInBackground();
       });
     }
   }
@@ -65,11 +69,11 @@ class _TopPageState extends State<TopPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list),
-            label: '単語リスト',
+            label: 'リスト',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.query_stats),
-            label: '記録',
+            label: '学習状況',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),

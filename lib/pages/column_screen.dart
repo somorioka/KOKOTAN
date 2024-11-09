@@ -1,61 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:kokotan/model/column_list.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // 追加
 
 class ColumnScreen extends HookWidget {
-  final List<Map<String, dynamic>> allContents = [
-    {
-      'name': '１リスニングを活用せよ！',
-      'content': 'リスニングを活用することで、より効率的に学習できます。具体的な方法としては...',
-      'icon': Icons.article,
-      'section': '基本事項',
-    },
-    {
-      'name': '２画像検索でイメージ記憶！',
-      'content': '画像検索を使うことで、視覚的に情報を覚えやすくなります。具体的には...',
-      'icon': Icons.book,
-      'section': '基本事項',
-    },
-    {
-      'name': '３英英辞典で真の意味を捉える',
-      'content': '英英辞典を使うことで、言葉のニュアンスや真の意味を理解できます。たとえば...',
-      'icon': Icons.web,
-      'section': 'スキーマを育てるために',
-    },
-    {
-      'name': '４英英辞典で真の意味を捉える',
-      'content': '英英辞典を使うことで、言葉のニュアンスや真の意味を理解できます。たとえば...',
-      'icon': Icons.web,
-      'section': 'スキーマを育てるために',
-    },
-    {
-      'name': '５画像検索でイメージ記憶！',
-      'content': '画像検索を使うことで、視覚的に情報を覚えやすくなります。具体的には...',
-      'icon': Icons.book,
-      'section': 'スキーマを育てるために',
-    },
-    {
-      'name': '６単語の語源を理解しよう',
-      'content': '単語の語源を知ることで、語彙力がさらに向上します...',
-      'icon': Icons.language,
-      'section': 'その他',
-    },
-    {
-      'name': '７自分の目標を明確にする',
-      'content': '学習において目標設定は重要です。自分のゴールを定めることで...',
-      'icon': Icons.flag,
-      'section': 'その他',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     final selectedContent = useState<String?>(null);
+    final selectedImageUrl = useState<String?>(null); // 選択された画像URL
     final selectedName = useState<String?>('お役立ちコラム');
     final selectedIndex = useState<int>(-1);
 
     void loadPage(int index) {
       if (index >= 0 && index < allContents.length) {
         selectedContent.value = allContents[index]['content']!;
+        selectedImageUrl.value = allContents[index]['imageUrl']; // 画像URLを設定
         selectedName.value = allContents[index]['name']!;
         selectedIndex.value = index;
       }
@@ -64,6 +23,7 @@ class ColumnScreen extends HookWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
+        automaticallyImplyLeading: false, // 左上の戻るボタンを非表示
         title: Text(selectedName.value!),
         leading: selectedContent.value == null
             ? null
@@ -71,131 +31,79 @@ class ColumnScreen extends HookWidget {
                 icon: Icon(Icons.arrow_back_ios, color: Colors.grey),
                 onPressed: () {
                   selectedContent.value = null;
+                  selectedImageUrl.value = null;
                   selectedName.value = 'お役立ちコラム';
                   selectedIndex.value = -1;
                 },
               ),
       ),
-      body: Stack(
-        children: [
-          if (selectedContent.value == null)
-            ListView(
+      body: selectedContent.value == null
+          ? ListView(
               children: [
-                _buildSectionTitle('基本事項'),
+                _buildSectionTitle('ココタンとは'),
                 _buildContentList(
-                    allContents
-                        .where((item) => item['section'] == '基本事項')
-                        .toList(),
-                    loadPage),
-                _buildSectionTitle('スキーマを育てるために'),
+                  allContents
+                      .where((item) => item['section'] == 'ココタンとは')
+                      .toList(),
+                  loadPage,
+                ),
+                _buildSectionTitle('ココタンおすすめ活用法'),
                 _buildContentList(
-                    allContents
-                        .where((item) => item['section'] == 'スキーマを育てるために')
-                        .toList(),
-                    loadPage),
-                _buildSectionTitle('その他'),
-                _buildContentList(
-                    allContents
-                        .where((item) => item['section'] == 'その他')
-                        .toList(),
-                    loadPage),
+                  allContents
+                      .where((item) => item['section'] == 'ココタンおすすめ活用法')
+                      .toList(),
+                  loadPage,
+                ),
               ],
             )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 16),
-                        Text(
-                          selectedContent.value!,
-                          style: TextStyle(
-                            fontSize: 16,
-                            height: 1.5,
-                          ),
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (selectedImageUrl.value != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset(
+                          selectedImageUrl.value!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Text(
+                              '画像を読み込めませんでした',
+                              style: TextStyle(color: Colors.red),
+                            );
+                          },
                         ),
-                      ],
+                      ),
+                    SizedBox(height: 16),
+                    Text(
+                      selectedContent.value!,
+                      style: TextStyle(
+                          fontFamily: 'ZenMaruGothic',
+                          fontWeight: FontWeight.w400, // Bold
+                          fontSize: 16,
+                          color: Color(0xFF333333)),
                     ),
-                  ),
+                    SizedBox(height: 16),
+                    _buildNavigationButtons(selectedIndex.value, loadPage),
+                  ],
                 ),
-                Spacer(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: Column(
-                    children: [
-                      if (selectedIndex.value > 0)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            onPressed: () {
-                              loadPage(selectedIndex.value - 1);
-                            },
-                            child: Text(
-                              '◀︎ 前の記事   ',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      SizedBox(height: 10),
-                      if (selectedIndex.value < allContents.length - 1)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            onPressed: () {
-                              loadPage(selectedIndex.value + 1);
-                            },
-                            child: Text(
-                              '   次の記事 ▶︎',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-        ],
-      ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Text(
         title,
         style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
+          fontFamily: 'ZenMaruGothic', // フォントファミリーを指定
+          color: Color(0xFF333333), // 色の指定
         ),
       ),
     );
@@ -209,7 +117,7 @@ class ColumnScreen extends HookWidget {
       itemCount: contents.length,
       itemBuilder: (context, index) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 16.0),
           child: Card(
             color: Colors.white,
             elevation: 4,
@@ -218,18 +126,19 @@ class ColumnScreen extends HookWidget {
             ),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: const Color.fromARGB(255, 60, 177, 180),
+                backgroundColor: Colors.white,
                 child: Icon(
                   contents[index]['icon'],
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 60, 177, 180),
                 ),
               ),
               title: Text(
                 contents[index]['name']!,
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+                    fontFamily: 'ZenMaruGothic',
+                    fontWeight: FontWeight.w700, // Bold
+                    fontSize: 17,
+                    color: Color(0xFF333333)),
               ),
               onTap: () {
                 loadPage(index);
@@ -238,6 +147,68 @@ class ColumnScreen extends HookWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildNavigationButtons(int index, Function loadPage) {
+    return Column(
+      children: [
+        if (index > 0)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 60, 177, 180), // 背景色
+                padding: const EdgeInsets.symmetric(
+                    vertical: 15.0, horizontal: 30.0), // ボタンのサイズ調整
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12), // 角丸の設定
+                ),
+                elevation: 6, // 浮き上がっているような影の深さ
+              ),
+              onPressed: () {
+                loadPage(index - 1);
+              },
+              child: Text(
+                '前の記事',
+                style: TextStyle(
+                  fontFamily: 'ZenMaruGothic',
+                  fontWeight: FontWeight.w700, // 太字
+                  fontSize: 20,
+                  color: Colors.white, // 白色の文字
+                ),
+              ),
+            ),
+          ),
+        SizedBox(height: 10),
+        if (index < allContents.length - 1)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 60, 177, 180), // 背景色
+                padding: const EdgeInsets.symmetric(
+                    vertical: 15.0, horizontal: 30.0), // ボタンのサイズ調整
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12), // 角丸の設定
+                ),
+                elevation: 6, // 浮き上がっているような影の深さ
+              ),
+              onPressed: () {
+                loadPage(index + 1);
+              },
+              child: Text(
+                '次の記事',
+                style: TextStyle(
+                  fontFamily: 'ZenMaruGothic',
+                  fontWeight: FontWeight.w700, // 太字
+                  fontSize: 20,
+                  color: Colors.white, // 白色の文字
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

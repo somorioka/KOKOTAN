@@ -11,29 +11,31 @@ class OnboardingPage extends StatelessWidget {
       pages: [
         PageViewModel(
           title: '',
-          bodyWidget: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: 180), // 画像の上にSizedBox
-              Image.asset(
-                'assets/images/intro_1.png',
-              height: 244,
-              width: 366,
-            ),
-              SizedBox(height: 140), // 画像とテキストの間にSizedBox
-              const Text(
-                "ココタンは\n英単語が勝手に身につく\n「全自動 単語カードアプリ」です",
-                style: TextStyle(
-                  fontFamily: 'ZenMaruGothic',
-                  fontWeight: FontWeight.w700, // Bold
-                  fontSize: 20,
+          bodyWidget: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/intro_1.png',
+                  height: 244,
+                  width: 366,
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                SizedBox(height: 40), // 画像とテキストの間にSizedBox
+                const Text(
+                  "ココタンは\n英単語が勝手に身につく\n「全自動 単語カードアプリ」です",
+                  style: TextStyle(
+                    fontFamily: 'ZenMaruGothic',
+                    fontWeight: FontWeight.w700, // Bold
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
           decoration: const PageDecoration(
             pageColor: Color.fromARGB(255, 255, 255, 255),
+            contentMargin: EdgeInsets.symmetric(vertical: 80.0), // マージンを調整
           ),
         ),
         PageViewModel(
@@ -41,19 +43,18 @@ class OnboardingPage extends StatelessWidget {
           bodyWidget: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: 180), // 画像の上にSizedBox
               Image.asset(
                 'assets/images/intro_2.png',
-              height: 244,
-              width: 366,
-            ),
-              SizedBox(height: 140),
+                height: 244,
+                width: 366,
+              ),
+              SizedBox(height: 40),
               const Text(
                 "出てきた単語を\n覚えてる度に応じて仕分けるだけ！",
                 style: TextStyle(
                   fontFamily: 'ZenMaruGothic',
                   fontWeight: FontWeight.w700, // Bold
-                  fontSize: 20,
+                  fontSize: 18,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -61,6 +62,7 @@ class OnboardingPage extends StatelessWidget {
           ),
           decoration: const PageDecoration(
             pageColor: Color.fromARGB(255, 255, 255, 255),
+            contentMargin: EdgeInsets.symmetric(vertical: 80.0), // マージンを調整
           ),
         ),
         PageViewModel(
@@ -68,19 +70,18 @@ class OnboardingPage extends StatelessWidget {
           bodyWidget: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: 180), // 画像の上にSizedBox
               Image.asset(
                 'assets/images/intro_3.png',
-              height: 244,
-              width: 366,
-            ),
-              SizedBox(height: 140),
+                height: 244,
+                width: 366,
+              ),
+              SizedBox(height: 40),
               const Text(
                 "自動で学習頻度を調整してくれるから\n毎日与えられたカードだけやればOK！",
                 style: TextStyle(
                   fontFamily: 'ZenMaruGothic',
                   fontWeight: FontWeight.w700, // Bold
-                  fontSize: 20,
+                  fontSize: 18,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -88,6 +89,7 @@ class OnboardingPage extends StatelessWidget {
           ),
           decoration: const PageDecoration(
             pageColor: Color.fromARGB(255, 255, 255, 255),
+            contentMargin: EdgeInsets.symmetric(vertical: 80.0), // マージンを調整
           ),
         ),
         PageViewModel(
@@ -95,23 +97,26 @@ class OnboardingPage extends StatelessWidget {
           bodyWidget: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: 180), // 画像の上にSizedBox
               Image.asset(
                 'assets/images/intro_4.png',
-              height: 244,
-              width: 366,
-            ),
-              SizedBox(height: 140),
+                height: 244,
+                width: 366,
+              ),
+              SizedBox(height: 40),
               const Text(
                 "早速やってみよう！\nまずは自分のレベルに合わせて\n単語帳を選んでね",
                 style: TextStyle(
                   fontFamily: 'ZenMaruGothic',
                   fontWeight: FontWeight.w700, // Bold
-                  fontSize: 20,
+                  fontSize: 18,
                 ),
                 textAlign: TextAlign.center,
               ),
             ],
+          ),
+          decoration: const PageDecoration(
+            pageColor: Color.fromARGB(255, 255, 255, 255),
+            contentMargin: EdgeInsets.symmetric(vertical: 80.0), // マージンを調整
           ),
         ),
       ],
@@ -124,13 +129,21 @@ class OnboardingPage extends StatelessWidget {
         );
       },
       showSkipButton: false,
-      next: const Icon(Icons.arrow_forward),
-      done: const Text("はじめる", style: TextStyle(fontWeight: FontWeight.w600)),
+      next: const Icon(Icons.arrow_forward,
+          color: Color.fromARGB(255, 60, 177, 180) // 次へアイコンの色を設定
+          ),
+      done: const Text(
+        "はじめる",
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Color.fromARGB(255, 60, 177, 180), // 「はじめる」ボタンの色を設定
+        ),
+      ),
       dotsDecorator: DotsDecorator(
         size: const Size.square(10.0),
         activeSize: const Size(20.0, 10.0),
-        activeColor: Theme.of(context).colorScheme.secondary,
-        color: Colors.black26,
+        activeColor: Color.fromARGB(255, 60, 177, 180), // アクティブなドットの色を変更
+        color: Colors.grey, // 非アクティブなドットの色
         spacing: const EdgeInsets.symmetric(horizontal: 3.0),
         activeShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(25.0),

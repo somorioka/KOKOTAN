@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:kokotan/Algorithm/srs.dart';
+import 'package:kokotan/Algorithm/srs.dart'; // Card, Wordクラスを使う
 
 class DatabaseHelper {
   static const _databaseName = "myDatabase.db";
@@ -38,6 +38,7 @@ class DatabaseHelper {
   static const cardColumnReps = 'reps';
   static const cardColumnLapses = 'lapses';
   static const cardColumnLeft = 'left';
+  static const cardColumnDeckId = 'deck_id';
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -57,41 +58,40 @@ class DatabaseHelper {
 
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-          CREATE TABLE $wordTable (
-            $columnId INTEGER PRIMARY KEY,
-            $columnWord TEXT NOT NULL,
-            $columnWordVoice TEXT,
-            $columnPronunciation TEXT,
-            $columnMainMeaning TEXT,
-            $columnSubMeaning TEXT,
-            $columnSentence TEXT,
-            $columnSentenceVoice TEXT,
-        $columnSentenceJp TEXT,
-
-        -- 新しいカラム
-        $columnEnglishDefinition TEXT,
-        $columnEtymology TEXT,
-        $columnMemo TEXT,
-        $columnImageUrl TEXT
-          )
-          ''');
+    CREATE TABLE $wordTable (
+      id INTEGER PRIMARY KEY,
+      word TEXT NOT NULL,
+      pronunciation TEXT,
+      main_meaning TEXT,
+      sub_meaning TEXT,
+      sentence TEXT,
+      sentence_jp TEXT,
+      word_voice TEXT,
+      sentence_voice TEXT,
+      english_definition TEXT,
+      etymology TEXT,
+      memo TEXT,
+      image_url TEXT
+    )
+    ''');
 
     await db.execute('''
-          CREATE TABLE $cardTable (
-            $cardColumnId INTEGER PRIMARY KEY,
-            $cardColumnWordId INTEGER NOT NULL,
-            $cardColumnDue INTEGER,
-            $cardColumnCrt INTEGER,
-            $cardColumnType INTEGER,
-            $cardColumnQueue INTEGER,
-            $cardColumnIvl INTEGER,
-            $cardColumnFactor INTEGER,
-            $cardColumnReps INTEGER,
-            $cardColumnLapses INTEGER,
-            $cardColumnLeft INTEGER,
-            FOREIGN KEY ($cardColumnWordId) REFERENCES $wordTable ($columnId)
-          )
-          ''');
+    CREATE TABLE $cardTable (
+      id INTEGER PRIMARY KEY,
+      word_id INTEGER NOT NULL,
+      deck_id INTEGER NOT NULL,
+      due INTEGER,
+      crt INTEGER,
+      type INTEGER,
+      queue INTEGER,
+      ivl INTEGER,
+      factor INTEGER,
+      reps INTEGER,
+      lapses INTEGER,
+      left INTEGER,
+      FOREIGN KEY (word_id) REFERENCES $wordTable (id)
+    )
+    ''');
   }
 
   // データの挿入
@@ -187,22 +187,14 @@ class DatabaseHelper {
     return null; // カードまたはWordが見つからなければnullを返す
   }
 
-  // 特定の単語が存在するか確認
-  Future<bool> doesWordExist(int wordId) async {
-    Database db = await instance.database;
+// 特定の `wordID` でカードが存在するか確認
+  Future<bool> doesCardExistWithWord(int wordId) async {
+    final db = await database;
     var result = await db.query(
-      wordTable,
-      where: '$columnId = ?',
+      cardTable,
+      where: 'word_id = ?',
       whereArgs: [wordId],
     );
-
-    // デバッグ用: 結果があればそれを出力
-    if (result.isNotEmpty) {
-      print('このwordIDの単語の存在を確認したよ: ${result.first}');
-    } else {
-      print('このwordIDの単語は見当たらない: $wordId');
-    }
-
     return result.isNotEmpty;
   }
 }
