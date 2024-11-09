@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "915470473346",
+    "project_id": "kokotan-3e401",
+    "storage_bucket": "kokotan-3e401.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915470473346:android:18e2e772a677d4337cfc9b",
+        "android_client_info": {
+          "package_name": "com.example.kokotan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA07XPQcQ1xdlZTQBppG6-hFTaSKYHQmaY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

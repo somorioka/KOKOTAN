@@ -4,6 +4,13 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
+  cloud_firestore
+  desktop_drop
+  file_selector_windows
+  firebase_core
+  irondash_engine_context
+  share_plus
+  super_native_extensions
   url_launcher_windows
 )
 
