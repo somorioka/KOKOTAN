@@ -13,39 +13,38 @@ class _RecordScreenState extends State<RecordScreen> {
   int? _selectedDeckID;
 
   @override
-  void initState() {
-    super.initState();
-    final viewModel = Provider.of<DataViewModel>(context, listen: false);
-    final availableDecks = viewModel.getAvailableDecks();
-    // selectedDeckIDがnullの時だけ初期化
-    _selectedDeckID = viewModel.getFirstDeckID(availableDecks) ?? 0;
-    fetchRecordData(); // 初期化時にデータを取得
-  }
-
-  void fetchRecordData() {
-    setState(() {
-      Provider.of<DataViewModel>(context, listen: false).updateFutureCardData();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final viewModel = Provider.of<DataViewModel>(context); // viewModelを取得
-    final availableDecks = viewModel.getAvailableDecks(); // 利用可能なデッキを取得
+    final viewModel = Provider.of<DataViewModel>(context, listen: false);
+
+    return FutureBuilder(
+      future: viewModel.initializeDeckData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text("エラーが発生しました: ${snapshot.error}"));
+        } else {
+          final availableDecks = viewModel.getAvailableDecks();
+          // 初期のデッキIDを設定
+          if (_selectedDeckID == null && availableDecks.isNotEmpty) {
+            _selectedDeckID = viewModel.getFirstDeckID(availableDecks);
+          }
+          return _buildMainContent(context, availableDecks, viewModel);
+        }
+      },
+    );
+  }
+
+  Widget _buildMainContent(BuildContext context,
+      List<Map<String, dynamic>> availableDecks, DataViewModel viewModel) {
     return DefaultTabController(
-      length: availableDecks.length, // デッキ数に応じてタブを設定
+      length: availableDecks.length,
       child: Scaffold(
         appBar: AppBar(
           title: Text('学習状況'),
-          automaticallyImplyLeading: false, // 左上の戻るボタンを非表示
-          centerTitle: true, // タイトルを中央に配置
+          automaticallyImplyLeading: false,
+          centerTitle: true,
           actions: [
-            // IconButton(
-            //   icon: Icon(Icons.refresh), // 更新ボタン
-            //   onPressed: fetchRecordData, // ボタンを押したらデータを再フェッチ
-            // ),
             IconButton(
               icon: const Icon(Icons.help_outline),
               onPressed: launchHelpURL,
@@ -70,137 +69,128 @@ class _RecordScreenState extends State<RecordScreen> {
             ),
             onTap: (index) {
               setState(() {
-                if (index < availableDecks.length) {
-                  _selectedDeckID = index + 1;
-                }
+                _selectedDeckID = index + 1;
               });
             },
-
             tabs: availableDecks
                 .map((deck) => Tab(text: deck["deckName"]))
                 .toList(),
           ),
         ),
-        body: FutureBuilder<Map<String, Map<String, int>>>(
-          future: viewModel.fetchAllDecksCardQueueDistribution(), // 直接呼び出し
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center, // 縦方向の中央
-                  crossAxisAlignment: CrossAxisAlignment.center, // 横方向の中央
-                  children: [
-                    CircularProgressIndicator(), // 読み込み中の表示
-                    SizedBox(height: 16), // アイテム間のスペース
-                    Text(
-                      'データをダウンロードしています…',
-                      style: TextStyle(
-                        fontFamily: 'ZenMaruGothic',
-                        fontWeight: FontWeight.w700, // Bold
-                        fontSize: 16,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            } else if (snapshot.hasError) {
-              return Text("エラーが発生しました: ${snapshot.error}"); // エラー表示
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Text("データがありません"); // データがない場合の表示
-            } else {
-              final cardData = snapshot.data ?? {}; // snapshot.dataからデータを取得
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 24.0),
-                      child: AspectRatio(
-                          aspectRatio: 1.0, // グラフを大きく
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              PieChart(
-                                PieChartData(
-                                  sections: showingSections(
-                                      cardData[_selectedDeckID.toString()]!),
-                                  centerSpaceRadius: 100, // 中央スペースを調整
-                                ),
-                              ),
-                              // Positioned(
-                              //   child: Text(
-                              //     viewModel.deckData[_selectedDeckID.toString()]![
-                              //         'deckName'],
-                              //     style: TextStyle(
-                              //         fontFamily: 'ZenMaruGothic',
-                              //         fontWeight: FontWeight.w700, // Bold
-                              //         fontSize: 25,
-                              //         color: Color(0xFF333333)),
-                              //   ),
-                              // ),
-                            ],
-                          )),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 10,
-                              offset: Offset(0, 5),
+        body: _selectedDeckID != null
+            ? FutureBuilder<Map<String, Map<String, int>>>(
+                future: viewModel.fetchAllDecksCardQueueDistribution(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text(
+                            'データをダウンロードしています…',
+                            style: TextStyle(
+                              fontFamily: 'ZenMaruGothic',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: Color(0xFF333333),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildStatusColumn(
-                                '新規',
-                                cardData[_selectedDeckID.toString()]!['New']!,
-                                Colors.blue),
-                            _buildStatusColumn(
-                                '学習中',
-                                cardData[_selectedDeckID.toString()]!['Learn']!,
-                                Colors.red),
-                            _buildStatusColumn(
-                                '復習',
-                                cardData[_selectedDeckID.toString()]![
-                                    'Review']!,
-                                Colors.green),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (viewModel.deckData[_selectedDeckID.toString()]![
-                            'isDownloaded'] !=
-                        DownloadStatus.downloaded)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          'ダウンロード中…',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.redAccent,
-                            fontStyle: FontStyle.italic,
-                            height: 1.5,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
+                        ],
                       ),
-                  ],
-                ),
-              );
-            }
-          },
-        ),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text("エラーが発生しました: ${snapshot.error}");
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Text("データがありません");
+                  } else {
+                    final cardData = snapshot.data ?? {};
+                    return _buildCardDataContent(context, cardData, viewModel);
+                  }
+                },
+              )
+            : Center(child: Text("デッキが選択されていません")),
+      ),
+    );
+  }
+
+  Widget _buildCardDataContent(BuildContext context,
+      Map<String, Map<String, int>> cardData, DataViewModel viewModel) {
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            child: AspectRatio(
+              aspectRatio: 1.0,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sections: showingSections(
+                          cardData[_selectedDeckID.toString()]!),
+                      centerSpaceRadius: 100,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatusColumn(
+                      '新規',
+                      cardData[_selectedDeckID.toString()]!['New']!,
+                      Colors.blue),
+                  _buildStatusColumn(
+                      '学習中',
+                      cardData[_selectedDeckID.toString()]!['Learn']!,
+                      Colors.red),
+                  _buildStatusColumn(
+                      '復習',
+                      cardData[_selectedDeckID.toString()]!['Review']!,
+                      Colors.green),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (viewModel.deckData[_selectedDeckID.toString()]!['isDownloaded'] !=
+              DownloadStatus.downloaded)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'データをダウンロード中…',
+                style: TextStyle(
+                    fontFamily: 'ZenMaruGothic',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -209,7 +199,6 @@ class _RecordScreenState extends State<RecordScreen> {
     return List.generate(3, (i) {
       final double fontSize = 16;
       final double radius = 50;
-
       switch (i) {
         case 0:
           return PieChartSectionData(
@@ -252,29 +241,29 @@ class _RecordScreenState extends State<RecordScreen> {
       }
     });
   }
-}
 
-Widget _buildStatusColumn(String label, int count, Color color) {
-  return Column(
-    children: [
-      Text(
-        label,
-        style: TextStyle(
-            fontFamily: 'ZenMaruGothic',
-            fontWeight: FontWeight.w700, // Bold
-            fontSize: 20,
-            color: Color(0xFF333333)),
-      ),
-      SizedBox(height: 8),
-      Text(
-        '$count 枚',
-        style: TextStyle(
-          fontFamily: 'ZenMaruGothic',
-          fontWeight: FontWeight.w700, // Bold
-          fontSize: 20,
-          color: color,
+  Widget _buildStatusColumn(String label, int count, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+              fontFamily: 'ZenMaruGothic',
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+              color: Color(0xFF333333)),
         ),
-      ),
-    ],
-  );
+        SizedBox(height: 8),
+        Text(
+          '$count 枚',
+          style: TextStyle(
+            fontFamily: 'ZenMaruGothic',
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
 }
