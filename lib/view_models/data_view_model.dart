@@ -30,29 +30,16 @@ class DataViewModel extends ChangeNotifier {
   Map<int, int> todayReviewCardsCount = {}; // デッキIDごとにレビューカードの処理数を格納
 
   DataViewModel() {
-    _initialize();
+    initializeDeckData(); // deckDataにロード済みデータまたはデフォルトをセット
   }
 
-  // ダウンロード状態を更新
-  void updateDownloadStatus(String deckID, DownloadStatus status) {
-    if (deckData.containsKey(deckID)) {
-      deckData[deckID]!['isDownloaded'] = status;
-      notifyListeners(); // UIに通知
-    }
-  }
+  Future<void> initializeData() async {
+    print('initializeDataを実行しています');
+    await fetchWordsAndInitializeScheduler();
+    // バックグラウンドで残りのデータをダウンロード
+    downloadRemainingData();
 
-  DownloadStatus getDownloadStatus(String deckID) {
-    return deckData[deckID]?['isDownloaded'] ?? DownloadStatus.notDownloaded;
-  }
-
-  String? getDownloadingDeckID() {
-    // 初期データのリストを走査して、ダウンロード中のデッキIDを探す
-    for (String deckID in deckData.keys) {
-      if (getDownloadStatus(deckID) == DownloadStatus.downloading) {
-        return deckID; // ダウンロード中のデッキIDを返す
-      }
-    }
-    return null; // ダウンロード中のデッキが見つからない場合はnullを返す
+    print('initializeDataが完了しました');
   }
 
   Future<void> initializeDeckData() async {
@@ -103,6 +90,28 @@ class DataViewModel extends ChangeNotifier {
       });
     }
     return {}; // データがない場合は空のマップを返す
+  }
+
+  // ダウンロード状態を更新
+  void updateDownloadStatus(String deckID, DownloadStatus status) {
+    if (deckData.containsKey(deckID)) {
+      deckData[deckID]!['isDownloaded'] = status;
+      notifyListeners(); // UIに通知
+    }
+  }
+
+  DownloadStatus getDownloadStatus(String deckID) {
+    return deckData[deckID]?['isDownloaded'] ?? DownloadStatus.notDownloaded;
+  }
+
+  String? getDownloadingDeckID() {
+    // 初期データのリストを走査して、ダウンロード中のデッキIDを探す
+    for (String deckID in deckData.keys) {
+      if (getDownloadStatus(deckID) == DownloadStatus.downloading) {
+        return deckID; // ダウンロード中のデッキIDを返す
+      }
+    }
+    return null; // ダウンロード中のデッキが見つからない場合はnullを返す
   }
 
   // 新規カードと復習カードの設定を更新
@@ -187,42 +196,25 @@ class DataViewModel extends ChangeNotifier {
   //   notifyListeners();
   // }
 
-  Future<void> _initialize() async {
-    _prefs = await SharedPreferences.getInstance();
-    // _loadLimitSettings();
+  // Future<void> _loadAllDataDownloadedFlag() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   _isAllDataDownloaded = prefs.getBool('allDataDownloaded') ?? false;
+  // }
 
-    await _loadAllDataDownloadedFlag(); // ここでデータダウンロードフラグを非同期に読み込む
-    await initializeDeckData(); // deckDataにロード済みデータまたはデフォルトをセット
-  }
+  // Future<void> _saveAllDataDownloadedFlag(bool value) async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   await prefs.setBool('allDataDownloaded', value);
+  // }
 
-  Future<void> _loadAllDataDownloadedFlag() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    _isAllDataDownloaded = prefs.getBool('allDataDownloaded') ?? false;
-  }
+  // Future<void> _save20DataDownloadedFlag(bool value) async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   await prefs.setBool('20DataDownloaded', value);
+  // }
 
-  Future<void> _saveAllDataDownloadedFlag(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('allDataDownloaded', value);
-  }
-
-  Future<void> _save20DataDownloadedFlag(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('20DataDownloaded', value);
-  }
-
-  Future<void> _load20DataDownloadedFlag() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    _is20DataDownloaded = prefs.getBool('20DataDownloaded') ?? false;
-  }
-
-  Future<void> initializeData() async {
-    print('initializeDataを実行しています');
-    await fetchWordsAndInitializeScheduler();
-    // バックグラウンドで残りのデータをダウンロード
-    downloadRemainingData();
-
-    print('initializeDataが完了しました');
-  }
+  // Future<void> _load20DataDownloadedFlag() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   _is20DataDownloaded = prefs.getBool('20DataDownloaded') ?? false;
+  // }
 
   List<srs.Word> get words => _words;
   List<srs.Card> get cards => _cards;
@@ -946,6 +938,7 @@ class DataViewModel extends ChangeNotifier {
         memo: memo,
         imageUrl: imageUrl,
       );
+
       await updateCurrentCard(); // 非同期処理を待機
     } else {
       print('currentCardがnullだったのでupdateCurrentCardを発動しませんでした');
