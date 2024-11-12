@@ -9,110 +9,126 @@ class RecordScreen extends StatefulWidget {
   _RecordScreenState createState() => _RecordScreenState();
 }
 
-class _RecordScreenState extends State<RecordScreen> {
+class _RecordScreenState extends State<RecordScreen>
+    with SingleTickerProviderStateMixin {
   int? _selectedDeckID;
+  TabController? _tabController;
+  Map<String, Map<String, int>>? _cardData;
+  bool _isLoading = true;
+  bool _isInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      final viewModel = Provider.of<DataViewModel>(context, listen: false);
+      _initializeData(viewModel);
+      _isInitialized = true;
+    }
+  }
+
+  void _initializeData(DataViewModel viewModel) async {
+    try {
+      print('Initializing data...');
+      await viewModel.initializeDeckData();
+      final availableDecks = viewModel.getAvailableDecks();
+
+      if (availableDecks.isNotEmpty) {
+        print('Available decks: ${availableDecks.length}');
+        _selectedDeckID = viewModel.getFirstDeckID(availableDecks);
+        _tabController = TabController(
+          length: availableDecks.length,
+          vsync: this,
+        );
+        _tabController!.addListener(() {
+          if (!_tabController!.indexIsChanging) {
+            setState(() {
+              _selectedDeckID =
+                  int.parse(availableDecks[_tabController!.index]['deckID']);
+            });
+          }
+        });
+
+        // カードデータの取得
+        final cardData = await viewModel.fetchAllDecksCardQueueDistribution();
+
+        setState(() {
+          _cardData = cardData;
+          _isLoading = false;
+        });
+      } else {
+        print('No available decks');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error in _initializeData: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<DataViewModel>(context, listen: false);
+    final viewModel = Provider.of<DataViewModel>(context);
+    final availableDecks = viewModel.getAvailableDecks();
 
-    return FutureBuilder(
-      future: viewModel.initializeDeckData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text("エラーが発生しました: ${snapshot.error}"));
-        } else {
-          final availableDecks = viewModel.getAvailableDecks();
-          // 初期のデッキIDを設定
-          if (_selectedDeckID == null && availableDecks.isNotEmpty) {
-            _selectedDeckID = viewModel.getFirstDeckID(availableDecks);
-          }
-          return _buildMainContent(context, availableDecks, viewModel);
-        }
-      },
-    );
-  }
-
-  Widget _buildMainContent(BuildContext context,
-      List<Map<String, dynamic>> availableDecks, DataViewModel viewModel) {
-    return DefaultTabController(
-      length: availableDecks.length,
-      child: Scaffold(
+    if (_isLoading ||
+        _tabController == null ||
+        _selectedDeckID == null ||
+        _cardData == null) {
+      // ローディング中
+      return Scaffold(
         appBar: AppBar(
           title: Text('学習状況'),
-          automaticallyImplyLeading: false,
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.help_outline),
-              onPressed: launchHelpURL,
-            ),
-          ],
-          bottom: TabBar(
-            isScrollable: true, // 横スクロール可能に設定
-            labelColor: const Color(0xFF333333), // 選択されたタブのテキスト色
-            unselectedLabelColor: Colors.grey, // 非選択タブのテキスト色
-            indicatorColor: Color.fromARGB(255, 60, 177, 180), // タブ下部のインジケータの色
-            indicatorWeight: 4.0, // インジケータの太さ
-            indicatorSize: TabBarIndicatorSize.label, // インジケータの幅（タブラベルに合わせる）
-            labelStyle: TextStyle(
-              fontSize: 18, // 選択されたタブのフォントサイズ
-              fontWeight: FontWeight.w700, // フォントの太さ
-              fontFamily: 'ZenMaruGothic', // フォントファミリー
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontSize: 14, // 非選択タブのフォントサイズ
-              fontWeight: FontWeight.w500,
-              fontFamily: 'ZenMaruGothic',
-            ),
-            onTap: (index) {
-              setState(() {
-                _selectedDeckID = index + 1;
-              });
-            },
-            tabs: availableDecks
-                .map((deck) => Tab(text: deck["deckName"]))
-                .toList(),
-          ),
         ),
-        body: _selectedDeckID != null
-            ? FutureBuilder<Map<String, Map<String, int>>>(
-                future: viewModel.fetchAllDecksCardQueueDistribution(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text(
-                            'データをダウンロードしています…',
-                            style: TextStyle(
-                              fontFamily: 'ZenMaruGothic',
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else if (snapshot.hasError) {
-                    return Text("エラーが発生しました: ${snapshot.error}");
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Text("データがありません");
-                  } else {
-                    final cardData = snapshot.data ?? {};
-                    return _buildCardDataContent(context, cardData, viewModel);
-                  }
-                },
-              )
-            : Center(child: Text("デッキが選択されていません")),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('学習状況'),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: launchHelpURL,
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          labelColor: const Color(0xFF333333),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Color.fromARGB(255, 60, 177, 180),
+          indicatorWeight: 4.0,
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'ZenMaruGothic',
+          ),
+          unselectedLabelStyle: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'ZenMaruGothic',
+          ),
+          tabs: availableDecks
+              .map((deck) => Tab(text: deck["deckName"]))
+              .toList(),
+        ),
       ),
+      body: _buildCardDataContent(context, _cardData!, viewModel),
     );
   }
 
