@@ -15,14 +15,22 @@ class _ListScreenState extends State<ListScreen>
     with SingleTickerProviderStateMixin {
   TextEditingController _searchController = TextEditingController();
   int? _selectedDeckID;
+  late Future<void> _initializationFuture;
 
   @override
   void initState() {
     super.initState();
+    _initializationFuture = _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    // DataViewModel の初期化を待つ
     final viewModel = Provider.of<DataViewModel>(context, listen: false);
+    await viewModel.initializeDeckData();
     final availableDecks = viewModel.getAvailableDecks();
-    // selectedDeckIDがnullの時だけ初期化
-    _selectedDeckID = viewModel.getFirstDeckID(availableDecks) ?? 0;
+    setState(() {
+      _selectedDeckID = viewModel.getFirstDeckID(availableDecks) ?? 0;
+    });
   }
 
   @override
