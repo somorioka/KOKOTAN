@@ -210,7 +210,7 @@ class _RecordScreenState extends State<RecordScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
-                'データをダウンロード中…\nアプリを開き直すと更新されます',
+                'データをダウンロード中…\n右上に更新ボタンがあるよ',
                 style: TextStyle(
                     fontFamily: 'ZenMaruGothic',
                     fontWeight: FontWeight.w700,
