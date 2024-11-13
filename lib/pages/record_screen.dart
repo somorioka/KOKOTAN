@@ -10,7 +10,7 @@ class RecordScreen extends StatefulWidget {
 }
 
 class _RecordScreenState extends State<RecordScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int? _selectedDeckID;
   TabController? _tabController;
   Map<String, Map<String, int>>? _cardData;
