@@ -445,13 +445,13 @@ class Scheduler {
     }
   }
 
-  void removeCardFromQueue(Card card) {
+  Future<void> removeCardFromQueue(Card card) async {
     if (card.queue == 0) {
-      newQueue.remove(card);
+      newQueue.removeWhere((c) => c.id == card.id);
     } else if (card.queue == 1) {
-      lrnQueue.remove(card);
+      lrnQueue.removeWhere((c) => c.id == card.id);
     } else if (card.queue == 2) {
-      revQueue.remove(card);
+      revQueue.removeWhere((c) => c.id == card.id);
     }
   }
 

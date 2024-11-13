@@ -179,7 +179,8 @@ class DatabaseHelper {
 
       if (wordResult.isNotEmpty) {
         // Wordとカードのデータを使ってCardを作成
-        Word word = Word.fromMap(wordResult.first); // WordのfromMapを使用
+        Word word =
+            Word.fromMap(wordResult.first); // WordのfromMapを使用してimageUrlも取得
         return Card.fromMap(cardResult.first, word); // CardのfromMapを使用
       }
     }

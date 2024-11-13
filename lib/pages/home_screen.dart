@@ -145,26 +145,41 @@ class HomeScreen extends HookWidget {
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DeckListPage(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      '単語帳を追加する',
-                      style: TextStyle(
-                        fontFamily: 'ZenMaruGothic',
-                        fontWeight: FontWeight.w400,
-                        fontSize: 16,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                  ),
+                  child: Consumer<DataViewModel>(
+                      builder: (context, viewModel, child) {
+                    // deckDataの中に"downloading"があるかチェック
+                    final isDownloading = viewModel.deckData.values.any(
+                        (deck) =>
+                            deck["isDownloaded"] == DownloadStatus.downloading);
+
+                    // ダウンロード中でない場合のみボタンを表示
+                    return isDownloading
+                        ? SizedBox.shrink() // ダウンロード中なら空のウィジェットを表示
+                        : Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DeckListPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                '単語帳を追加する',
+                                style: TextStyle(
+                                  fontFamily: 'ZenMaruGothic',
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 16,
+                                  color: Color(0xFF333333),
+                                ),
+                              ),
+                            ),
+                          );
+                  }),
                 ),
+                const SizedBox(height: 16),
                 const SizedBox(height: 16),
               ],
             );
