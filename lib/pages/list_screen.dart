@@ -190,7 +190,7 @@ class _ListScreenState extends State<ListScreen>
                                   textAlign: TextAlign.right,
                                 ),
                                 Text(
-                                  '次の復習日',
+                                  '次の学習日',
                                   style: TextStyle(
                                     fontFamily: 'ZenMaruGothic',
                                     fontWeight: FontWeight.w700,
