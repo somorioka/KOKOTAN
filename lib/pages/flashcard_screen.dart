@@ -525,7 +525,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
                                             label: '例文',
                                             onPressed: () {
                                               _searchSentence(
-                                                  word.word); // クロージャーでラップ
+                                                  word.sentence); // クロージャーでラップ
                                             },
                                           ),
                                         ),
