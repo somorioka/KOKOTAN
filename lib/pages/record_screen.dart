@@ -40,10 +40,16 @@ class _RecordScreenState extends State<RecordScreen>
       if (availableDecks.isNotEmpty) {
         print('Available decks: ${availableDecks.length}');
         _selectedDeckID = viewModel.getFirstDeckID(availableDecks);
+
+        // 既存のTabControllerがある場合は破棄する
+        _tabController?.dispose();
+
+        // 新しいTabControllerを生成
         _tabController = TabController(
-          length: availableDecks.length,
+          length: availableDecks.length, // デッキ数に合わせて設定
           vsync: this,
         );
+
         _tabController!.addListener(() {
           if (!_tabController!.indexIsChanging) {
             setState(() {
@@ -53,7 +59,6 @@ class _RecordScreenState extends State<RecordScreen>
           }
         });
 
-        // カードデータの取得
         final cardData = await viewModel.fetchAllDecksCardQueueDistribution();
 
         setState(() {
