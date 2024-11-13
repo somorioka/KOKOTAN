@@ -916,6 +916,7 @@ class DataViewModel extends ChangeNotifier {
     notifyListeners(); // 状態が変更されたことを通知
   }
 
+// 編集されたWordデータをcurrentCardに反映
   Future<void> updateWordInCurrentCard(
       String word,
       String pronunciation,
@@ -927,26 +928,29 @@ class DataViewModel extends ChangeNotifier {
       String etymology,
       String memo,
       String? imageUrl) async {
+    // 非同期関数にする
     print('updateWordを発動しました');
     if (currentCard != null) {
-      currentCard!.word.word = word;
-      currentCard!.word.pronunciation =
-          pronunciation.isNotEmpty ? pronunciation : null;
-      currentCard!.word.mainMeaning = mainMeaning;
-      currentCard!.word.subMeaning = subMeaning.isNotEmpty ? subMeaning : null;
-      currentCard!.word.sentence = sentence;
-      currentCard!.word.sentenceJp = sentenceJp;
-      currentCard!.word.englishDefinition = englishDefinition;
-      currentCard!.word.etymology = etymology;
-      currentCard!.word.memo = memo;
-      currentCard!.word.imageUrl = imageUrl;
-
-      // 非同期処理を待機
-      await updateCurrentCard();
+      currentCard!.word = srs.Word(
+        id: currentCard!.word.id,
+        word: word,
+        pronunciation: pronunciation.isNotEmpty ? pronunciation : null,
+        mainMeaning: mainMeaning,
+        subMeaning: subMeaning.isNotEmpty ? subMeaning : null,
+        sentence: sentence,
+        sentenceJp: sentenceJp,
+        wordVoice: currentCard!.word.wordVoice,
+        sentenceVoice: currentCard!.word.sentenceVoice,
+        englishDefinition: englishDefinition,
+        etymology: etymology,
+        memo: memo,
+        imageUrl: imageUrl,
+      );
+      await updateCurrentCard(); // 非同期処理を待機
     } else {
       print('currentCardがnullだったのでupdateCurrentCardを発動しませんでした');
     }
-    return;
+    return; // 関数の最後にreturnを追加
   }
 
   // currentCardをデータベースに保存
@@ -975,19 +979,6 @@ class DataViewModel extends ChangeNotifier {
   // 最初のダウンロード済みデッキのdeckIDを取得する関数
   int? getFirstDeckID(List<Map<String, dynamic>> availableDecks) {
     return int.tryParse(availableDecks.first['deckID']);
-  }
-
-  // カードIDを指定してカードを取得
-  Future<void> fetchCardById(int cardId) async {
-    // データベースからカードを取得
-    currentCard = await dbHelper.queryCardById(cardId);
-
-    // 取得できた場合のみ通知
-    if (currentCard != null) {
-      notifyListeners();
-    } else {
-      print('Card not found for ID: $cardId');
-    }
   }
 
 //   void addCardToHistory(srs.Card card) {
