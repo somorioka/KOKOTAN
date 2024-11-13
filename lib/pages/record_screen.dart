@@ -29,6 +29,10 @@ class _RecordScreenState extends State<RecordScreen>
 
   void _initializeData(DataViewModel viewModel) async {
     try {
+      setState(() {
+        _isLoading = true;
+      });
+
       print('Initializing data...');
       await viewModel.initializeDeckData();
       final availableDecks = viewModel.getAvailableDecks();
@@ -101,6 +105,14 @@ class _RecordScreenState extends State<RecordScreen>
         centerTitle: true,
         actions: [
           IconButton(
+            icon: Icon(Icons.refresh), // 更新ボタンを追加
+            onPressed: () {
+              final viewModel =
+                  Provider.of<DataViewModel>(context, listen: false);
+              _initializeData(viewModel); // 更新ボタンが押されたときにデータを再取得
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.help_outline),
             onPressed: launchHelpURL,
           ),
@@ -151,7 +163,7 @@ class _RecordScreenState extends State<RecordScreen>
                       sections: showingSections(
                           cardData[_selectedDeckID.toString()]!),
                       centerSpaceRadius: 100,
-                      startDegreeOffset: -90, // ここで12時スタートに調整
+                      startDegreeOffset: -90, // 12時スタートに設定
                     ),
                   ),
                 ],
