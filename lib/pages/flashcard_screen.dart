@@ -41,11 +41,11 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   Color getCardQueueColor(int queue) {
     switch (queue) {
       case 0: // 新規
-        return Colors.blue;
+        return Color(0xFF3C8CB4);
       case 1: // 学習中
-        return Colors.red;
+        return Color(0xFFB43C3C);
       case 2: // 復習
-        return Colors.green;
+        return Color(0xFF3CB43E);
       default: // その他
         return Colors.grey;
     }
@@ -1265,7 +1265,7 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
   }
 
   void _searchGogen(String keyword) async {
-    final _url = Uri.parse('https://www.etymonline.com/word/$keyword');
+    final _url = Uri.parse('https://www.etymonline.com/jp/word/$keyword');
     if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $_url');
     }
