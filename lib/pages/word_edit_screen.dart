@@ -39,30 +39,29 @@ class _WordEditScreenState extends State<WordEditScreen> {
     super.initState();
 
     final viewModel = Provider.of<DataViewModel>(context, listen: false);
-    final currentWord = viewModel.currentWord;
 
-    wordController = TextEditingController(text: currentWord?.word ?? '');
+    wordController = TextEditingController(text: viewModel.currentWord?.word ?? '');
     pronunciationController =
-        TextEditingController(text: currentWord?.pronunciation ?? '');
+        TextEditingController(text: viewModel.currentWord?.pronunciation ?? '');
     mainMeaningController =
-        TextEditingController(text: currentWord?.mainMeaning ?? '');
+        TextEditingController(text: viewModel.currentWord?.mainMeaning ?? '');
     subMeaningController =
-        TextEditingController(text: currentWord?.subMeaning ?? '');
+        TextEditingController(text: viewModel.currentWord?.subMeaning ?? '');
     sentenceController =
-        TextEditingController(text: currentWord?.sentence ?? '');
+        TextEditingController(text: viewModel.currentWord?.sentence ?? '');
     sentenceJpController =
-        TextEditingController(text: currentWord?.sentenceJp ?? '');
+        TextEditingController(text: viewModel.currentWord?.sentenceJp ?? '');
 
     // 新しいコントローラの初期化
     englishDefinitionController =
-        TextEditingController(text: currentWord?.englishDefinition ?? '');
+        TextEditingController(text: viewModel.currentWord?.englishDefinition ?? '');
     etymologyController =
-        TextEditingController(text: currentWord?.etymology ?? '');
-    memoController = TextEditingController(text: currentWord?.memo ?? '');
+        TextEditingController(text: viewModel.currentWord?.etymology ?? '');
+    memoController = TextEditingController(text: viewModel.currentWord?.memo ?? '');
 
     // 画像がすでに保存されている場合、そのパスを使用して表示
-    if (currentWord?.imageUrl != null && currentWord!.imageUrl!.isNotEmpty) {
-      _selectedImage = File(currentWord.imageUrl!);
+    if (viewModel.currentWord?.imageUrl != null && viewModel.currentWord!.imageUrl!.isNotEmpty) {
+      _selectedImage = File(viewModel.currentWord!.imageUrl!);
     }
   }
 
@@ -341,9 +340,8 @@ class _WordEditScreenState extends State<WordEditScreen> {
         onPressed: _isProcessing
             ? null
             : () async {
-                final currentCard = viewModel.currentCard;
 
-                if (currentCard == null) return;
+                if (viewModel.currentCard == null) return;
 
                 String imageUrl =
                     _isImageDeleted ? '' : _selectedImage?.path ?? '';
