@@ -977,6 +977,19 @@ class DataViewModel extends ChangeNotifier {
     return int.tryParse(availableDecks.first['deckID']);
   }
 
+  // カードIDを指定してカードを取得
+  Future<void> fetchCardById(int cardId) async {
+    // データベースからカードを取得
+    currentCard = await dbHelper.queryCardById(cardId);
+
+    // 取得できた場合のみ通知
+    if (currentCard != null) {
+      notifyListeners();
+    } else {
+      print('Card not found for ID: $cardId');
+    }
+  }
+
 //   void addCardToHistory(srs.Card card) {
 //     // 履歴に同じIDのカードが既に存在するか確認
 //     bool alreadyExists =
