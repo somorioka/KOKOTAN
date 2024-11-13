@@ -151,6 +151,7 @@ class _RecordScreenState extends State<RecordScreen>
                       sections: showingSections(
                           cardData[_selectedDeckID.toString()]!),
                       centerSpaceRadius: 100,
+                      startDegreeOffset: -90, // ここで12時スタートに調整
                     ),
                   ),
                 ],
