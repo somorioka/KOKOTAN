@@ -31,16 +31,18 @@ class _WordEditScreenState extends State<WordEditScreen> {
   File? _selectedImage;
   bool _isImageDeleted = false;
   bool _isDragging = false; // ドラッグ中かどうかを示すフラグ
-  String? imageUrl;
   bool _isProcessing = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
+    // ProviderをdidChangeDependencies内で取得
     final viewModel = Provider.of<DataViewModel>(context, listen: false);
 
-    wordController = TextEditingController(text: viewModel.currentWord?.word ?? '');
+    // TextEditingControllerの初期化
+    wordController =
+        TextEditingController(text: viewModel.currentWord?.word ?? '');
     pronunciationController =
         TextEditingController(text: viewModel.currentWord?.pronunciation ?? '');
     mainMeaningController =
@@ -51,18 +53,23 @@ class _WordEditScreenState extends State<WordEditScreen> {
         TextEditingController(text: viewModel.currentWord?.sentence ?? '');
     sentenceJpController =
         TextEditingController(text: viewModel.currentWord?.sentenceJp ?? '');
-
-    // 新しいコントローラの初期化
-    englishDefinitionController =
-        TextEditingController(text: viewModel.currentWord?.englishDefinition ?? '');
+    englishDefinitionController = TextEditingController(
+        text: viewModel.currentWord?.englishDefinition ?? '');
     etymologyController =
         TextEditingController(text: viewModel.currentWord?.etymology ?? '');
-    memoController = TextEditingController(text: viewModel.currentWord?.memo ?? '');
+    memoController =
+        TextEditingController(text: viewModel.currentWord?.memo ?? '');
 
-    // 画像がすでに保存されている場合、そのパスを使用して表示
-    if (viewModel.currentWord?.imageUrl != null && viewModel.currentWord!.imageUrl!.isNotEmpty) {
-      _selectedImage = File(viewModel.currentWord!.imageUrl!);
-    }
+    // viewModelからカードを取得し、その後imageUrlを設定
+    viewModel.fetchCardById(viewModel.currentCard!.id).then((_) {
+      // データが取得されたらimageUrlからFileを生成して_selectedImageに設定
+      if (viewModel.currentCard?.word.imageUrl != null &&
+          viewModel.currentCard!.word.imageUrl!.isNotEmpty) {
+        setState(() {
+          _selectedImage = File(viewModel.currentCard!.word.imageUrl!);
+        });
+      }
+    });
   }
 
   @override
@@ -208,7 +215,7 @@ class _WordEditScreenState extends State<WordEditScreen> {
                   formats: Formats.standardFormats,
                   onPerformDrop: (event) async {
                     setState(() {
-                      _isProcessing = true; // 処理中フラグを立てる
+                      _isProcessing = true;
                     });
 
                     final item = event.session.items.first;
@@ -228,8 +235,15 @@ class _WordEditScreenState extends State<WordEditScreen> {
                           // ドキュメントディレクトリの取得
                           final appDir =
                               await getApplicationDocumentsDirectory();
+                          final imagesDir = Directory('${appDir.path}/images');
+
+                          // ディレクトリが存在しない場合は作成
+                          if (!await imagesDir.exists()) {
+                            await imagesDir.create(recursive: true);
+                          }
+
                           final permanentFilePath =
-                              '${appDir.path}/dropped_image_${DateTime.now().millisecondsSinceEpoch}.${format == Formats.jpeg ? 'jpeg' : 'png'}';
+                              '${imagesDir.path}/dropped_image_${DateTime.now().millisecondsSinceEpoch}.${format == Formats.jpeg ? 'jpeg' : 'png'}';
                           final permanentFile = File(permanentFilePath);
                           await permanentFile.writeAsBytes(data);
 
@@ -237,7 +251,7 @@ class _WordEditScreenState extends State<WordEditScreen> {
                           final compressedFile =
                               await FlutterImageCompress.compressAndGetFile(
                             permanentFile.absolute.path,
-                            '${appDir.path}/compressed_dropped_image_${DateTime.now().millisecondsSinceEpoch}.jpeg',
+                            '${imagesDir.path}/compressed_dropped_image_${DateTime.now().millisecondsSinceEpoch}.jpeg',
                             quality: 70,
                             minWidth: 1080,
                             minHeight: 1080,
@@ -245,26 +259,25 @@ class _WordEditScreenState extends State<WordEditScreen> {
 
                           setState(() {
                             _selectedImage = compressedFile;
-                            imageUrl = compressedFile?.path ?? '';
-                            print("Image saved at path: $imageUrl");
-                            _isProcessing = false; // ここで処理完了を設定
+                            _isImageDeleted = false; // 必要であれば追加
+                            _isProcessing = false;
                           });
                         }, onError: (error) {
                           print('Error reading image: $error');
                           setState(() {
-                            _isProcessing = false; // エラー時も処理完了を設定
+                            _isProcessing = false;
                           });
                         });
                       } catch (error) {
                         print('Error handling file: $error');
                         setState(() {
-                          _isProcessing = false; // キャッチしたエラー時も処理完了を設定
+                          _isProcessing = false;
                         });
                       }
                     } else {
                       print('Unsupported file format');
                       setState(() {
-                        _isProcessing = false; // サポート外の形式でも処理完了を設定
+                        _isProcessing = false;
                       });
                     }
                   },
@@ -286,6 +299,8 @@ class _WordEditScreenState extends State<WordEditScreen> {
                                   _selectedImage!,
                                   fit: BoxFit.contain,
                                   width: double.infinity,
+                                  key: ValueKey(
+                                      _selectedImage!.path), // これで画像のキャッシュを無効化
                                 ),
                                 Positioned(
                                   top: 0,
@@ -295,7 +310,7 @@ class _WordEditScreenState extends State<WordEditScreen> {
                                     onPressed: () {
                                       setState(() {
                                         _selectedImage = null;
-                                        imageUrl = null; // 画像とパスをリセット
+                                        _isImageDeleted = true;
                                       });
                                     },
                                   ),
@@ -340,10 +355,9 @@ class _WordEditScreenState extends State<WordEditScreen> {
         onPressed: _isProcessing
             ? null
             : () async {
-
                 if (viewModel.currentCard == null) return;
 
-                String imageUrl =
+                String imageUrlToSave =
                     _isImageDeleted ? '' : _selectedImage?.path ?? '';
 
                 // データベースの更新処理が完了するまで待機
@@ -357,7 +371,7 @@ class _WordEditScreenState extends State<WordEditScreen> {
                   englishDefinitionController.text,
                   etymologyController.text,
                   memoController.text,
-                  imageUrl,
+                  imageUrlToSave,
                 );
 
                 // 更新が完了した後に画面を閉じる
