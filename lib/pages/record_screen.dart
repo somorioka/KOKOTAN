@@ -33,18 +33,14 @@ class _RecordScreenState extends State<RecordScreen>
         _isLoading = true;
       });
 
-      print('Initializing data...');
       await viewModel.initializeDeckData();
       final availableDecks = viewModel.getAvailableDecks();
 
       if (availableDecks.isNotEmpty) {
-        print('Available decks: ${availableDecks.length}');
         _selectedDeckID = viewModel.getFirstDeckID(availableDecks);
 
-        // 既存のTabControllerがある場合は破棄する
+        // 既存のTabControllerがある場合は破棄し、新しいTabControllerを生成
         _tabController?.dispose();
-
-        // 新しいTabControllerを生成
         _tabController = TabController(
           length: availableDecks.length, // デッキ数に合わせて設定
           vsync: this,
@@ -66,7 +62,6 @@ class _RecordScreenState extends State<RecordScreen>
           _isLoading = false;
         });
       } else {
-        print('No available decks');
         setState(() {
           _isLoading = false;
         });
@@ -196,15 +191,15 @@ class _RecordScreenState extends State<RecordScreen>
                   _buildStatusColumn(
                       '新規',
                       cardData[_selectedDeckID.toString()]!['New']!,
-                      Colors.blue),
+                      Color(0xFF3C8CB4)),
                   _buildStatusColumn(
                       '学習中',
                       cardData[_selectedDeckID.toString()]!['Learn']!,
-                      Colors.red),
+                      Color(0xFFB43C3C)),
                   _buildStatusColumn(
                       '復習',
                       cardData[_selectedDeckID.toString()]!['Review']!,
-                      Colors.green),
+                      Color(0xFF3CB43E)),
                 ],
               ),
             ),
@@ -236,7 +231,7 @@ class _RecordScreenState extends State<RecordScreen>
       switch (i) {
         case 0:
           return PieChartSectionData(
-            color: Colors.blue,
+            color: Color(0xFF3C8CB4),
             value: cardData['New']!.toDouble(),
             title: '${cardData['New']}',
             radius: radius,
@@ -248,7 +243,7 @@ class _RecordScreenState extends State<RecordScreen>
           );
         case 1:
           return PieChartSectionData(
-            color: Colors.red,
+            color: Color(0xFFB43C3C),
             value: cardData['Learn']!.toDouble(),
             title: '${cardData['Learn']}',
             radius: radius,
@@ -260,7 +255,7 @@ class _RecordScreenState extends State<RecordScreen>
           );
         case 2:
           return PieChartSectionData(
-            color: Colors.green,
+            color: Color(0xFF3CB43E),
             value: cardData['Review']!.toDouble(),
             title: '${cardData['Review']}',
             radius: radius,
@@ -285,7 +280,7 @@ class _RecordScreenState extends State<RecordScreen>
               fontFamily: 'ZenMaruGothic',
               fontWeight: FontWeight.w700,
               fontSize: 20,
-              color: Color(0xFF333333)),
+              color: color),
         ),
         SizedBox(height: 8),
         Text(
@@ -293,7 +288,7 @@ class _RecordScreenState extends State<RecordScreen>
           style: TextStyle(
             fontFamily: 'ZenMaruGothic',
             fontWeight: FontWeight.w700,
-            fontSize: 20,
+            fontSize: 25,
             color: color,
           ),
         ),
