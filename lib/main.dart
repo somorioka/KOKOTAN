@@ -34,6 +34,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
+          progressIndicatorTheme: ProgressIndicatorThemeData(
+            color: Color.fromARGB(255, 60, 177, 180), // インジケーターの色を青に設定
+          ),
           scaffoldBackgroundColor: Color(0xFFF8F8F8), // 背景色を統一
           useMaterial3: true,
           elevatedButtonTheme: ElevatedButtonThemeData(
