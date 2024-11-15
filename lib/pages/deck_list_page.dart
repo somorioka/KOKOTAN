@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kokotan/pages/deck_downloading_page.dart';
 import 'package:kokotan/pages/top_page.dart';
+import 'package:kokotan/pages/vocablary_list_page.dart';
 import 'package:kokotan/view_models/data_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:kokotan/model/deck_list.dart';
@@ -81,8 +82,8 @@ class DeckListPageState extends State<DeckListPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          VocabularyListPage(vocab['deckName']),
+                                      builder: (context) => VocabularyListPage(
+                                          vocab['deckName'], vocab['fileUrl']),
                                     ),
                                   );
                                 },
@@ -213,122 +214,6 @@ class DeckListPageState extends State<DeckListPage> {
                       ),
                     ),
                   ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// 単語リストページ
-
-class VocabularyListPage extends StatelessWidget {
-  final String title;
-
-  VocabularyListPage(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('$title の単語リスト'),
-      ),
-      body: Consumer<DataViewModel>(
-        builder: (context, viewModel, child) {
-          final words = viewModel.words; // viewModelから単語リストを取得
-
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                // 見出し部分
-                Container(
-                  padding:
-                      EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-                  color: Colors.blueGrey[50],
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          'ID',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: Text(
-                          '単語',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: Text(
-                          '意味',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(height: 1, thickness: 1),
-                // 単語リスト部分
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: words.length,
-                    itemBuilder: (context, index) {
-                      final word = words[index];
-                      return Container(
-                        padding: EdgeInsets.symmetric(
-                            vertical: 16.0, horizontal: 8.0),
-                        decoration: BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(color: Colors.grey[300]!)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                word.id.toString(), // ID
-                                style: TextStyle(
-                                  fontFamily: 'ZenMaruGothic',
-                                  fontWeight: FontWeight.w700, // Bold
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 4,
-                              child: Text(
-                                word.word, // 単語
-                                style: TextStyle(
-                                  fontFamily: 'ZenMaruGothic',
-                                  fontWeight: FontWeight.w700, // Bold
-                                  fontSize: 22,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 4,
-                              child: Text(
-                                word.mainMeaning, // メイン訳
-                                style: TextStyle(
-                                  fontFamily: 'ZenMaruGothic',
-                                  fontWeight: FontWeight.w700, // Bold
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
           );
         },
       ),
