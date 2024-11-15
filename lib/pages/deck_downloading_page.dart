@@ -64,8 +64,12 @@ class _DownloadProgressPageState extends State<DownloadProgressPage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/images/humor_dl_${widget.deckID}.png', // 画像のパス
+              fit: BoxFit.contain, // 画像のフィット方法（例: contain, cover）
+            ),
             Text(
               '${viewModel.deckData[widget.deckID.toString()]?['deckName'] ?? 'デッキ名不明'}の\n単語帳データを20枚だけ先に\nダウンロードしています',
               style: TextStyle(

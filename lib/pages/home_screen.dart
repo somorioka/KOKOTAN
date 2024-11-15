@@ -58,7 +58,7 @@ class HomeScreen extends HookWidget {
               children: [
                 const SizedBox(height: 16),
                 Container(
-                  height: screenHeight * 0.3,
+                  height: screenHeight * 0.34,
                   width: screenWidth * 0.9,
                   child: Image.asset(
                     randomImage.value,
