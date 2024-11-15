@@ -990,6 +990,53 @@ class DataViewModel extends ChangeNotifier {
     }
   }
 
+  List<srs.SimpleWord> _simpleWords = []; // SimpleWordのリストを保持
+  bool _isLoading = true;
+
+  List<srs.SimpleWord> get simpleWords => _simpleWords;
+  bool get isLoading => _isLoading;
+
+  // エクセルファイルをインポートし、SimpleWordリストとしてデータを読み込む
+  Future<void> importExcelForVocabralyList(File file) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      var bytes = file.readAsBytesSync();
+      var excel = Excel.decodeBytes(bytes);
+
+      List<srs.SimpleWord> wordsList = [];
+
+      for (var table in excel.tables.keys) {
+        var sheet = excel.tables[table];
+        if (sheet != null) {
+          for (int i = 1; i < sheet.rows.length; i++) {
+            // 1行目はヘッダーと仮定
+            var row = sheet.rows[i];
+            int? id = row[0]?.value is int
+                ? row[0]?.value as int
+                : int.tryParse(row[0]?.value.toString() ?? '');
+            String? word = row[1]?.value?.toString(); // 2列目を単語として取得
+            String? mainMeaning = row[4]?.value?.toString(); // 5列目をメイン意味として取得
+
+            if (id != null && word != null && mainMeaning != null) {
+              wordsList.add(
+                  srs.SimpleWord(id: id, word: word, mainMeaning: mainMeaning));
+            }
+          }
+        }
+      }
+
+      _simpleWords = wordsList;
+    } catch (e) {
+      print("Error importing Excel file: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}
+
 //   void addCardToHistory(srs.Card card) {
 //     // 履歴に同じIDのカードが既に存在するか確認
 //     bool alreadyExists =
@@ -1067,7 +1114,6 @@ class DataViewModel extends ChangeNotifier {
 //   }
 //   return null; // 履歴がない場合はnullを返す
 // }
-}
 
 // ヘルプURLを開くためのメソッド
 Future<void> launchHelpURL() async {
