@@ -39,7 +39,7 @@ class _VocabularyListPageState extends State<VocabularyListPage> {
         setState(() {
           _downloadedFile = file;
         });
-        context.read<DataViewModel>().importExcel(file);
+        context.read<DataViewModel>().importExcelForVocabralyList(file);
       } else {
         print('ダウンロードに失敗しました: ステータスコード ${response.statusCode}');
       }
