@@ -64,6 +64,18 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/add-picture.png
+    - assets/db/dev_kokotan_list.xlsx
+    - assets/images/intro_1.png
+    - assets/images/intro_2.png
+    - assets/images/intro_3.png
+    - assets/images/intro_4.png
+    - assets/images/OK.png
+    - assets/images/yoyuu.png
+    - assets/images/bimyou.png
+    - assets/images/oboenaosu.png
+    - assets/images/humor_otsukare_1.png
+    - assets/images/sp_icon.png
     - assets/images/humor_column_1.png
     - assets/images/humor_column_2.png
     - assets/images/humor_column_3.png
@@ -104,6 +116,8 @@ flutter:
     - assets/images/humor_dl_1.png
     - assets/images/humor_dl_2.png
     - assets/images/humor_dl_3.png
+
+
 
   fonts:
     - family: ZenMaruGothic

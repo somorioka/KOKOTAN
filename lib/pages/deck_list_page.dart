@@ -138,7 +138,8 @@ class DeckListPageState extends State<DeckListPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: vocab['isDownloaded'] ==
                                     DownloadStatus.downloaded
-                                ? Colors.grey // ダウンロード済み
+                                ? const Color.fromARGB(
+                                    255, 124, 124, 124) // ダウンロード済み
                                 : vocab['isDownloaded'] ==
                                         DownloadStatus.downloading
                                     ? Colors.blueGrey // ダウンロード中
