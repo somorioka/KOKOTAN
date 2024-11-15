@@ -108,7 +108,6 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
             setState(() {
               showDetails = true;
               _playVoice(word?.sentenceVoice, viewModel); // viewModelを渡す
-              // viewModel.addCardToHistory(viewModel.currentCard!); // 履歴にカードを追加
             });
           },
           child: Scaffold(
@@ -711,24 +710,29 @@ class _FlashCardScreenState extends State<FlashCardScreen> {
             floatingActionButton: Row(
               mainAxisAlignment: MainAxisAlignment.end, // 右端に寄せる
               children: [
-                // // 左端に戻るボタン
-                // FloatingActionButton(
-                //   heroTag: 'undoButton', // heroTagを設定
-                //   onPressed: () async {
-                //     final previousCard =
-                //         await viewModel.getPreviousCard(); // 非同期処理
+                // 左端に戻るボタン
+                if (!showDetails)
+                  FloatingActionButton(
+                    heroTag: 'undoButton', // heroTagを設定
+                    onPressed: () async {
+                      final previousCard =
+                          await viewModel.getPreviousCard(); // 非同期処理
 
-                //     if (previousCard != null) {
-                //       await _playVoice(previousCard.word.wordVoice,
-                //           viewModel); // 非同期処理の完了を待つ
-                //     } else {
-                //       print("履歴がありません");
-                //     }
-                //     viewModel.notifyListeners(); // 非同期処理後に通知
-                //   },
-                //   child: Icon(Icons.undo),
-                //   tooltip: '戻る',
-                // ),
+                      if (previousCard != null) {
+                        await _playVoice(previousCard.word.wordVoice,
+                            viewModel); // 非同期処理の完了を待つ
+                      } else {
+                        print("履歴がありません");
+                      }
+                      viewModel.notifyListeners(); // 非同期処理後に通知
+                    },
+                    backgroundColor: Colors.white, // 背景色を変更
+                    foregroundColor:
+                        const Color.fromARGB(255, 125, 125, 125), // アイコンの色を変更
+
+                    child: Icon(Icons.undo),
+                    tooltip: '戻る',
+                  ),
 
                 Row(
                   mainAxisSize: MainAxisSize.min, // 内側のボタンを小さくまとめる

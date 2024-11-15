@@ -860,6 +860,8 @@ class DataViewModel extends ChangeNotifier {
   Future<void> answerCard(Map<String, dynamic> cardProperties, int ease,
       BuildContext context, int deckID) async {
     if (scheduler != null && currentCard != null) {
+      addCardToHistory(currentCard!, deckID); // 履歴にカードを追加
+
       scheduler!.removeCardFromQueue(currentCard!);
       // cardPropertiesがnullでない場合、currentCardのプロパティを更新
 
@@ -1035,85 +1037,92 @@ class DataViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  final List<srs.Card> _cardHistory = [];
+
+  void addCardToHistory(srs.Card card, int deckID) {
+    // 履歴に同じIDのカードが既に存在するか確認
+    bool alreadyExists =
+        _cardHistory.any((historyCard) => historyCard.id == card.id);
+
+    if (alreadyExists) {
+      print('同じカードが履歴に存在するため、追加しません');
+      return; // 同じカードが存在する場合は何もしない
+    }
+
+    // カードのディープコピーを手動で作成
+    final copiedCard = srs.Card(
+      card.word, // Wordクラスはそのままコピー（変更しないならそのまま）
+      deckID,
+      id: card.id, // IDもそのままコピー
+    )
+      ..due = card.due
+      ..crt = card.crt
+      ..type = card.type
+      ..queue = card.queue
+      ..ivl = card.ivl
+      ..factor = card.factor
+      ..reps = card.reps
+      ..lapses = card.lapses
+      ..left = card.left;
+
+    // コピーしたカードを履歴に追加
+    _cardHistory.add(copiedCard);
+
+    // 履歴の長さが10枚を超えたら、古い履歴を削除
+    if (_cardHistory.length > 10) {
+      _cardHistory.removeAt(0); // 一番古い履歴を削除
+    }
+
+    // リスナーに変更を通知
+    notifyListeners();
+  }
+
+  Future<srs.Card?> getPreviousCard() async {
+    if (_cardHistory.isNotEmpty) {
+      // 履歴から前のカードを取得
+      final previousCard = _cardHistory.removeLast();
+
+      // メモリ上のカードリストから対象カードを探す
+      final index = _cards.indexWhere((card) => card.id == previousCard.id);
+
+      if (index != -1) {
+        // 該当カードが見つかった場合、プロパティを更新
+        _cards[index]
+          ..due = previousCard.due
+          ..crt = previousCard.crt
+          ..type = previousCard.type
+          ..queue = previousCard.queue
+          ..ivl = previousCard.ivl
+          ..factor = previousCard.factor
+          ..reps = previousCard.reps
+          ..lapses = previousCard.lapses
+          ..left = previousCard.left;
+
+        // 更新したカードを現在のカードとして設定
+        currentCard = _cards[index];
+
+        // データベース上でも更新を反映
+        await dbHelper.updateCard(currentCard!);
+
+        // キューの中身をクリア
+        scheduler!.newQueue = [];
+        scheduler!.lrnQueue = [];
+        scheduler!.revQueue = [];
+
+        // キューを補充
+        scheduler!.fillAll(deckData);
+
+        notifyListeners(); // UI更新を通知
+        return currentCard;
+      } else {
+        print('該当するカードがメモリ上に見つかりません: ID=${previousCard.id}');
+        return null;
+      }
+    }
+    return null; // 履歴がない場合はnullを返す
+  }
 }
-
-//   void addCardToHistory(srs.Card card) {
-//     // 履歴に同じIDのカードが既に存在するか確認
-//     bool alreadyExists =
-//         _cardHistory.any((historyCard) => historyCard.id == card.id);
-
-//     if (alreadyExists) {
-//       print('同じカードが履歴に存在するため、追加しません');
-//       return; // 同じカードが存在する場合は何もしない
-//     }
-
-//     // カードのディープコピーを手動で作成
-//     final copiedCard = srs.Card(
-//       card.word, // Wordクラスはそのままコピー（変更しないならそのまま）
-//       id: card.id, // IDもそのままコピー
-//     )
-//       ..due = card.due
-//       ..crt = card.crt
-//       ..type = card.type
-//       ..queue = card.queue
-//       ..ivl = card.ivl
-//       ..factor = card.factor
-//       ..reps = card.reps
-//       ..lapses = card.lapses
-//       ..left = card.left;
-
-//     // コピーしたカードを履歴に追加
-//     _cardHistory.add(copiedCard);
-
-//     // 履歴の長さが10枚を超えたら、古い履歴を削除
-//     if (_cardHistory.length > 10) {
-//       _cardHistory.removeAt(0); // 一番古い履歴を削除
-//     }
-
-//     // リスナーに変更を通知
-//     notifyListeners();
-//   }
-
-//   Future<srs.Card?> getPreviousCard() async {
-//   if (_cardHistory.isNotEmpty) {
-//     // 履歴から前のカードを取得
-//     final previousCard = _cardHistory.removeLast();
-
-//     // データベース上の元のカードを取得（カードのIDで検索）
-//     final originalCard = await dbHelper.queryCardById(previousCard.id);
-
-//     if (originalCard != null) {
-//       // データベースの元のカードの情報を、履歴のカードの状態で更新
-//       originalCard.due = previousCard.due;
-//       originalCard.crt = previousCard.crt;
-//       originalCard.type = previousCard.type;
-//       originalCard.queue = previousCard.queue;
-//       originalCard.ivl = previousCard.ivl;
-//       originalCard.factor = previousCard.factor;
-//       originalCard.reps = previousCard.reps;
-//       originalCard.lapses = previousCard.lapses;
-//       originalCard.left = previousCard.left;
-
-//       // 更新したカードをデータベースに保存
-//       await dbHelper.updateCard(originalCard);
-//     }
-
-//     // 現在のカードとして previousCard を反映
-//     currentCard = previousCard;
-
-//     // キューの中身をクリア
-//     scheduler!.newQueue = [];
-//     scheduler!.lrnQueue = [];
-//     scheduler!.revQueue = [];
-
-//     // キューを補充
-//     scheduler!.fillAll();
-
-//     notifyListeners(); // UI更新を通知
-//     return previousCard;
-//   }
-//   return null; // 履歴がない場合はnullを返す
-// }
 
 // ヘルプURLを開くためのメソッド
 Future<void> launchHelpURL() async {
