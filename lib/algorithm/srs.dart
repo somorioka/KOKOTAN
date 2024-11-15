@@ -195,6 +195,18 @@ class Word {
     );
   }
 }
+class SimpleWord {
+  final int id;
+  final String word;
+  final String mainMeaning;
+
+  SimpleWord({
+    required this.id,
+    required this.word,
+    required this.mainMeaning,
+  });
+}
+
 
 /// カードクラス
 class Card {
