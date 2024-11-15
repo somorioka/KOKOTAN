@@ -190,7 +190,7 @@ class _ListScreenState extends State<ListScreen>
                                   textAlign: TextAlign.right,
                                 ),
                                 Text(
-                                  '次の復習日',
+                                  '次の学習日',
                                   style: TextStyle(
                                     fontFamily: 'ZenMaruGothic',
                                     fontWeight: FontWeight.w700,
@@ -245,11 +245,11 @@ class _ListScreenState extends State<ListScreen>
                         Color getCardQueueColor(int queue) {
                           switch (queue) {
                             case 0:
-                              return Colors.blue;
+                              return Color(0xFF3C8CB4);
                             case 1:
-                              return Colors.red;
+                              return Color(0xFFB43C3C);
                             case 2:
-                              return Colors.green;
+                              return Color(0xFF3CB43E);
                             default:
                               return Colors.grey;
                           }

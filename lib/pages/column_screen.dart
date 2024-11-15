@@ -82,7 +82,7 @@ class ColumnScreen extends HookWidget {
                       style: TextStyle(
                           fontFamily: 'ZenMaruGothic',
                           fontWeight: FontWeight.w400, // Bold
-                          fontSize: 16,
+                          fontSize: 18,
                           color: Color(0xFF333333)),
                     ),
                     SizedBox(height: 16),

@@ -89,9 +89,10 @@ class _DownloadProgressPageState extends State<DownloadProgressPage> {
             const SizedBox(height: 20),
             Text(
               "${(viewModel.downloadProgressMap[widget.deckID]! * 100).toInt()}%",
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+              style: TextStyle(
+                  fontFamily: 'ZenMaruGothic',
+                  fontWeight: FontWeight.w700, // Bold
+                  fontSize: 20,
                   color: Color(0xFF333333)),
             ),
           ],

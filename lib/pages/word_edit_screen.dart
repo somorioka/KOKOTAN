@@ -327,10 +327,10 @@ class _WordEditScreenState extends State<WordEditScreen> {
                                   Text(
                                     "タップ or ドロップ で画像追加！",
                                     style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 16,
-                                      color: Color(0xFF333333),
-                                    ),
+                                        fontFamily: 'ZenMaruGothic',
+                                        fontWeight: FontWeight.w500, // Bold
+                                        fontSize: 16,
+                                        color: Color(0xFF333333)),
                                   ),
                                 ],
                               ),
