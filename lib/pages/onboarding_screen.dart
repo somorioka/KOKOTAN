@@ -143,7 +143,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       globalFooter: Container(
         width: double.infinity,
         height: 60.0,
-        margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+        margin:
+            EdgeInsets.only(top: 10.0, bottom: 46.0, left: 24.0, right: 24.0),
         child: ElevatedButton(
           onPressed: () async {
             if (currentIndex == pages.length - 1) {
